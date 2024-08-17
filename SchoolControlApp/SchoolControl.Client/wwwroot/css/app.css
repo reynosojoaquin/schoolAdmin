@@ -101,3 +101,6 @@ a, .btn-link {
 code {
     color: #c02d76;
 }
+[class*=" bi-"]::before {
+    vertical-align: 0.875em !important;
+}

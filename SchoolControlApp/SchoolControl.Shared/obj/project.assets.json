@@ -13,11 +13,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Shared\\SchoolControl.Shared.csproj",
+      "projectUniqueName": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Shared\\SchoolControl.Shared.csproj",
       "projectName": "SchoolControl.Shared",
-      "projectPath": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Shared\\SchoolControl.Shared.csproj",
+      "projectPath": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Shared\\SchoolControl.Shared.csproj",
       "packagesPath": "C:\\Users\\joaquin\\.nuget\\packages\\",
-      "outputPath": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Shared\\obj\\",
+      "outputPath": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Shared\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\joaquin\\AppData\\Roaming\\NuGet\\NuGet.Config",

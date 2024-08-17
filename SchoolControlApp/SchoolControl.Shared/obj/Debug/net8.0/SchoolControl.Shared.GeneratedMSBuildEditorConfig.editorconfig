@@ -8,6 +8,6 @@ build_property.PlatformNeutralAssembly =
 build_property.EnforceExtendedAnalyzerRules = 
 build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property.RootNamespace = SchoolControl.Shared
-build_property.ProjectDir = E:\programacion\proyectos\control_acuicola\SchoolControlApp\SchoolControl.Shared\
+build_property.ProjectDir = C:\Users\joaquin\source\repos\schoolAdmin\SchoolControlApp\SchoolControl.Shared\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 

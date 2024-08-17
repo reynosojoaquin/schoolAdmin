@@ -1,30 +1,30 @@
 {
   "Version": 1,
-  "WorkspaceRootPath": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\",
+  "WorkspaceRootPath": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{95E26420-2E19-4263-B3CE-9AF4CA9701B4}|SchoolControl.Client\\SchoolControl.Client.csproj|e:\\programacion\\proyectos\\control_acuicola\\schoolcontrolapp\\schoolcontrol.client\\services\\provinciaservices.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{95E26420-2E19-4263-B3CE-9AF4CA9701B4}|SchoolControl.Client\\SchoolControl.Client.csproj|solutionrelative:schoolcontrol.client\\services\\provinciaservices.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{95E26420-2E19-4263-B3CE-9AF4CA9701B4}|SchoolControl.Client\\SchoolControl.Client.csproj|c:\\users\\joaquin\\source\\repos\\schooladmin\\schoolcontrolapp\\schoolcontrol.client\\pages\\createprovincia.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{95E26420-2E19-4263-B3CE-9AF4CA9701B4}|SchoolControl.Client\\SchoolControl.Client.csproj|solutionrelative:schoolcontrol.client\\pages\\createprovincia.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{467121E1-A682-41B2-A40F-CF9423F0E356}|SchoolControl.Server\\SchoolControl.Server.csproj|e:\\programacion\\proyectos\\control_acuicola\\schoolcontrolapp\\schoolcontrol.server\\controllers\\provinciacontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{467121E1-A682-41B2-A40F-CF9423F0E356}|SchoolControl.Server\\SchoolControl.Server.csproj|solutionrelative:schoolcontrol.server\\controllers\\provinciacontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{95E26420-2E19-4263-B3CE-9AF4CA9701B4}|SchoolControl.Client\\SchoolControl.Client.csproj|c:\\users\\joaquin\\source\\repos\\schooladmin\\schoolcontrolapp\\schoolcontrol.client\\wwwroot\\index.html||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{95E26420-2E19-4263-B3CE-9AF4CA9701B4}|SchoolControl.Client\\SchoolControl.Client.csproj|solutionrelative:schoolcontrol.client\\wwwroot\\index.html||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{95E26420-2E19-4263-B3CE-9AF4CA9701B4}|SchoolControl.Client\\SchoolControl.Client.csproj|e:\\programacion\\proyectos\\control_acuicola\\schoolcontrolapp\\schoolcontrol.client\\services\\iprovinciaservices.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{95E26420-2E19-4263-B3CE-9AF4CA9701B4}|SchoolControl.Client\\SchoolControl.Client.csproj|solutionrelative:schoolcontrol.client\\services\\iprovinciaservices.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{95E26420-2E19-4263-B3CE-9AF4CA9701B4}|SchoolControl.Client\\SchoolControl.Client.csproj|c:\\users\\joaquin\\source\\repos\\schooladmin\\schoolcontrolapp\\schoolcontrol.client\\pages\\provincia.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{95E26420-2E19-4263-B3CE-9AF4CA9701B4}|SchoolControl.Client\\SchoolControl.Client.csproj|solutionrelative:schoolcontrol.client\\pages\\provincia.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{95E26420-2E19-4263-B3CE-9AF4CA9701B4}|SchoolControl.Client\\SchoolControl.Client.csproj|e:\\programacion\\proyectos\\control_acuicola\\schoolcontrolapp\\schoolcontrol.client\\schoolcontrol.client.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
-      "RelativeMoniker": "D:0:0:{95E26420-2E19-4263-B3CE-9AF4CA9701B4}|SchoolControl.Client\\SchoolControl.Client.csproj|solutionrelative:schoolcontrol.client\\schoolcontrol.client.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+      "AbsoluteMoniker": "D:0:0:{95E26420-2E19-4263-B3CE-9AF4CA9701B4}|SchoolControl.Client\\SchoolControl.Client.csproj|c:\\users\\joaquin\\source\\repos\\schooladmin\\schoolcontrolapp\\schoolcontrol.client\\pages\\localidaddes.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{95E26420-2E19-4263-B3CE-9AF4CA9701B4}|SchoolControl.Client\\SchoolControl.Client.csproj|solutionrelative:schoolcontrol.client\\pages\\localidaddes.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{95E26420-2E19-4263-B3CE-9AF4CA9701B4}|SchoolControl.Client\\SchoolControl.Client.csproj|e:\\programacion\\proyectos\\control_acuicola\\schoolcontrolapp\\schoolcontrol.client\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{95E26420-2E19-4263-B3CE-9AF4CA9701B4}|SchoolControl.Client\\SchoolControl.Client.csproj|solutionrelative:schoolcontrol.client\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{95E26420-2E19-4263-B3CE-9AF4CA9701B4}|SchoolControl.Client\\SchoolControl.Client.csproj|c:\\users\\joaquin\\source\\repos\\schooladmin\\schoolcontrolapp\\schoolcontrol.client\\layout\\mainlayout.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{95E26420-2E19-4263-B3CE-9AF4CA9701B4}|SchoolControl.Client\\SchoolControl.Client.csproj|solutionrelative:schoolcontrol.client\\layout\\mainlayout.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{467121E1-A682-41B2-A40F-CF9423F0E356}|SchoolControl.Server\\SchoolControl.Server.csproj|e:\\programacion\\proyectos\\control_acuicola\\schoolcontrolapp\\schoolcontrol.server\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{467121E1-A682-41B2-A40F-CF9423F0E356}|SchoolControl.Server\\SchoolControl.Server.csproj|solutionrelative:schoolcontrol.server\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{95E26420-2E19-4263-B3CE-9AF4CA9701B4}|SchoolControl.Client\\SchoolControl.Client.csproj|c:\\users\\joaquin\\source\\repos\\schooladmin\\schoolcontrolapp\\schoolcontrol.client\\layout\\navmenu.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{95E26420-2E19-4263-B3CE-9AF4CA9701B4}|SchoolControl.Client\\SchoolControl.Client.csproj|solutionrelative:schoolcontrol.client\\layout\\navmenu.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     }
   ],
   "DocumentGroupContainers": [
@@ -39,75 +39,76 @@
             {
               "$type": "Document",
               "DocumentIndex": 1,
-              "Title": "ProvinciaController.cs",
-              "DocumentMoniker": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Server\\Controllers\\ProvinciaController.cs",
-              "RelativeDocumentMoniker": "SchoolControl.Server\\Controllers\\ProvinciaController.cs",
-              "ToolTip": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Server\\Controllers\\ProvinciaController.cs",
-              "RelativeToolTip": "SchoolControl.Server\\Controllers\\ProvinciaController.cs",
-              "ViewState": "AQIAAAsAAAAAAAAAAAAxwAAAAAAAAAAA",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-06-10T13:00:04.1Z"
+              "Title": "index.html",
+              "DocumentMoniker": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Client\\wwwroot\\index.html",
+              "RelativeDocumentMoniker": "SchoolControl.Client\\wwwroot\\index.html",
+              "ToolTip": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Client\\wwwroot\\index.html",
+              "RelativeToolTip": "SchoolControl.Client\\wwwroot\\index.html",
+              "ViewState": "AQIAAAYAAAAAAAAAAAAuwA8AAAAAAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001512|",
+              "WhenOpened": "2024-08-16T17:49:47.626Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "ProvinciaServices.cs",
-              "DocumentMoniker": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Client\\Services\\ProvinciaServices.cs",
-              "RelativeDocumentMoniker": "SchoolControl.Client\\Services\\ProvinciaServices.cs",
-              "ToolTip": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Client\\Services\\ProvinciaServices.cs",
-              "RelativeToolTip": "SchoolControl.Client\\Services\\ProvinciaServices.cs",
-              "ViewState": "AQIAAAgAAAAAAAAAAIA9wBMAAAANAAAA",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-06-06T18:41:06.168Z",
+              "Title": "CreateProvincia.razor",
+              "DocumentMoniker": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Client\\Pages\\CreateProvincia.razor",
+              "RelativeDocumentMoniker": "SchoolControl.Client\\Pages\\CreateProvincia.razor",
+              "ToolTip": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Client\\Pages\\CreateProvincia.razor",
+              "RelativeToolTip": "SchoolControl.Client\\Pages\\CreateProvincia.razor",
+              "ViewState": "AQIAABUAAAAAAAAAAAAAABoAAAA7AAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2024-08-16T15:02:46.513Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 2,
-              "Title": "IProvinciaServices.cs",
-              "DocumentMoniker": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Client\\Services\\IProvinciaServices.cs",
-              "RelativeDocumentMoniker": "SchoolControl.Client\\Services\\IProvinciaServices.cs",
-              "ToolTip": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Client\\Services\\IProvinciaServices.cs",
-              "RelativeToolTip": "SchoolControl.Client\\Services\\IProvinciaServices.cs",
-              "ViewState": "AQIAAAAAAAAAAAAAAAAqwAQAAAAnAAAA",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-06-06T18:30:05.27Z"
+              "Title": "Provincia.razor",
+              "DocumentMoniker": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Client\\Pages\\Provincia.razor",
+              "RelativeDocumentMoniker": "SchoolControl.Client\\Pages\\Provincia.razor",
+              "ToolTip": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Client\\Pages\\Provincia.razor",
+              "RelativeToolTip": "SchoolControl.Client\\Pages\\Provincia.razor",
+              "ViewState": "AQIAAAYAAAAAAAAAAAAAAA0AAAAeAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2024-08-15T21:40:53.354Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 3,
-              "Title": "SchoolControl.Client.csproj",
-              "DocumentMoniker": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Client\\SchoolControl.Client.csproj",
-              "RelativeDocumentMoniker": "SchoolControl.Client\\SchoolControl.Client.csproj",
-              "ToolTip": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Client\\SchoolControl.Client.csproj",
-              "RelativeToolTip": "SchoolControl.Client\\SchoolControl.Client.csproj",
-              "ViewState": "AQIAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2024-05-16T02:00:18.148Z"
+              "Title": "Localidaddes.razor",
+              "DocumentMoniker": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Client\\Pages\\Localidaddes.razor",
+              "RelativeDocumentMoniker": "SchoolControl.Client\\Pages\\Localidaddes.razor",
+              "ToolTip": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Client\\Pages\\Localidaddes.razor",
+              "RelativeToolTip": "SchoolControl.Client\\Pages\\Localidaddes.razor",
+              "ViewState": "AQIAABEAAAAAAAAAAAAAABwAAAAcAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2024-08-15T21:40:39.939Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 4,
-              "Title": "Program.cs",
-              "DocumentMoniker": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Client\\Program.cs",
-              "RelativeDocumentMoniker": "SchoolControl.Client\\Program.cs",
-              "ToolTip": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Client\\Program.cs",
-              "RelativeToolTip": "SchoolControl.Client\\Program.cs",
-              "ViewState": "AQIAAAAAAAAAAAAAAAAAAAgAAABfAAAA",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-05-16T02:00:03.236Z"
+              "Title": "MainLayout.razor",
+              "DocumentMoniker": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Client\\Layout\\MainLayout.razor",
+              "RelativeDocumentMoniker": "SchoolControl.Client\\Layout\\MainLayout.razor",
+              "ToolTip": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Client\\Layout\\MainLayout.razor",
+              "RelativeToolTip": "SchoolControl.Client\\Layout\\MainLayout.razor",
+              "ViewState": "AQIAALsAAAAAAAAAAAAAAKYAAAAxAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2024-08-14T21:15:47.96Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 5,
-              "Title": "Program.cs",
-              "DocumentMoniker": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Server\\Program.cs",
-              "RelativeDocumentMoniker": "SchoolControl.Server\\Program.cs",
-              "ToolTip": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Server\\Program.cs",
-              "RelativeToolTip": "SchoolControl.Server\\Program.cs",
-              "ViewState": "AQIAAAYAAAAAAAAAAAAAABkAAAADAAAA",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-05-16T01:47:20.764Z"
+              "Title": "NavMenu.razor",
+              "DocumentMoniker": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Client\\Layout\\NavMenu.razor",
+              "RelativeDocumentMoniker": "SchoolControl.Client\\Layout\\NavMenu.razor",
+              "ToolTip": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Client\\Layout\\NavMenu.razor",
+              "RelativeToolTip": "SchoolControl.Client\\Layout\\NavMenu.razor",
+              "ViewState": "AQIAANABAAAAAAAAAAAAANkBAAAFAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2024-08-11T14:53:07.503Z"
             }
           ]
         }

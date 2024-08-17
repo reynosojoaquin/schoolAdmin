@@ -1,0 +1,98 @@
+﻿
+@using SchoolControl.Shared;
+@using SchoolControl.Client.Services;
+@using CurrieTechnologies.Razor.SweetAlert2;
+
+@inject SweetAlertService Swal;
+@inject IProvinciaServices ProvinciaServices;
+@inject NavigationManager navegacion;
+
+<div class="card mt-4">
+    <div class="card-header">
+        <h3 class="card-title">@titulo</h3>
+    </div>
+    <div class="card-body">
+        <EditForm Model="provincia" OnValidSubmit="HandleValidSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="mb-3">
+                <label for="nombre" class="form-label">Nombre</label>
+                <InputText id="nombre" class="form-control" @bind-Value="provincia.Nombre" />
+                <ValidationMessage For="@(() => provincia.Nombre)" />
+            </div>
+
+            <div class="mb-3">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="fa-light fa-floppy-disk"></i> Guardar
+                </button>
+                <button type="button" class="btn btn-secondary" @onclick="HandleCancel">
+                    <i class="fa-solid fa-ban"></i> Cancelar
+                </button>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+
+
+
+@code {
+    [Parameter]
+    public EventCallback<string> OnValueSentBack { get; set; }
+    [Parameter]
+    public int id { get; set; } = 0;
+    string titulo = string.Empty;
+    string btnTexto = string.Empty;
+    ProvinciaDTO provincia = new ProvinciaDTO();
+    protected override async Task OnInitializedAsync()
+    {
+        if (id != 0)
+        {
+            provincia = await ProvinciaServices.Buscar(id);
+            btnTexto = "Actualizar Provincia";
+            titulo = "Editar Empleado";
+        }
+        else
+        {
+            provincia.Nombre = "";
+            btnTexto = "Guardar Provincia";
+            titulo = "Nueva Provincia";
+        }
+        Console.WriteLine("Llego");
+    }
+    private async Task OnValidSubmit()
+    {
+        int idDevuelto = 0;
+        if (id == 0)
+        {
+            idDevuelto = await ProvinciaServices.Guardar(provincia);
+        }
+        else
+            idDevuelto = await ProvinciaServices.Editar(provincia);
+
+        if (idDevuelto != 0)
+        {
+            navegacion.NavigateTo("/Provincia");
+        }
+    }
+    public void respuesta()
+    {
+        SendBackValue("false,pn");
+    }
+    public void SendBackValue(string value)
+    {
+        OnValueSentBack.InvokeAsync(value);
+    }
+    private void HandleCancel()
+    {
+        // Lógica para manejar la acción de cancelar
+        provincia.Nombre = string.Empty;
+    }
+
+    private void HandleValidSubmit()
+    {
+        // Lógica para manejar la acción de guardar
+      
+    }
+}

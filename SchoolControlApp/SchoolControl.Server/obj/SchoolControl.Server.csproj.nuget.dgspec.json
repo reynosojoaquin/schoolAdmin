@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Server\\SchoolControl.Server.csproj": {}
+    "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Server\\SchoolControl.Server.csproj": {}
   },
   "projects": {
-    "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Server\\SchoolControl.Server.csproj": {
+    "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Server\\SchoolControl.Server.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Server\\SchoolControl.Server.csproj",
+        "projectUniqueName": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Server\\SchoolControl.Server.csproj",
         "projectName": "SchoolControl.Server",
-        "projectPath": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Server\\SchoolControl.Server.csproj",
+        "projectPath": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Server\\SchoolControl.Server.csproj",
         "packagesPath": "C:\\Users\\joaquin\\.nuget\\packages\\",
-        "outputPath": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Server\\obj\\",
+        "outputPath": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Server\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\joaquin\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -28,8 +28,8 @@
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
-              "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Shared\\SchoolControl.Shared.csproj": {
-                "projectPath": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Shared\\SchoolControl.Shared.csproj"
+              "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Shared\\SchoolControl.Shared.csproj": {
+                "projectPath": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Shared\\SchoolControl.Shared.csproj"
               }
             }
           }
@@ -87,14 +87,14 @@
         }
       }
     },
-    "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Shared\\SchoolControl.Shared.csproj": {
+    "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Shared\\SchoolControl.Shared.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Shared\\SchoolControl.Shared.csproj",
+        "projectUniqueName": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Shared\\SchoolControl.Shared.csproj",
         "projectName": "SchoolControl.Shared",
-        "projectPath": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Shared\\SchoolControl.Shared.csproj",
+        "projectPath": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Shared\\SchoolControl.Shared.csproj",
         "packagesPath": "C:\\Users\\joaquin\\.nuget\\packages\\",
-        "outputPath": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Shared\\obj\\",
+        "outputPath": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Shared\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\joaquin\\AppData\\Roaming\\NuGet\\NuGet.Config",

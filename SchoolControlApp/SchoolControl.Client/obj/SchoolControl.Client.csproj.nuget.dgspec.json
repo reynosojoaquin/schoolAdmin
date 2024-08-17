@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Client\\SchoolControl.Client.csproj": {}
+    "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Client\\SchoolControl.Client.csproj": {}
   },
   "projects": {
-    "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Client\\SchoolControl.Client.csproj": {
+    "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Client\\SchoolControl.Client.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Client\\SchoolControl.Client.csproj",
+        "projectUniqueName": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Client\\SchoolControl.Client.csproj",
         "projectName": "SchoolControl.Client",
-        "projectPath": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Client\\SchoolControl.Client.csproj",
+        "projectPath": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Client\\SchoolControl.Client.csproj",
         "packagesPath": "C:\\Users\\joaquin\\.nuget\\packages\\",
-        "outputPath": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Client\\obj\\",
+        "outputPath": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Client\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\joaquin\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -28,8 +28,8 @@
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
-              "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Shared\\SchoolControl.Shared.csproj": {
-                "projectPath": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Shared\\SchoolControl.Shared.csproj"
+              "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Shared\\SchoolControl.Shared.csproj": {
+                "projectPath": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Shared\\SchoolControl.Shared.csproj"
               }
             }
           }
@@ -49,6 +49,10 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {
+            "CurrieTechnologies.Razor.SweetAlert2": {
+              "target": "Package",
+              "version": "[5.6.0, )"
+            },
             "Microsoft.AspNetCore.Components.WebAssembly": {
               "target": "Package",
               "version": "[8.0.3, )"
@@ -102,14 +106,14 @@
         }
       }
     },
-    "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Shared\\SchoolControl.Shared.csproj": {
+    "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Shared\\SchoolControl.Shared.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Shared\\SchoolControl.Shared.csproj",
+        "projectUniqueName": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Shared\\SchoolControl.Shared.csproj",
         "projectName": "SchoolControl.Shared",
-        "projectPath": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Shared\\SchoolControl.Shared.csproj",
+        "projectPath": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Shared\\SchoolControl.Shared.csproj",
         "packagesPath": "C:\\Users\\joaquin\\.nuget\\packages\\",
-        "outputPath": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Shared\\obj\\",
+        "outputPath": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Shared\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\joaquin\\AppData\\Roaming\\NuGet\\NuGet.Config",

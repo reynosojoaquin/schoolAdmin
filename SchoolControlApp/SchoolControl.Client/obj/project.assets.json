@@ -2,6 +2,25 @@
   "version": 3,
   "targets": {
     "net8.0": {
+      "CurrieTechnologies.Razor.SweetAlert2/5.6.0": {
+        "type": "package",
+        "dependencies": {
+          "Microsoft.AspNetCore.Components": "8.0.0",
+          "Microsoft.AspNetCore.Components.Web": "8.0.0"
+        },
+        "compile": {
+          "lib/net8.0/CurrieTechnologies.Razor.SweetAlert2.dll": {}
+        },
+        "runtime": {
+          "lib/net8.0/CurrieTechnologies.Razor.SweetAlert2.dll": {}
+        },
+        "build": {
+          "buildTransitive/CurrieTechnologies.Razor.SweetAlert2.props": {}
+        },
+        "buildMultiTargeting": {
+          "buildMultiTargeting/CurrieTechnologies.Razor.SweetAlert2.props": {}
+        }
+      },
       "Microsoft.AspNetCore.Authorization/8.0.3": {
         "type": "package",
         "dependencies": {
@@ -504,6 +523,25 @@
       }
     },
     "net8.0/browser-wasm": {
+      "CurrieTechnologies.Razor.SweetAlert2/5.6.0": {
+        "type": "package",
+        "dependencies": {
+          "Microsoft.AspNetCore.Components": "8.0.0",
+          "Microsoft.AspNetCore.Components.Web": "8.0.0"
+        },
+        "compile": {
+          "lib/net8.0/CurrieTechnologies.Razor.SweetAlert2.dll": {}
+        },
+        "runtime": {
+          "lib/net8.0/CurrieTechnologies.Razor.SweetAlert2.dll": {}
+        },
+        "build": {
+          "buildTransitive/CurrieTechnologies.Razor.SweetAlert2.props": {}
+        },
+        "buildMultiTargeting": {
+          "buildMultiTargeting/CurrieTechnologies.Razor.SweetAlert2.props": {}
+        }
+      },
       "Microsoft.AspNetCore.Authorization/8.0.3": {
         "type": "package",
         "dependencies": {
@@ -1001,6 +1039,61 @@
     }
   },
   "libraries": {
+    "CurrieTechnologies.Razor.SweetAlert2/5.6.0": {
+      "sha512": "AnWBR8DnZW4EN+N0XuNs2YFuZkNMKoq8MXD05g93sP8KR43oe3CrvdLeuq2TAmWZKmw4wZdPxemGo1RAuefcmw==",
+      "type": "package",
+      "path": "currietechnologies.razor.sweetalert2/5.6.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "README.md",
+        "build/CurrieTechnologies.Razor.SweetAlert2.props",
+        "build/Microsoft.AspNetCore.StaticWebAssets.props",
+        "buildMultiTargeting/CurrieTechnologies.Razor.SweetAlert2.props",
+        "buildTransitive/CurrieTechnologies.Razor.SweetAlert2.props",
+        "currietechnologies.razor.sweetalert2.5.6.0.nupkg.sha512",
+        "currietechnologies.razor.sweetalert2.nuspec",
+        "lib/net6.0/CurrieTechnologies.Razor.SweetAlert2.dll",
+        "lib/net7.0/CurrieTechnologies.Razor.SweetAlert2.dll",
+        "lib/net8.0/CurrieTechnologies.Razor.SweetAlert2.dll",
+        "lib/netstandard2.0/CurrieTechnologies.Razor.SweetAlert2.dll",
+        "logo_v2_128.png",
+        "staticwebassets/bootstrap4Theme.css",
+        "staticwebassets/bootstrap4Theme.js",
+        "staticwebassets/bootstrap4Theme.min.css",
+        "staticwebassets/bootstrap4Theme.min.js",
+        "staticwebassets/borderlessTheme.css",
+        "staticwebassets/borderlessTheme.js",
+        "staticwebassets/borderlessTheme.min.css",
+        "staticwebassets/borderlessTheme.min.js",
+        "staticwebassets/bulmaTheme.css",
+        "staticwebassets/bulmaTheme.js",
+        "staticwebassets/bulmaTheme.min.css",
+        "staticwebassets/bulmaTheme.min.js",
+        "staticwebassets/darkTheme.css",
+        "staticwebassets/darkTheme.js",
+        "staticwebassets/darkTheme.min.css",
+        "staticwebassets/darkTheme.min.js",
+        "staticwebassets/defaultTheme.css",
+        "staticwebassets/defaultTheme.js",
+        "staticwebassets/defaultTheme.min.css",
+        "staticwebassets/defaultTheme.min.js",
+        "staticwebassets/materialUITheme.css",
+        "staticwebassets/materialUITheme.js",
+        "staticwebassets/materialUITheme.min.css",
+        "staticwebassets/materialUITheme.min.js",
+        "staticwebassets/minimalTheme.css",
+        "staticwebassets/minimalTheme.js",
+        "staticwebassets/minimalTheme.min.css",
+        "staticwebassets/minimalTheme.min.js",
+        "staticwebassets/sweetAlert2.js",
+        "staticwebassets/sweetAlert2.min.js",
+        "staticwebassets/wordpressAdminTheme.css",
+        "staticwebassets/wordpressAdminTheme.js",
+        "staticwebassets/wordpressAdminTheme.min.css",
+        "staticwebassets/wordpressAdminTheme.min.js"
+      ]
+    },
     "Microsoft.AspNetCore.Authorization/8.0.3": {
       "sha512": "9Nic17acgZbysUlhGc+TEd9F8jI01kC6+V31sC7/xI5v2OSWGL8NhdYaB/Iu4KnDRoQEolg6qvepGsVfeYpIYA==",
       "type": "package",
@@ -2075,6 +2168,7 @@
   },
   "projectFileDependencyGroups": {
     "net8.0": [
+      "CurrieTechnologies.Razor.SweetAlert2 >= 5.6.0",
       "Microsoft.AspNetCore.Components.WebAssembly >= 8.0.3",
       "Microsoft.AspNetCore.Components.WebAssembly.DevServer >= 8.0.3",
       "Microsoft.NET.ILLink.Tasks >= 8.0.3",
@@ -2088,11 +2182,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Client\\SchoolControl.Client.csproj",
+      "projectUniqueName": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Client\\SchoolControl.Client.csproj",
       "projectName": "SchoolControl.Client",
-      "projectPath": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Client\\SchoolControl.Client.csproj",
+      "projectPath": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Client\\SchoolControl.Client.csproj",
       "packagesPath": "C:\\Users\\joaquin\\.nuget\\packages\\",
-      "outputPath": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Client\\obj\\",
+      "outputPath": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Client\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\joaquin\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -2109,8 +2203,8 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "projectReferences": {
-            "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Shared\\SchoolControl.Shared.csproj": {
-              "projectPath": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Shared\\SchoolControl.Shared.csproj"
+            "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Shared\\SchoolControl.Shared.csproj": {
+              "projectPath": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Shared\\SchoolControl.Shared.csproj"
             }
           }
         }
@@ -2130,6 +2224,10 @@
       "net8.0": {
         "targetAlias": "net8.0",
         "dependencies": {
+          "CurrieTechnologies.Razor.SweetAlert2": {
+            "target": "Package",
+            "version": "[5.6.0, )"
+          },
           "Microsoft.AspNetCore.Components.WebAssembly": {
             "target": "Package",
             "version": "[8.0.3, )"

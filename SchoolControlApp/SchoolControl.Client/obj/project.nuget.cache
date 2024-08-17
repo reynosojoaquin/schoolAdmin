@@ -1,9 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "m2BpzuKzvlppa2j+xx7I5cR3b6dcMtvFYrIOlhRFVXtNSPjvtamdazo9iIZnNksoAmUlqG+ILRN+fIq6kFQFNA==",
+  "dgSpecHash": "0hB/rOyDK7O1ym6Tz//JfLsS+UNkrXor0xZItrbwHGHpV9C1pPUn6xNLrqZFNxx4YzE7vKa3uLahkUbDP+knIg==",
   "success": true,
-  "projectFilePath": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Client\\SchoolControl.Client.csproj",
+  "projectFilePath": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Client\\SchoolControl.Client.csproj",
   "expectedPackageFiles": [
+    "C:\\Users\\joaquin\\.nuget\\packages\\currietechnologies.razor.sweetalert2\\5.6.0\\currietechnologies.razor.sweetalert2.5.6.0.nupkg.sha512",
     "C:\\Users\\joaquin\\.nuget\\packages\\microsoft.aspnetcore.authorization\\8.0.3\\microsoft.aspnetcore.authorization.8.0.3.nupkg.sha512",
     "C:\\Users\\joaquin\\.nuget\\packages\\microsoft.aspnetcore.components\\8.0.3\\microsoft.aspnetcore.components.8.0.3.nupkg.sha512",
     "C:\\Users\\joaquin\\.nuget\\packages\\microsoft.aspnetcore.components.analyzers\\8.0.3\\microsoft.aspnetcore.components.analyzers.8.0.3.nupkg.sha512",

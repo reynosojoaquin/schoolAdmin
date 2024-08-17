@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "6L9JMdtFj4XiJDJh17E3O1GuZhhs0Pe/QKb141Mi7fOtaOxL8oeGt2y5qEmzRlMgD3oCvYQgioDH4QD4sikSxA==",
+  "dgSpecHash": "5t93W7icd/TBxf8YGZ/jE/Kqnr8zSKIBzDzUxwALD9yp0tnv0RN5DMo59czWyoUx2LRZBe2VJaS1xn0TEfPv4Q==",
   "success": true,
-  "projectFilePath": "E:\\programacion\\proyectos\\control_acuicola\\SchoolControlApp\\SchoolControl.Server\\SchoolControl.Server.csproj",
+  "projectFilePath": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Server\\SchoolControl.Server.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\joaquin\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
     "C:\\Users\\joaquin\\.nuget\\packages\\microsoft.bcl.asyncinterfaces\\6.0.0\\microsoft.bcl.asyncinterfaces.6.0.0.nupkg.sha512",
