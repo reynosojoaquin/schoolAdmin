@@ -24,7 +24,7 @@
 
             <div class="mb-3">
                 <button type="submit" class="btn btn-primary me-2">
-                    <i class="fa-light fa-floppy-disk"></i> Guardar
+                    <i class="fa-solid fa-floppy-disk"></i> Guardar
                 </button>
                 <button type="button" class="btn btn-secondary" @onclick="HandleCancel">
                     <i class="fa-solid fa-ban"></i> Cancelar
@@ -86,8 +86,7 @@
     }
     private void HandleCancel()
     {
-        // Lógica para manejar la acción de cancelar
-        provincia.Nombre = string.Empty;
+        SendBackValue("false,p");
     }
 
     private void HandleValidSubmit()

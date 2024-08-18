@@ -9,5 +9,6 @@ namespace SchoolControl.Client.Services
         Task<int> Guardar(ProvinciaDTO provincia);
         Task<int> Editar(ProvinciaDTO provincia);
         Task<bool> Eliminar(int id);
+        Task<IEnumerable<ProvinciaDTO>> obtenerProvincias(int pagina, int maxNumber); 
     }
 }
