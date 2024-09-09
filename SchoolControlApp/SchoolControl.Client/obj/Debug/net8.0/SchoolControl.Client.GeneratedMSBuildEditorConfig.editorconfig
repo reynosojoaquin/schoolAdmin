@@ -13,59 +13,60 @@ build_property.EnforceExtendedAnalyzerRules =
 build_property._SupportedPlatformList = browser
 build_property.RootNamespace = SchoolControl.Client
 build_property.RootNamespace = SchoolControl.Client
-build_property.ProjectDir = C:\Users\joaquin\source\repos\schoolAdmin\SchoolControlApp\SchoolControl.Client\
+build_property.ProjectDir = /Users/joaquin.reynoso/Documents/GitHub/schoolAdmin/SchoolControlApp/SchoolControl.Client/
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = false
 build_property.RazorLangVersion = 8.0
 build_property.SupportLocalizedComponentNames = 
 build_property.GenerateRazorMetadataSourceChecksumAttributes = 
-build_property.MSBuildProjectDirectory = C:\Users\joaquin\source\repos\schoolAdmin\SchoolControlApp\SchoolControl.Client
+build_property.MSBuildProjectDirectory = /Users/joaquin.reynoso/Documents/GitHub/schoolAdmin/SchoolControlApp/SchoolControl.Client
 build_property._RazorSourceGeneratorDebug = 
+build_property.EffectiveAnalysisLevelStyle = 8.0
 
-[C:/Users/joaquin/source/repos/schoolAdmin/SchoolControlApp/SchoolControl.Client/App.razor]
+[/Users/joaquin.reynoso/Documents/GitHub/schoolAdmin/SchoolControlApp/SchoolControl.Client/App.razor]
 build_metadata.AdditionalFiles.TargetPath = QXBwLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/joaquin/source/repos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/Ciudad.razor]
-build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQ2l1ZGFkLnJhem9y
+[/Users/joaquin.reynoso/Documents/GitHub/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/Ciudad.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvQ2l1ZGFkLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/joaquin/source/repos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/Configuracion.razor]
-build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQ29uZmlndXJhY2lvbi5yYXpvcg==
+[/Users/joaquin.reynoso/Documents/GitHub/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/Configuracion.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvQ29uZmlndXJhY2lvbi5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/joaquin/source/repos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/Counter.razor]
-build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQ291bnRlci5yYXpvcg==
+[/Users/joaquin.reynoso/Documents/GitHub/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/Counter.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvQ291bnRlci5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/joaquin/source/repos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/CreateProvincia.razor]
-build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQ3JlYXRlUHJvdmluY2lhLnJhem9y
+[/Users/joaquin.reynoso/Documents/GitHub/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/CreateProvincia.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvQ3JlYXRlUHJvdmluY2lhLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/joaquin/source/repos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/Home.razor]
-build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSG9tZS5yYXpvcg==
+[/Users/joaquin.reynoso/Documents/GitHub/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/Home.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvSG9tZS5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/joaquin/source/repos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/Localidaddes.razor]
-build_metadata.AdditionalFiles.TargetPath = UGFnZXNcTG9jYWxpZGFkZGVzLnJhem9y
+[/Users/joaquin.reynoso/Documents/GitHub/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/Localidaddes.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvTG9jYWxpZGFkZGVzLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/joaquin/source/repos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/Provincia.razor]
-build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUHJvdmluY2lhLnJhem9y
+[/Users/joaquin.reynoso/Documents/GitHub/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/Provincia.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvUHJvdmluY2lhLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/joaquin/source/repos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/Weather.razor]
-build_metadata.AdditionalFiles.TargetPath = UGFnZXNcV2VhdGhlci5yYXpvcg==
+[/Users/joaquin.reynoso/Documents/GitHub/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/Weather.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvV2VhdGhlci5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/joaquin/source/repos/schoolAdmin/SchoolControlApp/SchoolControl.Client/_Imports.razor]
+[/Users/joaquin.reynoso/Documents/GitHub/schoolAdmin/SchoolControlApp/SchoolControl.Client/_Imports.razor]
 build_metadata.AdditionalFiles.TargetPath = X0ltcG9ydHMucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/joaquin/source/repos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Layout/MainLayout.razor]
-build_metadata.AdditionalFiles.TargetPath = TGF5b3V0XE1haW5MYXlvdXQucmF6b3I=
-build_metadata.AdditionalFiles.CssScope = b-4lm675x33t
+[/Users/joaquin.reynoso/Documents/GitHub/schoolAdmin/SchoolControlApp/SchoolControl.Client/Layout/MainLayout.razor]
+build_metadata.AdditionalFiles.TargetPath = TGF5b3V0L01haW5MYXlvdXQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-3jofc3vq7a
 
-[C:/Users/joaquin/source/repos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Layout/NavMenu.razor]
-build_metadata.AdditionalFiles.TargetPath = TGF5b3V0XE5hdk1lbnUucmF6b3I=
-build_metadata.AdditionalFiles.CssScope = b-abuoeuc9ek
+[/Users/joaquin.reynoso/Documents/GitHub/schoolAdmin/SchoolControlApp/SchoolControl.Client/Layout/NavMenu.razor]
+build_metadata.AdditionalFiles.TargetPath = TGF5b3V0L05hdk1lbnUucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-dy7bioohjb

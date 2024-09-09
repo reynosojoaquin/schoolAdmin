@@ -6,7 +6,7 @@
 
 @inject SweetAlertService Swal;
 @inject IProvinciaServices ProvinciaServices;
-<div class="card mt-4">
+<div class="card mt-6">
     <div class="card-header">
         <h3 class="card-title">Indice de provincias</h3>
     </div>
@@ -27,7 +27,8 @@
        
     </div>
     </div>
-<table class="table table-striped table-responsive ">
+
+<table class="table table-striped  " >
     <thead>
     <th>Id</th>
     <th>Nombre</th>
@@ -63,19 +64,14 @@
     </tbody>
     <div class="row">
         <div class="col-12">
-            <nav >
-                <ul class="pagination justify-content-center">
-                    <li class="page-item disabled">
-                        <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Anterior</a>
-                    </li>
-                    <li class="page-item"><a class="page-link" href="#">1</a></li>
-                    <li class="page-item"><a class="page-link" href="#">2</a></li>
-                    <li class="page-item"><a class="page-link" href="#">3</a></li>
-                    <li class="page-item">
-                        <a class="page-link" href="#">Siguiente</a>
-                    </li>
-                </ul>
-            </nav>
+            <div class="pagination">
+        @for (int i = 1; i <= totalPages; i++)
+        {
+            <button class="btn btn-secondary @((i == currentPage) ? "active" : "")" @onclick="() => OnPageChanged(i)">
+                @i
+            </button>
+        }
+    </div>
         </div>
     </div>
 </table>
@@ -91,10 +87,20 @@
     public bool showFirstPage { get; set; }
     [Parameter]
     public EventCallback<string> OnValueSentBack { get; set; }
+    private string filter = "";
+    private int currentPage = 1;
+    private int pageSize = 10;
+    private int totalPages;
 
     protected override async Task OnInitializedAsync()
     {
         ListaProvincias = await ProvinciaServices.Lista();
+    }
+    private void LoadData()
+    {
+        var result = ProvinciaServices.GetProvincias(filter, currentPage, pageSize);
+        ListaProvincias = result.provincias;
+        totalPages = (int)Math.Ceiling((double)result.TotalCount / pageSize);
     }
 
     private async Task eliminar(int id)
@@ -122,4 +128,27 @@
     {
         OnValueSentBack.InvokeAsync(value);
     }
+    private void OnSearchChanged(ChangeEventArgs e)
+    {
+        filter = e.Value.ToString();
+        currentPage = 1;
+        LoadData();
+    }
+
+    private void OnPageChanged(int page)
+    {
+        currentPage = page;
+        LoadData();
+    }
 }
+<style>
+     .col-id {
+        width: 100px; /* Ajusta este valor según el tamaño del contenido de la columna Id */
+        text-align: center;
+    }
+
+    .col-nombre {
+        width: 1px; /* Ajuste inicial para que tome el espacio restante */
+        white-space: nowrap; /* Evita el ajuste de línea en el contenido */
+    }
+</style>

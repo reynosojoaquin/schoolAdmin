@@ -1,8 +1,18 @@
 {
   "version": 2,
-  "dgSpecHash": "qbQNUcWc6t8UP+yloGOibrUVJKpHSJUzJt5gpoWG/PAu1ocvkjw3JDPnPHokIU/SQ9zJlPS8qAMxMcgun8ae+g==",
+  "dgSpecHash": "zBwSY0w3v7I=",
   "success": true,
-  "projectFilePath": "C:\\Users\\joaquin\\source\\repos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Shared\\SchoolControl.Shared.csproj",
-  "expectedPackageFiles": [],
-  "logs": []
+  "projectFilePath": "/Users/joaquin.reynoso/Documents/GitHub/schoolAdmin/SchoolControlApp/SchoolControl.Shared/SchoolControl.Shared.csproj",
+  "expectedPackageFiles": [
+    "/Users/joaquin.reynoso/.nuget/packages/microsoft.netcore.app.ref/8.0.7/microsoft.netcore.app.ref.8.0.7.nupkg.sha512",
+    "/Users/joaquin.reynoso/.nuget/packages/microsoft.aspnetcore.app.ref/8.0.7/microsoft.aspnetcore.app.ref.8.0.7.nupkg.sha512"
+  ],
+  "logs": [
+    {
+      "code": "Undefined",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "Problema al leer el archivo de caché /Users/joaquin.reynoso/Documents/GitHub/schoolAdmin/SchoolControlApp/SchoolControl.Shared/obj/project.nuget.cache : The operation was canceled."
+    }
+  ]
 }

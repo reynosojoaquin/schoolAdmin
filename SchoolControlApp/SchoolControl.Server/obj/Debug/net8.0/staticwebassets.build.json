@@ -1,11 +1,12 @@
 {
   "Version": 1,
-  "Hash": "r3uMRjHHFe1saeHdBvwd2pOLh1AwcsfIYY5BM9MJdAA=",
+  "Hash": "67KUGG7uJsk3mhMU+3GxPFt1+gFsS3IKlBzFMhhWASI=",
   "Source": "SchoolControl.Server",
   "BasePath": "_content/SchoolControl.Server",
   "Mode": "Default",
   "ManifestType": "Build",
   "ReferencedProjectsConfiguration": [],
   "DiscoveryPatterns": [],
-  "Assets": []
+  "Assets": [],
+  "Endpoints": []
 }

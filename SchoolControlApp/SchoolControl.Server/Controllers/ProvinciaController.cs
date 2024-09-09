@@ -4,6 +4,9 @@ using SchoolControl.Server.Models;
 using SchoolControl.Shared;
 using Microsoft.EntityFrameworkCore;
 using System.Runtime.InteropServices;
+using System.Reflection.Metadata;
+using System.IO.Compression;
+using System.Net.WebSockets;
 
 namespace SchoolControl.Server.Controllers
 {
@@ -172,9 +175,38 @@ namespace SchoolControl.Server.Controllers
             }
             return Ok(responseApi);
         }
+        [HttpGet]
+        [Route("page")]
+        public async Task<(IEnumerable<ProvinciaDTO>provincias,int TotalCount)> GetProvincias([FromQuery] string? filter ="S", [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        {
+                var listaProvincia = new  List<ProvinciaDTO>();
+                var resposeApi = new ResponseApi<List<ProvinciaDTO>>();
+                foreach(var item in await _dbContext.Provincias.ToListAsync())
+                {
+                    listaProvincia.Add(new ProvinciaDTO
+                    {
+                        Id = item.Id,
+                        Nombre = item.Nombre
+                    });
+                }
+                var ListaProvinciasDTO = new List<ProvinciaDTO>();
+                var provinciasFiltered = listaProvincia.Where(x => x.Nombre.Contains(filter));
 
+                // Total de elementos después del filtrado
+                var totalCount =  provinciasFiltered.Count();
+                Console.WriteLine(Convert.ToString(totalCount));
+                // Paginación usando LINQ
+                var provincias = await _dbContext.Provincias
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(p => new ProvinciaDTO
+                    {
+                        Id = p.Id,
+                        Nombre = p.Nombre
+                    }).ToListAsync();
 
-
+                return  (provincias, totalCount);
+        }
 
     }
 }

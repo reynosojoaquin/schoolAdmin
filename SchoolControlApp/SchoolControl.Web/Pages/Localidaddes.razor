@@ -1,0 +1,72 @@
+﻿@page "/Localidades"
+<h3>Localidades</h3>
+<div class="card card-primary card-outline">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-edit"></i>
+           Configuracion general de las localidades
+        </h3>
+    </div>
+    <div class="card-body">
+        <h4>Opciones</h4>
+        <div class="row">
+            <div class="col-5 col-sm-3">
+                <div class="nav flex-column nav-tabs h-100" id="vert-tabs-tab" role="tablist" aria-orientation="vertical">
+                    <a class="nav-link active" id="vert-tabs-provincia-tab" data-toggle="pill" href="#vert-tabs-home" role="tab" aria-controls="vert-tabs-home" aria-selected="true">Provincias</a>
+                    <a class="nav-link" id="vert-tabs-ciudad-tab" data-toggle="pill" href="#vert-tabs-profile" role="tab" aria-controls="vert-tabs-profile" aria-selected="false">Ciudades</a>
+                    <a class="nav-link" id="vert-tabs-sector-tab" data-toggle="pill" href="#vert-tabs-messages" role="tab" aria-controls="vert-tabs-messages" aria-selected="false">Sectores</a>
+      
+                </div>
+            </div>
+            <div class="col-7 col-sm-9">
+                <div class="tab-content" id="vert-tabs-tabContent">
+                    <div class="tab-pane text-left fade show active" id="vert-tabs-provincia" role="tabpanel" aria-labelledby="vert-tabs-home-tab">
+                      
+                       @if (showIndexProvincia)
+                        {
+                            <Provincia OnValueSentBack="ReceiveValue" />
+                        }
+                        else
+                        {
+                            <CreateProvincia OnValueSentBack="ReceiveValue" />
+                            <!-- <ProvinciaNew id=0 OnValueSentBack="ReceiveValue" /> -->
+                        }
+
+                    </div>
+                    <div class="tab-pane fade" id="vert-tabs-ciudad" role="tabpanel" aria-labelledby="vert-tabs-profile-tab">
+                        Mauris tincidunt mi at erat gravida, eget tristique urna bibendum. Mauris pharetra purus ut ligula tempor, et vulputate metus facilisis. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Maecenas sollicitudin, nisi a luctus interdum, nisl ligula placerat mi, quis posuere purus ligula eu lectus. Donec nunc tellus, elementum sit amet ultricies at, posuere nec nunc. Nunc euismod pellentesque diam.
+                    </div>
+                    <div class="tab-pane fade" id="vert-tabs-sector" role="tabpanel" aria-labelledby="vert-tabs-messages-tab">
+                        Morbi turpis dolor, vulputate vitae felis non, tincidunt congue mauris. Phasellus volutpat augue id mi placerat mollis. Vivamus faucibus eu massa eget condimentum. Fusce nec hendrerit sem, ac tristique nulla. Integer vestibulum orci odio. Cras nec augue ipsum. Suspendisse ut velit condimentum, mattis urna a, malesuada nunc. Curabitur eleifend facilisis velit finibus tristique. Nam vulputate, eros non luctus efficitur, ipsum odio volutpat massa, sit amet sollicitudin est libero sed ipsum. Nulla lacinia, ex vitae gravida fermentum, lectus ipsum gravida arcu, id fermentum metus arcu vel metus. Curabitur eget sem eu risus tincidunt eleifend ac ornare magna.
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+    </div>
+    <!-- /.card -->
+</div>
+@code {
+    private bool showIndexProvincia = true;
+    private string receivedValue = string.Empty;
+    public string titulo = "";
+    private void TogglePageProvincia(string value)
+    {
+  
+        showIndexProvincia =  Convert.ToBoolean(value);
+        showIndexProvincia = !showIndexProvincia;
+
+    }
+    private void ReceiveValue(string value)
+    {
+        string[] valores = value.Split(',');
+        string val =valores[0];
+        string opcion =valores[1];
+       
+        if(opcion == "p")
+        {
+             TogglePageProvincia(val);
+        }
+       
+    }
+}

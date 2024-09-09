@@ -1,4 +1,5 @@
 ﻿using SchoolControl.Shared;
+using System.IO.Pipelines;
 using System.Net.Http.Json;
 
 namespace SchoolControl.Client.Services
@@ -76,6 +77,21 @@ namespace SchoolControl.Client.Services
                 throw new Exception(response.Mensaje);
             }
         }
+
+        public async Task<(IEnumerable<ProvinciaDTO>provincias,int TotalCount)> GetProvincias(string? filter = "D", int page = 1, int pageSize = 10)
+    {
+        var query = await _httpClient.GetFromJsonAsync<Task<ProvinciaDTO>>($"http://localhost:5251/api/Provincia/page?filter={filter}&page={page}&pageSize={pageSize}");
+
+         // Verifica si la respuesta es nula
+    if (query == null || query.Provincias == null)
+    {
+        // Maneja el caso en que la respuesta sea nula o vacía
+        return (Enumerable.Empty<ProvinciaDTO>(), 0);
+    }
+
+    // Retorna las provincias y el total de registros
+    return (query.Provincias, query.TotalCount);
+    }
 
       
       

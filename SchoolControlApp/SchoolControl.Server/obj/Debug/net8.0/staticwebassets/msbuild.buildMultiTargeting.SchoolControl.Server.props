@@ -1,3 +1,3 @@
 ﻿<Project>
-  <Import Project="..\build\SchoolControl.Server.props" />
+  <Import Project="../build/SchoolControl.Server.props" />
 </Project>

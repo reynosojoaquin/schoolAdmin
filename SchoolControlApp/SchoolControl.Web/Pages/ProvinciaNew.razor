@@ -1,0 +1,63 @@
+﻿@page "/ProvinciaNew"
+
+@using SchoolControl.Shared;
+@using SchoolControl.Web.Services;
+@using CurrieTechnologies.Razor.SweetAlert2;
+
+@inject SweetAlertService Swal;
+@inject IProvinciaServices ProvinciaServices;
+@inject NavigationManager navegacion;
+<h3>@titulo </h3>
+<EditForm Model="provincia" OnValidSubmit="OnValidSubmit">
+    <DataAnnotationsValidator></DataAnnotationsValidator>
+    <div class="mb-3">
+        <label class="form-label">Nombre</label>
+        <InputText class="form-control" @bind-Value="provincia.Nombre"></InputText>
+        <ValidationMessage For="@(()=>provincia.Nombre)"></ValidationMessage>
+    </div>
+   
+</EditForm>
+
+@code {
+    [Parameter]
+    public EventCallback<string> OnValueSentBack { get; set; }
+    [Parameter]
+    public int id { get; set; } = 0;
+    string titulo = string.Empty;
+    string btnTexto = string.Empty;
+    ProvinciaDTO provincia = new ProvinciaDTO();
+    protected override async Task OnInitializedAsync(){
+        if(id !=0){
+            provincia = await ProvinciaServices.Buscar(id);
+            btnTexto  = "Actualizar Provincia";
+            titulo    = "Editar Empleado";
+        }
+        else{
+            provincia.Nombre = "";
+            btnTexto         = "Guardar Provincia";
+            titulo           = "Nueva Provincia";
+        }
+        Console.WriteLine("Llego");
+    }
+    private async Task OnValidSubmit(){
+        int idDevuelto = 0;
+        if (id == 0)
+        {
+            idDevuelto = await ProvinciaServices.Guardar(provincia);
+        }
+        else
+            idDevuelto = await ProvinciaServices.Editar(provincia);
+
+        if(idDevuelto !=0){
+            navegacion.NavigateTo("/Provincia");
+        } 
+    }
+    public void respuesta()
+    {
+        SendBackValue("false,pn");
+    }
+    public void SendBackValue(string value)
+    {
+        OnValueSentBack.InvokeAsync(value);
+    }
+}

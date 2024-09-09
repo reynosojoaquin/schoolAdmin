@@ -542,7 +542,10 @@
       "System.Threading.Channels/6.0.0": {},
       "SchoolControl.Shared/1.0.0": {
         "runtime": {
-          "SchoolControl.Shared.dll": {}
+          "SchoolControl.Shared.dll": {
+            "assemblyVersion": "1.0.0",
+            "fileVersion": "1.0.0.0"
+          }
         }
       }
     }

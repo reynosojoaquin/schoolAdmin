@@ -1,0 +1,153 @@
+﻿@page "/Provincias"
+
+@using SchoolControl.Shared;
+@using SchoolControl.Web.Services;
+@using CurrieTechnologies.Razor.SweetAlert2;
+
+@inject SweetAlertService Swal;
+@inject IProvinciaServices ProvinciaServices;
+<div class="card mt-6">
+    <div class="card-header">
+        <h3 class="card-title">Indice de provincias</h3>
+    </div>
+    <div class="card-body">
+    <div class="container mt-2">
+    <!-- Fila para el filtro y el botón -->
+    <div class="row mb-1">
+        <div class="col-md-4 text-start">
+            <!-- Botón para alguna acción -->
+            <button class="btn btn-primary" @onclick="showCreatePage">
+                <i class="fas fa-plus"></i> Añadir Nueva
+            </button>
+        </div>
+        <div class="col-md-8">
+            <!-- Campo para filtrar datos -->
+            <input type="text" id="filterInput" class="form-control" placeholder="Filtrar Provincias...">
+        </div>
+       
+    </div>
+    </div>
+
+<table class="table table-striped  " >
+    <thead>
+    <th>Id</th>
+    <th>Nombre</th>
+    <th>Acciones</th>
+    </thead>
+    <tbody>
+        @if (ListaProvincias == null)
+        {
+            <tr>
+                <td colspan="5" align="center">
+                    <img style="with:50px" src="https://media.tenor.com/2BLI5EO7yVAAAAAi/loading-image.gif" />
+                </td>
+            </tr>
+        }
+        else
+        {
+            foreach(var item in ListaProvincias)
+            {
+                <tr>
+                    <td>@item.Id</td>
+                    <td>@item.Nombre</td>
+                    <td>
+                        <button class="btn btn-sm btn-info" href="addProvincia/@item.Id">
+                            <i class="fas fa-edit"></i> Editar
+                        </button>
+                        <button class="btn btn-sm btn-danger"@onclick="(()=> eliminar(item.Id))">
+                            <i class="fas fa-trash-alt"></i>Eliminar
+                        </button>
+                    </td>
+                </tr>
+            }
+        }
+    </tbody>
+    <div class="row">
+        <div class="col-12">
+            <div class="pagination">
+        @for (int i = 1; i <= totalPages; i++)
+        {
+            <button class="btn btn-secondary @((i == currentPage) ? "active" : "")" @onclick="() => OnPageChanged(i)">
+                @i
+            </button>
+        }
+    </div>
+        </div>
+    </div>
+</table>
+</div>
+</div>
+
+
+
+
+@code {
+    List<ProvinciaDTO>? ListaProvincias = null;
+    [Parameter]
+    public bool showFirstPage { get; set; }
+    [Parameter]
+    public EventCallback<string> OnValueSentBack { get; set; }
+    private string filter = "";
+    private int currentPage = 1;
+    private int pageSize = 10;
+    private int totalPages;
+
+    protected override async Task OnInitializedAsync()
+    {
+        ListaProvincias = await ProvinciaServices.Lista();
+    }
+    private void LoadData()
+    {
+        var (provincias,totalCount) = ProvinciaServices.GetProvincias(filter, currentPage, pageSize);
+        totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+    }
+
+    private async Task eliminar(int id)
+    {
+        var resultado = await Swal.FireAsync(new SweetAlertOptions
+        {
+          Title = "Eliminar Provincia",
+          Text  = "Deseas eliminar la provincia",
+          Icon  = SweetAlertIcon.Question,
+          ShowCancelButton = true
+        });
+
+        if (resultado.IsConfirmed)
+        {
+            var eliminado = await ProvinciaServices.Eliminar(id);
+            if (eliminado)
+                ListaProvincias = ListaProvincias.FindAll(e => e.Id != id);
+        }
+    }
+    public void showCreatePage()
+    {
+        SendBackValue("true,p");
+    }
+    public void SendBackValue(string value)
+    {
+        OnValueSentBack.InvokeAsync(value);
+    }
+    private void OnSearchChanged(ChangeEventArgs e)
+    {
+        filter = e.Value.ToString();
+        currentPage = 1;
+        LoadData();
+    }
+
+    private void OnPageChanged(int page)
+    {
+        currentPage = page;
+        LoadData();
+    }
+}
+<style>
+     .col-id {
+        width: 100px; /* Ajusta este valor según el tamaño del contenido de la columna Id */
+        text-align: center;
+    }
+
+    .col-nombre {
+        width: 1px; /* Ajuste inicial para que tome el espacio restante */
+        white-space: nowrap; /* Evita el ajuste de línea en el contenido */
+    }
+</style>
