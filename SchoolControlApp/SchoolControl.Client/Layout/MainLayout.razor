@@ -1,4 +1,12 @@
 ﻿@inherits LayoutComponentBase
+@using SchoolControl.Client.Extensiones
+@using SchoolControl.Client.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider autenticacionProvider
+@inject NavigationManager navManager
+
+
+
 <div class="wrapper">
 
     <main>
@@ -11,10 +19,10 @@
                         <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
                     </li>
                     <li class="nav-item d-none d-sm-inline-block">
-                        <a href="index3.html" class="nav-link">Home</a>
+                        <a href="/" class="nav-link">INICIO</a>
                     </li>
                     <li class="nav-item d-none d-sm-inline-block">
-                        <a href="#" class="nav-link">Contact</a>
+                        <a @onclick="CerrarSesion" href="javascript:void(0)" class="nav-link">SALIR</a>
                     </li>
                 </ul>
 
@@ -147,7 +155,7 @@
                     <div class="container-fluid">
                         <div class="row mb-2">
                             <div class="col-sm-6">
-                                <h1 class="m-0">Dashboard v3</h1>
+                               
                             </div><!-- /.col -->
                             <div class="col-sm-6">
                                 <ol class="breadcrumb float-sm-right">
@@ -200,3 +208,11 @@
      
     </main>
 </div>
+@code{
+    private async Task CerrarSesion()
+    {
+        var autenticacionExt = (AutenticationExtension)autenticacionProvider;
+        await autenticacionExt.ActualizarEstadoAutenticacion(null);
+        navManager.NavigateTo("/", true);
+    }
+}

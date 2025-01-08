@@ -1,0 +1,54 @@
+﻿@page "/login"
+@layout LoginLayout
+@inject HttpClient httpclient
+@using SchoolControl.Client.Services;
+@using SchoolControl.Shared;
+@using SchoolControl.Client.Extensiones;
+@using Microsoft.AspNetCore.Components.Authorization;
+@inject AuthenticationStateProvider autenticacionProvider
+@inject NavigationManager navManger;
+<div class="container-fluid vh-100 d-flex p-0">
+    <!-- Imagen al lado izquierdo -->
+    <div class="col-9 bg-image" style="background-image: url('https://via.placeholder.com/1200x900'); background-size: cover; background-position: center;">
+    </div>
+
+    <!-- Formulario de login al lado derecho -->
+    <div class="col-3 d-flex align-items-center justify-content-center bg-light shadow-lg">
+        <div class="login-form w-75">
+            <h2 class="text-center mb-4">Iniciar Sesión</h2>
+            <EditForm Model="loginModel" OnValidSubmit="HandleLogin">
+                <div class="mb-3">
+                    <label for="UserName" class="form-label">Usuario</label>
+                    <InputText id="UserName" class="form-control" @bind-Value="loginModel.UserName" />
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Contraseña</label>
+                    <InputText id="password" type="password" class="form-control" @bind-Value="loginModel.Password" />
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Entrar</button>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginDto loginModel = new LoginDto();
+
+    private async void HandleLogin()
+    {
+        var loginResponse = await httpclient.PostAsJsonAsync<LoginDto>("/api/User/Login", loginModel);
+        if(loginResponse.IsSuccessStatusCode)
+        {
+            var sesionUsuario = await loginResponse.Content.ReadFromJsonAsync<SesionDTO>();
+            var autenticacionExt = (AutenticationExtension)autenticacionProvider;
+            await autenticacionExt.ActualizarEstadoAutenticacion(sesionUsuario);
+            navManger.NavigateTo("/");
+        }
+    }
+
+    public class LoginModel
+    {
+        public string Username { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+    }
+}

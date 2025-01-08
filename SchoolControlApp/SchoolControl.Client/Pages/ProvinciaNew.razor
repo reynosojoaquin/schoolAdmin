@@ -3,7 +3,6 @@
 @using SchoolControl.Shared;
 @using SchoolControl.Client.Services;
 @using CurrieTechnologies.Razor.SweetAlert2;
-
 @inject SweetAlertService Swal;
 @inject IProvinciaServices ProvinciaServices;
 @inject NavigationManager navegacion;
@@ -27,17 +26,19 @@
     string btnTexto = string.Empty;
     ProvinciaDTO provincia = new ProvinciaDTO();
     protected override async Task OnInitializedAsync(){
+
+        Console.WriteLine(id);
         if(id !=0){
             provincia = await ProvinciaServices.Buscar(id);
             btnTexto  = "Actualizar Provincia";
-            titulo    = "Editar Empleado";
+            titulo    = "Editar Provincia";
         }
         else{
             provincia.Nombre = "";
             btnTexto         = "Guardar Provincia";
             titulo           = "Nueva Provincia";
         }
-        Console.WriteLine("Llego");
+       
     }
     private async Task OnValidSubmit(){
         int idDevuelto = 0;

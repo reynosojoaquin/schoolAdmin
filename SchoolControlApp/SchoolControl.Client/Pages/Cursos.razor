@@ -1,0 +1,152 @@
+﻿@page "/Cursos"
+
+@using SchoolControl.Shared;
+@using SchoolControl.Client.Services;
+@using CurrieTechnologies.Razor.SweetAlert2;
+@using Microsoft.AspNetCore.Authorization;
+@using Microsoft.AspNetCore.Components.Authorization;
+@attribute [Authorize]
+
+@inject SweetAlertService Swal;
+@inject ICursoServices CursoServices;
+@inject NavigationManager NavigationManager
+<div class="card mt-6">
+    <div class="card-header">
+        <h3 class="card-title">INDICE DE CURSOS ACTIVOS</h3>
+    </div>
+    <div class="card-body">
+    <div class="container mt-2">
+    <!-- Fila para el filtro y el botón -->
+    <div class="row mb-1">
+        <div class="col-md-4 text-start">
+          
+            <button class="btn btn-primary" @onclick="()=> showCreatePage(0)">
+                <i class="fas fa-plus"></i> Añadir Nueva
+            </button>
+        </div>
+        <div class="col-md-8">
+            <!-- Campo para filtrar datos -->
+                    <input type="text" @bind-value="searchTerm" @onkeypress="OnKeyPress"  id="filterInput" class="form-control" placeholder="Filtrar Cursos...">
+        </div>
+       
+    </div>
+    </div>
+
+<table class="table table-striped  " >
+    <thead>
+    <th>Id</th>
+    <th>Nombre</th>
+    <th>Acciones</th>
+    </thead>
+    <tbody>
+        @if (ListaCursos == null)
+        {
+            <tr>
+                <td colspan="5" align="center">
+                    <img style="with:50px" src="https://media.tenor.com/2BLI5EO7yVAAAAAi/loading-image.gif" />
+                </td>
+            </tr>
+        }
+        else
+        {
+            foreach(var item in ListaCursos)
+            {
+                <tr>
+                    <td>@item.Cursoid</td>
+                    <td>@item.Nombre</td>
+                    <td>
+                                <button class="btn btn-sm btn-info" @onclick="(()=> Modificar(item.Cursoid))" href="addProvincia/@item.Cursoid">
+                            <i class="fas fa-edit"></i> Editar
+                        </button>
+                        <button class="btn btn-sm btn-danger"@onclick="(()=> eliminar(item.Cursoid))">
+                                    <i class="fas fa-trash-alt"></i>&nbspEliminar
+                        </button>
+                                <button class="btn btn-sm btn-success" @onclick="()=>mostrarAsignaturas(item.Cursoid)">
+                                    <i class="fa fa-book" aria-hidden="true"></i>&nbspAsignaturas
+                                </button>
+                    </td>
+                </tr>
+            }
+        }
+    </tbody>
+ 
+</table>
+</div>
+</div>
+
+
+
+
+@code {
+    [Parameter]
+    public string responsable { get; set; } = "";
+    public string searchTerm = string.Empty;
+    List<CursoDTO>? ListaCursos = null;
+    [Parameter]
+    public bool showFirstPage { get; set; }
+    [Parameter]
+    public EventCallback<string> OnValueSentBack { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        ListaCursos = await CursoServices.getCoursesTeachers();
+    }
+
+    private async Task FiltrarCursos()
+    {
+        // ListaCursos = await CursoServices.GetCountryFiltered(searchTerm);
+    }
+    private async Task OnKeyPress(KeyboardEventArgs e)
+    {
+        // Filtrar cuando se presione "Enter"
+        if (e.Key == "Enter")
+        {
+            await FiltrarCursos();
+        }
+    }
+    private async Task eliminar(int id)
+    {
+        var resultado = await Swal.FireAsync(new SweetAlertOptions
+        {
+          Title = "Eliminar Cursos",
+          Text  = "Deseas eliminar el Curso",
+          Icon  = SweetAlertIcon.Question,
+          ShowCancelButton = true
+        });
+
+        if (resultado.IsConfirmed)
+        {
+            var eliminado = await CursoServices.Eliminar(id);
+            if (eliminado)
+                ListaCursos = ListaCursos.FindAll(e => e.Cursoid != id);
+        }
+    }
+    private async Task Modificar(int id)
+    {
+        showCreatePage(id);
+    }
+    public void showCreatePage(int value)
+    {
+        SendBackValue("true,p,"+Convert.ToString(value));
+    }
+    public void SendBackValue(string value)
+    {
+        OnValueSentBack.InvokeAsync(value);
+    }
+    private  void mostrarAsignaturas(int? curso_id){
+        NavigationManager.NavigateTo($"/ListaAsignaturas/{curso_id}");
+    }
+
+
+}
+<style>
+     .col-id {
+        width: 100px; /* Ajusta este valor según el tamaño del contenido de la columna Id */
+        text-align: center;
+    }
+
+    .col-nombre {
+        width: 1px; /* Ajuste inicial para que tome el espacio restante */
+        white-space: nowrap; /* Evita el ajuste de línea en el contenido */
+    }
+</style>

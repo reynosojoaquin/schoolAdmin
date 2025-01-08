@@ -1,0 +1,112 @@
+﻿@page "/CreateCiudades"
+
+@using SchoolControl.Shared;
+@using SchoolControl.Client.Services;
+@using CurrieTechnologies.Razor.SweetAlert2;
+
+@inject SweetAlertService Swal;
+@inject ICiudadServices CiudadServices;
+@inject IProvinciaServices ProvinciaServices;
+@inject NavigationManager navegacion;
+
+<div class="card mt-4">
+    <div class="card-header">
+        <h3 class="card-title">@titulo</h3>
+    </div>
+    <div class="card-body">
+        <EditForm Model="ciudad">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="mb-3">
+                <label for="nombre" class="form-label">Nombre</label>
+                <InputText id="nombre" class="form-control" @bind-Value="ciudad.Nombre" />
+                <ValidationMessage For="@(() => ciudad.Nombre)" />
+            </div>
+            <div class="mb-3">
+                <label for="provincia" class="form-label">Provincia</label>
+                <InputSelect @bind-Value="ciudad.ProvinciaId" id="provincia" class="form-select" required>
+                    <option value="">Seleccione una provincia</option>
+                    @foreach (var provincia in provincias)
+                    {
+                        <option value="@provincia.Id">@provincia.Nombre</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="mb-3">
+                <button type="button" class="btn btn-primary me-2" @onclick="HandleValidSubmit">
+                    <i class="fa-solid fa-floppy-disk"></i> Guardar
+                </button>
+                <button type="button" class="btn btn-secondary" @onclick="HandleCancel">
+                    <i class="fa-solid fa-ban"></i> Cancelar
+                </button>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+
+
+
+@code {
+    [Parameter]
+    public EventCallback<string> OnValueSentBack { get; set; }
+    [Parameter]
+    public int id { get; set; } = 0;
+    string titulo = string.Empty;
+    string btnTexto = string.Empty;
+    CiudadDTO ciudad = new CiudadDTO();
+    private List<ProvinciaDTO> provincias  = new List<ProvinciaDTO>();
+    protected override async Task OnInitializedAsync()
+    {
+        provincias = await ProvinciaServices.Lista(0);
+        if (id != 0)
+        {
+            ciudad = await CiudadServices.Buscar(id);
+            btnTexto = "Actualizar ciudad";
+            titulo = "Editar ciudad";
+        }
+        else
+        {
+            ciudad.Nombre = "";
+            btnTexto = "Guardar ciudad";
+            titulo = "Nueva ciudad";
+        }
+    }
+
+
+    public void respuesta()
+    {
+        SendBackValue("false,cn");
+    }
+    public void SendBackValue(string value)
+    {
+        OnValueSentBack.InvokeAsync(value);
+    }
+    private void HandleCancel()
+    {
+        SendBackValue("false,c,0");
+    }
+
+    private async Task HandleValidSubmit()
+    {
+       
+        int idDevuelto = 0;
+        if (id == 0)
+        {
+
+            idDevuelto = await CiudadServices.Guardar(ciudad);
+        }
+        else
+        {
+            
+            idDevuelto = await CiudadServices.Editar(ciudad, ciudad.Id);
+        }
+
+        if (idDevuelto != 0)
+        {
+            HandleCancel();
+        }
+
+    }
+}

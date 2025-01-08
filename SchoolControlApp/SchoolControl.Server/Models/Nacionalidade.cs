@@ -11,5 +11,7 @@ public partial class Nacionalidade
 
     public int? NacionalidadId { get; set; }
 
-    public virtual ICollection<Persona> Personas { get; set; } = new List<Persona>();
+    public virtual ICollection<Docente> Docentes { get; set; } = new List<Docente>();
+
+    public virtual ICollection<Estudiante> Estudiantes { get; set; } = new List<Estudiante>();
 }

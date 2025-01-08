@@ -15,7 +15,33 @@ namespace SchoolControl.Server.Controllers
         {
             _dbContext = dbcontext;
         }
-
+        [HttpGet]
+        [Route("Lista")]
+        public async Task<IActionResult> Lista()
+        {
+            var resposeApi = new ResponseApi<List<CiudadDTO>>();
+            var ListaCiudadDTO = new List<CiudadDTO>();
+            try
+            {
+                foreach (var item in await _dbContext.Ciudades.ToListAsync())
+                {
+                    ListaCiudadDTO.Add(new CiudadDTO
+                    {
+                        Id          = item.Id,
+                        Nombre      = item.Nombre,
+                        ProvinciaId = item.ProvinciaId  
+                    });
+                }
+                resposeApi.correcto = true;
+                resposeApi.Valor = ListaCiudadDTO;
+            }
+            catch (Exception ex)
+            {
+                resposeApi.correcto = false;
+                resposeApi.Mensaje = ex.Message;
+            }
+            return Ok(resposeApi);
+        }
         [HttpGet]
         [Route("Buscar/{id}")]
         public async Task<IActionResult> Buscar(int id)
@@ -42,39 +68,8 @@ namespace SchoolControl.Server.Controllers
             return Ok(responseApi);
         }
 
-        [HttpGet]
-        [Route("Lista")]
-        public async Task<IActionResult> ListCiudades()
-        {
-            var responseApi = new ResponseApi<List<CiudadDTO>>();
-            var ListaCiudadesDTO = new List<CiudadDTO>();
-            try
-            {
-                foreach (var item in await _dbContext.Ciudades.ToListAsync())
-                {
-                    ListaCiudadesDTO.Add(
-                        new CiudadDTO
-                        {
-                            Id = item.Id,
-                            Nombre = item.Nombre,
-                            ProvinciaId = item.ProvinciaId
-
-                        }
-                        );
-                }
-                responseApi.correcto = true;
-                responseApi.Valor = ListaCiudadesDTO;
-            }
-            catch (Exception ex)
-            {
-                responseApi.correcto = false;
-                responseApi.Mensaje = ex.Message;
-            }
-            return Ok(responseApi);
-        }
-
         [HttpPost]
-        [Route("Guardar/{id}")]
+        [Route("Guardar")]
         public async Task<IActionResult> Guardar(CiudadDTO ciudad)
         {
             var responseApi = new ResponseApi<int>();
@@ -112,6 +107,7 @@ namespace SchoolControl.Server.Controllers
         [Route("Editar/{id}")]
         public async Task<IActionResult> Editar(CiudadDTO ciudad,int id)
         {
+          
             var responseApi = new ResponseApi<int>();
 
             try
@@ -121,7 +117,6 @@ namespace SchoolControl.Server.Controllers
                 if (DBCiudad != null)
                 {
                     DBCiudad.Nombre = ciudad.Nombre;
-                    _dbContext.Ciudades.Add(DBCiudad);
                     await _dbContext.SaveChangesAsync();
                     responseApi.correcto = true;
                     responseApi.Valor = DBCiudad.Id;

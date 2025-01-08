@@ -15,7 +15,33 @@ namespace SchoolControl.Server.Controllers
         {
             _dbContext = dbcontext;
         }
-
+        [HttpGet]
+        [Route("Lista")]
+        public async Task<IActionResult> Lista()
+        {
+            var resposeApi = new ResponseApi<List<SectorDTO>>();
+            var ListaSectoresDTO = new List<SectorDTO>();
+            try
+            {
+                foreach (var item in await _dbContext.Sectores.ToListAsync())
+                {
+                    ListaSectoresDTO.Add(new SectorDTO
+                    {
+                        Id          = item.Id,
+                        Nombre      = item.Nombre,
+                        CiudadId    = item.CiudadId
+                    });
+                }
+                resposeApi.correcto = true;
+                resposeApi.Valor = ListaSectoresDTO;
+            }
+            catch (Exception ex)
+            {
+                resposeApi.correcto = false;
+                resposeApi.Mensaje = ex.Message;
+            }
+            return Ok(resposeApi);
+        }
         [HttpGet]
         [Route("Buscar/{id}")]
         public async Task<IActionResult> Buscar(int id)
@@ -42,39 +68,9 @@ namespace SchoolControl.Server.Controllers
             }
             return Ok(responseApi);
         }
-
-        [HttpGet]
-        [Route("Lista")]
-        public async Task<IActionResult> ListSectores()
-        {
-            var responseApi = new ResponseApi<List<SectorDTO>>();
-            var ListaSectoresDTO = new List<SectorDTO>();
-            try
-            {
-                foreach (var item in await _dbContext.Sectores.ToListAsync())
-                {
-                    ListaSectoresDTO.Add(
-                        new SectorDTO
-                        {
-                            Id = item.Id,
-                            Nombre = item.Nombre,
-                            CiudadId = item.CiudadId
-                        }
-                        );
-                }
-                responseApi.correcto = true;
-                responseApi.Valor = ListaSectoresDTO;
-            }
-            catch (Exception ex)
-            {
-                responseApi.correcto = false;
-                responseApi.Mensaje = "error al consultar los sectores => "+ ex.Message;
-            }
-            return Ok(responseApi);
-        }
-
+      
         [HttpPost]
-        [Route("Guardar/{id}")]
+        [Route("Guardar")]
         public async Task<IActionResult> Guardar(SectorDTO sector)
         {
             var responseApi = new ResponseApi<int>();
@@ -122,7 +118,6 @@ namespace SchoolControl.Server.Controllers
                 if (DBSector != null)
                 {
                     DBSector.Nombre = sector.Nombre;
-                    _dbContext.Sectores.Add(DBSector);
                     await _dbContext.SaveChangesAsync();
                     responseApi.correcto = true;
                     responseApi.Valor = DBSector.Id;
@@ -174,7 +169,7 @@ namespace SchoolControl.Server.Controllers
             }
             return Ok(responseApi);
         }
-
+       
 
     }
 }

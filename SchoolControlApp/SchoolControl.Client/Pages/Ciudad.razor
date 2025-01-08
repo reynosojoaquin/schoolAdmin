@@ -4,9 +4,136 @@
 @using CurrieTechnologies.Razor.SweetAlert2;
 
 @inject SweetAlertService Swal;
-@inject ICiudadServices CiudadServices;
-<h3>Indice de Ciudades </h3>
+@inject ICiudadServices CiudadesServices;
+<div class="card mt-6">
+    <div class="card-header">
+        <h3 class="card-title">Indice de Ciudades</h3>
+    </div>
+    <div class="card-body">
+        <div class="container mt-2">
+            <!-- Fila para el filtro y el botón -->
+            <div class="row mb-1">
+                <div class="col-md-4 text-start">
+                    <button class="btn btn-primary" @onclick="()=> showCreatePage(0)">
+                        <i class="fas fa-plus"></i> Añadir Nueva
+                    </button>
+                </div>
+                <div class="col-md-8">
+                    <!-- Campo para filtrar datos -->
+                    <input type="text" @bind-value="searchTerm" @onkeypress="OnKeyPress" id="filterInput" class="form-control" placeholder="Filtrar Ciudades...">
+                </div>
+
+            </div>
+        </div>
+
+        <table class="table table-striped  ">
+            <thead>
+            <th>Id</th>
+            <th>Nombre</th>
+            <th>Acciones</th>
+            </thead>
+            <tbody>
+                @if (ListaCiudades == null)
+                {
+                    <tr>
+                        <td colspan="5" align="center">
+                            <img style="with:50px" src="https://media.tenor.com/2BLI5EO7yVAAAAAi/loading-image.gif" />
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var item in ListaCiudades)
+                    {
+                        <tr>
+                            <td>@item.Id</td>
+                            <td>@item.Nombre</td>
+                            <td>
+                                <button class="btn btn-sm btn-info" @onclick="(()=> Modificar(item.Id))" href="addCiudad/@item.Id">
+                                    <i class="fas fa-edit"></i> Editar
+                                </button>
+                                <button class="btn btn-sm btn-danger" @onclick="(()=> eliminar(item.Id))">
+                                    <i class="fas fa-trash-alt"></i>Eliminar
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+
+        </table>
+    </div>
+</div>
+
+
+
 
 @code {
+    public string searchTerm = string.Empty;
+    List<CiudadDTO>? ListaCiudades = null;
+    [Parameter]
+    public bool showFirstPage { get; set; }
+    [Parameter]
+    public EventCallback<string> OnValueSentBack { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        ListaCiudades = await CiudadesServices.Lista(10);
+    }
+
+    private async Task FiltrarCiudades()
+    {
+        ListaCiudades = await CiudadesServices.GetCityFiltered(searchTerm);
+    }
+    private async Task OnKeyPress(KeyboardEventArgs e)
+    {
+        // Filtrar cuando se presione "Enter"
+        if (e.Key == "Enter")
+        {
+            await FiltrarCiudades();
+        }
+    }
+    private async Task eliminar(int id)
+    {
+        var resultado = await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "Eliminar Ciudad",
+                Text = "Deseas eliminar la Ciudad",
+                Icon = SweetAlertIcon.Question,
+                ShowCancelButton = true
+            });
+
+        if (resultado.IsConfirmed)
+        {
+            var eliminado = await CiudadesServices.Eliminar(id);
+            if (eliminado)
+                ListaCiudades = ListaCiudades.FindAll(e => e.Id != id);
+        }
+    }
+    private async Task Modificar(int id)
+    {
+        showCreatePage(id);
+    }
+    public void showCreatePage(int value)
+    {
+        SendBackValue("true,c," + Convert.ToString(value));
+    }
+    public void SendBackValue(string value)
+    {
+        OnValueSentBack.InvokeAsync(value);
+    }
+
+
 
 }
+<style>
+     .col-id {
+        width: 100px; /* Ajusta este valor según el tamaño del contenido de la columna Id */
+        text-align: center;
+    }
+
+    .col-nombre {
+        width: 1px; /* Ajuste inicial para que tome el espacio restante */
+        white-space: nowrap; /* Evita el ajuste de línea en el contenido */
+    }
+</style>

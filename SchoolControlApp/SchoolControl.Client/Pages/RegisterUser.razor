@@ -1,0 +1,170 @@
+﻿@page "/userRegister"
+@using SchoolControl.Client.Services
+@using SchoolControl.Shared
+@using System.ComponentModel.DataAnnotations
+@inject IDocentesServices DocentesService
+@inject IRolesService RoleService
+@inject IUserService UserService
+
+<EditForm Model="user" OnValidSubmit="HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <div class="card mt-6">
+    <div class="card-header">
+            <h3 class="card-title"> <h3>Registro Usuario</h3></h3>
+    </div>
+    <div class="card-body">
+        <div class="container mt-2">
+                <div class="mb-3">
+                    <label for="username" class="form-label">Nombre de Usuario</label>
+                    <InputText id="username" class="form-control" @bind-Value="user.Username" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="Password" class="form-label">Contraseña</label>
+                    <InputText id="password" class="form-control" type="password" @bind-Value="user.Password" />
+                </div>
+            <div class="mb-3">
+                    <label for="pass" class="form-label">Repetir contraseña</label>
+                    <InputText id="pass" class="form-control" @bind-Value="user.Password" />
+            </div>
+                <div class="mb-3">
+                    <label for="roleSelect" class="form-label">Role:</label>
+                    <InputSelect @bind-Value="user.RoleId" id="roleSelect" class="form-select">
+                        <option value="0">Seleccione un role </option>
+                        @foreach (var role in Roles)
+                        {
+                            <option value="@role.Id" >@role.NombreRol</option>
+                        }
+                    </InputSelect>
+                </div>
+
+
+
+
+
+                <div class="card mt-6">
+                    <div class="card-header">
+                        <h2 class="card-title"> Empleado</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="container mt-2">
+                                <div class="mb-3">
+                                   
+                                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#selectDocenteModal">
+                                        Seleccionar Empleado
+                                    </button>
+                                <p class="mt-2">Empleado seleccionado: <strong>
+                                    @if(selectedDocente != null){
+                                            @selectedDocente.Nombres @selectedDocente.Apellido
+                                        }
+                                      </strong></p>
+                                </div>
+                        </div>
+
+                    </div>
+                </div>
+      
+
+            <button type="submit" class="btn btn-primary">Registrar</button>
+            </div>
+            </div>
+            </div>
+
+</EditForm>
+<!-- Modal para seleccionar docente -->
+<div class="modal fade" id="selectDocenteModal" tabindex="-1" aria-labelledby="selectDocenteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="selectDocenteModalLabel">Seleccionar Docente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="list-group">
+                    @foreach (var docente in DocentesList)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            @docente.Nombres &nbsp @docente.Apellido
+                            <button class="btn btn-sm btn-primary" @onclick="() => SelectDocente(docente)" data-bs-dismiss="modal">
+                                Seleccionar
+                            </button>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+@if (!string.IsNullOrEmpty(message))
+{
+    <div class="alert alert-success mt-3">@message</div>
+}
+
+@code {
+    private UserDto user = new();
+
+    private List<DocenteDTO> DocentesList = new();
+    private string? message;
+    private int userID = 0;
+    private DocenteDTO? selectedDocente;
+    private List<RoleDto> Roles = new  List<RoleDto>();
+    private int RoleSelectedId = 0;
+    protected override async Task OnInitializedAsync()
+    {
+        DocentesList = await
+        DocentesService.GetDocentesAsync();
+        Roles = await RoleService.GetRoles();
+    }
+    private void SelectDocente(DocenteDTO docente)
+    {        
+        selectedDocente =    docente;
+
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+
+            user.docenteID = selectedDocente.ID;
+            user.Fullname = $"{selectedDocente.Nombres} {selectedDocente.Apellido}";
+            user.Email = selectedDocente.Correo;
+            userID = await UserService.RegisterUser(user);
+            message = "Usuario registrado satisfactoriamente";
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+        }
+    }
+
+    public class UserRegisterDto
+    {
+        [Required (ErrorMessage = "El nombre completo es obligatorio.")]
+        public string Fullname { get; set; } = string.Empty;
+
+        [Required (ErrorMessage = "El correo es obligatorio.")]
+        [EmailAddress(ErrorMessage = "Correo inválido.")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required (ErrorMessage = "El nombre de usuario es obligatorio.")]
+        public string Username { get; set; } = string.Empty;
+
+        [Required (ErrorMessage = "La contraseña es obligatoria.")]
+        [StringLength (100, ErrorMessage = "La contraseña debe tener al menos {2} caracteres.", MinimumLength = 6)]
+        public string Password { get; set; } = string.Empty;
+    }
+}
+<style>
+    .modal-content {
+        border-radius: 8px;
+    }
+
+    .card {
+        border: 1px solid #ececec;
+    }
+</style>

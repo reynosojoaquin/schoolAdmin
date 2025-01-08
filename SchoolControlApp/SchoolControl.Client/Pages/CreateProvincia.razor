@@ -12,7 +12,7 @@
         <h3 class="card-title">@titulo</h3>
     </div>
     <div class="card-body">
-        <EditForm Model="provincia" OnValidSubmit="HandleValidSubmit">
+        <EditForm Model="provincia" >
             <DataAnnotationsValidator />
             <ValidationSummary />
 
@@ -23,7 +23,7 @@
             </div>
 
             <div class="mb-3">
-                <button type="submit" class="btn btn-primary me-2">
+                <button type="button" class="btn btn-primary me-2" @onclick="HandleValidSubmit">
                     <i class="fa-solid fa-floppy-disk"></i> Guardar
                 </button>
                 <button type="button" class="btn btn-secondary" @onclick="HandleCancel">
@@ -51,7 +51,7 @@
         {
             provincia = await ProvinciaServices.Buscar(id);
             btnTexto = "Actualizar Provincia";
-            titulo = "Editar Empleado";
+            titulo = "Editar Provincia";
         }
         else
         {
@@ -59,23 +59,8 @@
             btnTexto = "Guardar Provincia";
             titulo = "Nueva Provincia";
         }
-        Console.WriteLine("Llego");
     }
-    private async Task OnValidSubmit()
-    {
-        int idDevuelto = 0;
-        if (id == 0)
-        {
-            idDevuelto = await ProvinciaServices.Guardar(provincia);
-        }
-        else
-            idDevuelto = await ProvinciaServices.Editar(provincia);
-
-        if (idDevuelto != 0)
-        {
-            navegacion.NavigateTo("/Provincia");
-        }
-    }
+    
     public void respuesta()
     {
         SendBackValue("false,pn");
@@ -86,12 +71,31 @@
     }
     private void HandleCancel()
     {
-        SendBackValue("false,p");
+        SendBackValue("false,p,0");
     }
 
-    private void HandleValidSubmit()
+    private async Task HandleValidSubmit()
     {
-        // Lógica para manejar la acción de guardar
+
+        int idDevuelto = 0;
+        if (id == 0)
+        {
+
+            idDevuelto = await ProvinciaServices.Guardar(provincia);
+        }
+        else
+        {
+            idDevuelto = await ProvinciaServices.Editar(provincia, provincia.Id);
+        }
+       
+
+        Console.WriteLine(Convert.ToString(idDevuelto));
+
+        if (idDevuelto != 0)
+        {
+            HandleCancel();
+            // navegacion.NavigateTo("/Provincia");
+        }
       
     }
 }

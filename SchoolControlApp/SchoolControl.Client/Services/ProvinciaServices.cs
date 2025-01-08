@@ -1,6 +1,7 @@
 ﻿using SchoolControl.Shared;
 using System.IO.Pipelines;
 using System.Net.Http.Json;
+using System.Text.Json.Serialization;
 
 namespace SchoolControl.Client.Services
 {
@@ -11,12 +12,15 @@ namespace SchoolControl.Client.Services
         {
             _httpClient = httpClient;
         }
-        public async Task<List<ProvinciaDTO>> Lista()
+        public async Task<List<ProvinciaDTO>> Lista(int take)
         {
             var result = await _httpClient.GetFromJsonAsync<ResponseApi<List<ProvinciaDTO>>>("api/Provincia/Lista");
             if (result!.correcto)
             {
-                return result.Valor;
+                if (take != 0)
+                    return result.Valor.Take(take).ToList();
+                else
+                    return result.Valor.ToList();
             }
             else
             {
@@ -50,23 +54,41 @@ namespace SchoolControl.Client.Services
             }
         }
 
-        public async Task<int> Editar(ProvinciaDTO provincia)
+        public async Task<int> Editar(ProvinciaDTO provincia,int id)
         {
-            var result = await _httpClient.PutAsJsonAsync($"api/Provincia/Editar/{provincia.Id}", provincia);
-            var response = await result.Content.ReadFromJsonAsync<ResponseApi<int>>();
-            if (response!.correcto)
+
+            var result = new HttpResponseMessage();
+            try
+            { 
+                 result = await _httpClient.PutAsJsonAsync($"api/Provincia/Editar/{id}", provincia);
+
+            }
+            catch (Exception ex) {
+                Console.WriteLine(ex.InnerException.Message);
+            }
+
+            if (result.IsSuccessStatusCode)
             {
-                return response.Valor;
+                var evaluar = await result.Content.ReadAsStringAsync();
+                var response = await result.Content.ReadFromJsonAsync<ResponseApi<int>>();
+                if (response != null)
+                {
+                    return response.Valor;
+                }
+                else
+                {
+                    throw new Exception(response?.Mensaje ?? "Error desconocido al procesar la respuesta.");
+                }
             }
             else
             {
-                throw new Exception(response.Mensaje);
+                throw new HttpRequestException($"Error en la solicitud HTTP: {result.StatusCode}");
             }
         }
 
         public async Task<bool> Eliminar(int id)
         {
-            var result = await _httpClient.DeleteAsync($"api/Provincia/Eliminar/{id}");
+            var result = await _httpClient.DeleteAsync($"api/Provincia/Delete/{id}");
             var response = await result.Content.ReadFromJsonAsync<ResponseApi<int>>();
             if (response!.correcto)
             {
@@ -77,23 +99,20 @@ namespace SchoolControl.Client.Services
                 throw new Exception(response.Mensaje);
             }
         }
+        public async Task<List<ProvinciaDTO>> GetCountryFiltered(string nombre)
+        {
+            var result = await _httpClient.GetFromJsonAsync<ResponseApi<List<ProvinciaDTO>>>("api/Provincia/Lista");
+            if (result != null && result.Valor != null)
+            {
 
-        public async Task<(IEnumerable<ProvinciaDTO>provincias,int TotalCount)> GetProvincias(string? filter = "D", int page = 1, int pageSize = 10)
-    {
-        var query = await _httpClient.GetFromJsonAsync<Task<ProvinciaDTO>>($"http://localhost:5251/api/Provincia/page?filter={filter}&page={page}&pageSize={pageSize}");
+                return result.Valor.Where(p => p.Nombre.Contains(nombre, StringComparison.OrdinalIgnoreCase)).Take(10).ToList();
+            }
+            else
+            {
+                throw new Exception(result.Mensaje);
+            }
+        }
 
-         // Verifica si la respuesta es nula
-    if (query == null || query.Provincias == null)
-    {
-        // Maneja el caso en que la respuesta sea nula o vacía
-        return (Enumerable.Empty<ProvinciaDTO>(), 0);
-    }
-
-    // Retorna las provincias y el total de registros
-    return (query.Provincias, query.TotalCount);
-    }
-
-      
       
     }
 }

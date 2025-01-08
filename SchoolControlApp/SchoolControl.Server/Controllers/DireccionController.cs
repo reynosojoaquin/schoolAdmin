@@ -155,7 +155,6 @@ namespace SchoolControl.Server.Controllers
                     DBDireccion.TipoId = direccion.TipoId;
                     DBDireccion.ProvinciaId = direccion.ProvinciaId;
                     DBDireccion.SectorId = direccion.SectorId;
-                    _dbContext.Direcciones.Add(DBDireccion);
                     await _dbContext.SaveChangesAsync();
                     responseApi.correcto = true;
                     responseApi.Valor = DBDireccion.Id;

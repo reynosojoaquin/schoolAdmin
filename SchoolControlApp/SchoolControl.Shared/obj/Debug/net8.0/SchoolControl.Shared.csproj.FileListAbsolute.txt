@@ -33,3 +33,41 @@ C:/Users/joaquin/source/repos/schoolAdmin/SchoolControlApp/SchoolControl.Shared/
 /Users/joaquin.reynoso/Documents/GitHub/schoolAdmin/SchoolControlApp/SchoolControl.Shared/obj/Debug/net8.0/refint/SchoolControl.Shared.dll
 /Users/joaquin.reynoso/Documents/GitHub/schoolAdmin/SchoolControlApp/SchoolControl.Shared/obj/Debug/net8.0/SchoolControl.Shared.pdb
 /Users/joaquin.reynoso/Documents/GitHub/schoolAdmin/SchoolControlApp/SchoolControl.Shared/obj/Debug/net8.0/ref/SchoolControl.Shared.dll
+C:\Users\reyno\Documents\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Shared\bin\Debug\net8.0\SchoolControl.Shared.deps.json
+C:\Users\reyno\Documents\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Shared\bin\Debug\net8.0\SchoolControl.Shared.dll
+C:\Users\reyno\Documents\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Shared\bin\Debug\net8.0\SchoolControl.Shared.pdb
+C:\Users\reyno\Documents\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Shared\obj\Debug\net8.0\SchoolControl.Shared.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\reyno\Documents\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Shared\obj\Debug\net8.0\SchoolControl.Shared.AssemblyInfoInputs.cache
+C:\Users\reyno\Documents\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Shared\obj\Debug\net8.0\SchoolControl.Shared.AssemblyInfo.cs
+C:\Users\reyno\Documents\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Shared\obj\Debug\net8.0\SchoolControl.Shared.csproj.CoreCompileInputs.cache
+C:\Users\reyno\Documents\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Shared\obj\Debug\net8.0\SchoolControl.Shared.sourcelink.json
+C:\Users\reyno\Documents\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Shared\obj\Debug\net8.0\SchoolControl.Shared.dll
+C:\Users\reyno\Documents\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Shared\obj\Debug\net8.0\refint\SchoolControl.Shared.dll
+C:\Users\reyno\Documents\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Shared\obj\Debug\net8.0\SchoolControl.Shared.pdb
+C:\Users\reyno\Documents\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Shared\obj\Debug\net8.0\ref\SchoolControl.Shared.dll
+C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Shared\bin\Debug\net8.0\SchoolControl.Shared.deps.json
+C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Shared\bin\Debug\net8.0\SchoolControl.Shared.dll
+C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Shared\bin\Debug\net8.0\SchoolControl.Shared.pdb
+C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Shared\obj\Debug\net8.0\SchoolControl.Shared.csproj.AssemblyReference.cache
+C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Shared\obj\Debug\net8.0\SchoolControl.Shared.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Shared\obj\Debug\net8.0\SchoolControl.Shared.AssemblyInfoInputs.cache
+C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Shared\obj\Debug\net8.0\SchoolControl.Shared.AssemblyInfo.cs
+C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Shared\obj\Debug\net8.0\SchoolControl.Shared.csproj.CoreCompileInputs.cache
+C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Shared\obj\Debug\net8.0\SchoolControl.Shared.sourcelink.json
+C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Shared\obj\Debug\net8.0\SchoolControl.Shared.dll
+C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Shared\obj\Debug\net8.0\refint\SchoolControl.Shared.dll
+C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Shared\obj\Debug\net8.0\SchoolControl.Shared.pdb
+C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Shared\obj\Debug\net8.0\ref\SchoolControl.Shared.dll
+C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp - Copy\SchoolControl.Shared\bin\Debug\net8.0\SchoolControl.Shared.deps.json
+C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp - Copy\SchoolControl.Shared\bin\Debug\net8.0\SchoolControl.Shared.dll
+C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp - Copy\SchoolControl.Shared\bin\Debug\net8.0\SchoolControl.Shared.pdb
+C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp - Copy\SchoolControl.Shared\obj\Debug\net8.0\SchoolControl.Shared.csproj.AssemblyReference.cache
+C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp - Copy\SchoolControl.Shared\obj\Debug\net8.0\SchoolControl.Shared.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp - Copy\SchoolControl.Shared\obj\Debug\net8.0\SchoolControl.Shared.AssemblyInfoInputs.cache
+C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp - Copy\SchoolControl.Shared\obj\Debug\net8.0\SchoolControl.Shared.AssemblyInfo.cs
+C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp - Copy\SchoolControl.Shared\obj\Debug\net8.0\SchoolControl.Shared.csproj.CoreCompileInputs.cache
+C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp - Copy\SchoolControl.Shared\obj\Debug\net8.0\SchoolControl.Shared.sourcelink.json
+C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp - Copy\SchoolControl.Shared\obj\Debug\net8.0\SchoolControl.Shared.dll
+C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp - Copy\SchoolControl.Shared\obj\Debug\net8.0\refint\SchoolControl.Shared.dll
+C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp - Copy\SchoolControl.Shared\obj\Debug\net8.0\SchoolControl.Shared.pdb
+C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp - Copy\SchoolControl.Shared\obj\Debug\net8.0\ref\SchoolControl.Shared.dll

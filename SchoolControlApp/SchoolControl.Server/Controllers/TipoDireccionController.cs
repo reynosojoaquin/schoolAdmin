@@ -72,7 +72,7 @@ namespace SchoolControl.Server.Controllers
         }
 
         [HttpPost]
-        [Route("Guardar/{id}")]
+        [Route("Guardar")]
         public async Task<IActionResult> Guardar(TipoDireccionDTO tipoDireccion)
         {
             var responseApi = new ResponseApi<int>();
@@ -120,7 +120,6 @@ namespace SchoolControl.Server.Controllers
                 if (DBTipoDireccion != null)
                 {
                     DBTipoDireccion.Descripcion = tipoDireccion.Descripcion;
-                    _dbContext.TipoDirecciones.Add(DBTipoDireccion);
                     await _dbContext.SaveChangesAsync();
                     responseApi.correcto = true;
                     responseApi.Valor = DBTipoDireccion.Id;

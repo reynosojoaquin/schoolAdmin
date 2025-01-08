@@ -1,0 +1,796 @@
+﻿@page "/Calificaciones"
+@using SchoolControl.Shared;
+@using SchoolControl.Client.Services;
+@using System.ComponentModel;
+@using CurrieTechnologies.Razor.SweetAlert2;
+@inject NavigationManager NavigationManager;
+@inject ICalificacionesServices calificacionesService;
+@inject SweetAlertService Swal;
+<div class="card mb-3 mx-auto" style="max-width: 50vw; padding: 2px;">
+    <div class="row g-0">
+        <!-- Imagen del Estudiante -->
+        <div class="col-6">
+            <img src="@Estudiante.ImagenUrl" class="img-fluid rounded-start h-100" alt="Imagen del Estudiante" style="object-fit: cover;">
+        </div>
+
+        <!-- Datos del Estudiante -->
+        <div class="col-6 d-flex align-items-center">
+            <div class="card-body">
+               
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item"><strong>Nombre:</strong> @Estudiante.Nombre</li>
+                    <li class="list-group-item"><strong>Apellido:</strong> @Estudiante.Apellido</li>
+                    <li class="list-group-item"><strong>Número de Orden:</strong> @Estudiante.NumeroOrden</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Acordeón para Secciones Dinámicas -->
+<div class="accordion" id="accordionCompetencias">
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="heading-1"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-1" aria-expanded="false" aria-controls="collapse-1">comunicativa</button></h2><!--!-->
+        <div id="collapse-1" class="accordion-collapse collapse " aria-labelledby="heading-1" data-bs-parent="#accordionCompetencias">
+            <div class="accordion-body">
+                <table class="table table-bordered table-hover table-striped mt-3">
+                    <!--!-->
+                    <thead class="table-dark">
+                        <tr>
+                            <th>P1</th>
+                            <th>RP1</th>
+                            <th>P2</th>
+                            <th>RP2</th>
+                            <th>P3</th>
+                            <th>RP3</th>
+                            <th>P4</th>
+                            <th>RP4</th>
+                            <th>Promedio</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                          
+                            @* @onchange="@(() => CalcularResultado(1))" class="form-control"
+                            <td><input type="number" name="P1_1" @bind-value"="calificacionesData.P1_1" @onchange="@(() => CalcularResultado(1))" class="form-control"></td>
+                            <InputNumber Value="ClientId" TValue="int" ValueChanged="@ClientIdChanged"
+                            ValueExpression="@(()=> ClientId)">
+                            <InputNumber TValue="int?" Value="calificacionesData.comp_id1" class="form-control" ValueChanged="P1_1Changed" ValueExpression="@(()=>calificacionesData.P1_1)"> </InputNumber>
+                            <input type="number" @bind-value="calificacionesData.P1_1" @bind-value:event="onchange" @onchange="@(() => CalcularPromedio(1))" class="form-control">
+                            *@
+                            <td><input type="number" value="@calificacionesData.P1_1" @onchange="(e => OnInputChange(e,competencias[0].id,competencias[0].campos[0]))" class="form-control" />  </td>
+                             <td><input type="number" value="@calificacionesData.rp1_1" @onchange="(e => OnInputChange(e, competencias[0].id,competencias[0].campos[4]))" class="form-control"></td>
+                            <td><input type="number" value="@calificacionesData.P2_1" @onchange="(e => OnInputChange(e,competencias[0].id,competencias[0].campos[1]))" class="form-control"></td>
+                            <td><input type="number" value="@calificacionesData.rp2_1" @onchange="(e => OnInputChange(e, competencias[0].id,competencias[0].campos[5]))" class="form-control"></td>
+                            <td><input type="number" value="@calificacionesData.P3_1" @onchange="(e => OnInputChange(e, competencias[0].id,competencias[0].campos[2]))" class="form-control"></td>
+                            <td><input type="number" value="@calificacionesData.rp3_1" @onchange="(e => OnInputChange(e, competencias[0].id,competencias[0].campos[6]))" class="form-control"></td>
+                            <td><input type="number" value="@calificacionesData.P4_1" @onchange="(e => OnInputChange(e, competencias[0].id,competencias[0].campos[3]))" class="form-control"></td>
+                            <td><input type="number" value="@calificacionesData.rp4_1" @onchange="(e => OnInputChange(e, competencias[0].id,competencias[0].campos[7]))" class="form-control"></td>
+                            <td> @calificacionesData.Promedio_1 </td>
+                           
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div><div class="accordion-item">
+        <h2 class="accordion-header" id="heading-2"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-2" aria-expanded="false" aria-controls="collapse-2">Pensamiento Logico \n creativo y Critico\n resolucion de problemas</button></h2><!--!-->
+        <div id="collapse-2" class="accordion-collapse collapse " aria-labelledby="heading-2" data-bs-parent="#accordionCompetencias">
+            <div class="accordion-body">
+                <table class="table table-bordered table-hover table-striped mt-3">
+                    <!--!-->
+                  <thead class="table-dark">
+                        <tr>
+                            <th>P1</th>
+                            <th>RP1</th>
+                            <th>P2</th>
+                            <th>RP2</th>
+                            <th>P3</th>
+                            <th>RP3</th>
+                            <th>P4</th>
+                            <th>RP4</th>
+                            <th>Promedio</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><input type="number" value="@calificacionesData.P1_2" @onchange="(e => OnInputChange(e,competencias[1].id,competencias[1].campos[0]))" class="form-control" />  </td>
+                            <td><input type="number" value="@calificacionesData.rp1_2" @onchange="(e => OnInputChange(e, competencias[1].id,competencias[1].campos[4]))" class="form-control"></td>
+                            <td><input type="number" value="@calificacionesData.P2_2" @onchange="(e => OnInputChange(e,competencias[1].id,competencias[1].campos[1]))" class="form-control"></td>
+                            <td><input type="number" value="@calificacionesData.rp2_2" @onchange="(e => OnInputChange(e, competencias[1].id,competencias[1].campos[5]))" class="form-control"></td>
+                            <td><input type="number" value="@calificacionesData.P3_2" @onchange="(e => OnInputChange(e, competencias[1].id,competencias[1].campos[2]))" class="form-control"></td>
+                            <td><input type="number" value="@calificacionesData.rp3_2" @onchange="(e => OnInputChange(e, competencias[1].id,competencias[1].campos[6]))" class="form-control"></td>
+                            <td><input type="number" value="@calificacionesData.P4_2" @onchange="(e => OnInputChange(e, competencias[1].id,competencias[1].campos[3]))" class="form-control"></td>
+                            <td><input type="number" value="@calificacionesData.rp4_2" @onchange="(e => OnInputChange(e, competencias[1].id,competencias[1].campos[7]))" class="form-control"></td>
+                            <td> @calificacionesData.Promedio_2 </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div><div class="accordion-item">
+        <h2 class="accordion-header" id="heading-3"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-3" aria-expanded="false" aria-controls="collapse-3">Cientifica y tecnologica\n Ambiental y de la salud</button></h2><!--!-->
+        <div id="collapse-3" class="accordion-collapse collapse " aria-labelledby="heading-3" data-bs-parent="#accordionCompetencias">
+            <div class="accordion-body">
+                <table class="table table-bordered table-hover table-striped mt-3">
+                    <!--!-->
+                    <thead class="table-dark">
+                        <tr>
+                            <th>P1</th>
+                            <th>RP1</th>
+                            <th>P2</th>
+                            <th>RP2</th>
+                            <th>P3</th>
+                            <th>RP3</th>
+                            <th>P4</th>
+                            <th>RP4</th>
+                            <th>Promedio</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><input type="number" value="@calificacionesData.P1_3" @onchange="(e => OnInputChange(e,competencias[2].id,competencias[2].campos[0]))" class="form-control" />  </td>
+                            <td><input type="number" value="@calificacionesData.rp1_3" @onchange="(e => OnInputChange(e, competencias[2].id,competencias[2].campos[4]))" class="form-control"></td>
+                            <td><input type="number" value="@calificacionesData.P2_3" @onchange="(e => OnInputChange(e,competencias[2].id,competencias[2].campos[1]))" class="form-control"></td>
+                            <td><input type="number" value="@calificacionesData.rp2_3" @onchange="(e => OnInputChange(e, competencias[2].id,competencias[2].campos[5]))" class="form-control"></td>
+                            <td><input type="number" value="@calificacionesData.P3_3" @onchange="(e => OnInputChange(e, competencias[2].id,competencias[2].campos[2]))" class="form-control"></td>
+                            <td><input type="number" value="@calificacionesData.rp3_3" @onchange="(e => OnInputChange(e, competencias[2].id,competencias[2].campos[6]))" class="form-control"></td>
+                            <td><input type="number" value="@calificacionesData.P4_3" @onchange="(e => OnInputChange(e, competencias[2].id,competencias[2].campos[3]))" class="form-control"></td>
+                            <td><input type="number" value="@calificacionesData.rp4_3" @onchange="(e => OnInputChange(e, competencias[2].id,competencias[2].campos[7]))" class="form-control"></td>
+                            <td> @calificacionesData.Promedio_3 </td>
+
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div><div class="accordion-item">
+        <h2 class="accordion-header" id="heading-4"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-4" aria-expanded="false" aria-controls="collapse-4">Etica y ciudadana\n  Desarrollo Perosnal y Espiritual</button></h2><!--!-->
+        <div id="collapse-4" class="accordion-collapse collapse " aria-labelledby="heading-4" data-bs-parent="#accordionCompetencias">
+            <div class="accordion-body">
+                <table class="table table-bordered table-hover table-striped mt-3">
+                    <!--!-->
+                    <thead class="table-dark">
+                        <tr>
+                            <th>P1</th>
+                            <th>RP1</th>
+                            <th>P2</th>
+                            <th>RP2</th>
+                            <th>P3</th>
+                            <th>RP3</th>
+                            <th>P4</th>
+                            <th>RP4</th>
+                            <th>Promedio</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><input type="number" value="@calificacionesData.P1_4" @onchange="(e => OnInputChange(e,competencias[3].id,competencias[3].campos[0]))" class="form-control" />  </td>
+                            <td><input type="number" value="@calificacionesData.rp1_4" @onchange="(e => OnInputChange(e, competencias[3].id,competencias[3].campos[4]))" class="form-control"></td>
+                            <td><input type="number" value="@calificacionesData.P2_4" @onchange="(e => OnInputChange(e,competencias[3].id,competencias[3].campos[1]))" class="form-control"></td>
+                            <td><input type="number" value="@calificacionesData.rp2_4" @onchange="(e => OnInputChange(e, competencias[3].id,competencias[3].campos[5]))" class="form-control"></td>
+                            <td><input type="number" value="@calificacionesData.P3_4" @onchange="(e => OnInputChange(e, competencias[3].id,competencias[3].campos[2]))" class="form-control"></td>
+                            <td><input type="number" value="@calificacionesData.rp3_4" @onchange="(e => OnInputChange(e, competencias[3].id,competencias[3].campos[6]))" class="form-control"></td>
+                            <td><input type="number" value="@calificacionesData.P4_4" @onchange="(e => OnInputChange(e, competencias[3].id,competencias[3].campos[3]))" class="form-control"></td>
+                            <td><input type="number" value="@calificacionesData.rp4_4" @onchange="(e => OnInputChange(e, competencias[3].id,competencias[3].campos[7]))" class="form-control"></td>
+                            <td> @calificacionesData.Promedio_4 </td>
+
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div><div class="accordion-item">
+        <h2 class="accordion-header" id="heading-5"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-5" aria-expanded="false" aria-controls="collapse-5">Promedio de grupo de competencias especificas</button></h2><!--!-->
+        <div id="collapse-5" class="accordion-collapse collapse " aria-labelledby="heading-5" data-bs-parent="#accordionCompetencias">
+            <div class="accordion-body">
+                <table class="table table-bordered table-hover table-striped mt-3">
+                   
+                  
+                    <thead class="table-dark">
+                        <tr>
+                            <th colspan="9" class="text-center">Detalles de calificaciones parciales y calificación final</th>
+                        </tr>
+                        <tr>
+                            <th>PC1</th>
+                            <th>PC2</th>
+                            <th>PC3</th>
+                            <th>PC4</th>
+                            <th>Calificacion Final</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>@calificacionesData.Promedio_1</td>
+                            <td>@calificacionesData.Promedio_2</td>
+                            <td> @calificacionesData.Promedio_3 </td>
+                            <td> @calificacionesData.Promedio_4 </td>
+                            <td> @calificacionesData.calFinal </td>
+
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div> 
+
+
+
+<!-- Botón de Acción General -->
+<div class="mt-3 text-end">
+    <button @onclick="(()=> registrarDatos())" class="btn btn-success me-2">Guardar Cambios</button>
+    <button @onclick="(()=> natigateToEstudiantes())" class="btn btn-outline-danger">Cancelar</button>
+</div>
+
+@code {
+    public struct competencia
+    {
+        public int  id { get; set; }
+        public string[] campos { get; set; }
+        public competencia(int _id,string[] _campos)
+        {
+            id = _id;
+            campos = _campos;
+        }
+    }
+
+    public int estudiante_id { get; set; } = 1;
+    private int numero = 10;
+    private InfoCalificacionesDTO RegistroCalificaciones = new InfoCalificacionesDTO();
+    private SectionInfo? ActiveSection = new SectionInfo();
+    private List<InfoCalificacionesDTO> cal_data_filtered = null;
+    private List<SectionInfo> Sections { get; set; } = new();
+    private List<InfoCalificacionesDTO>? CalificacionesData = null;
+    private List<SectionInfo> sectionInfos = new List<SectionInfo>();
+    private Registro calificacionesData = new Registro();
+    private List<competencia> competencias = new List<competencia>
+    {
+         new competencia(1,["P1_1","P2_1","P3_1","P4_1","rp1_1","rp2_1","rp3_1","rp4_1"]),
+         new competencia(2,["P1_2","P2_2","P3_2","P4_2","rp1_2","rp2_2","rp3_2","rp4_2"]),
+         new competencia(3,["P1_3","P2_3","P3_3","P4_3","rp1_3","rp2_3","rp3_3","rp4_3"]),
+         new competencia(4,["P1_4","P2_4","P3_4","P4_4","rp1_4","rp2_4","rp3_4","rp4_4"]),
+    }; 
+    private EstudianteInfo Estudiante { get; set; } = new EstudianteInfo
+        {
+            Nombre = "Juan",
+            Apellido = "Pérez",
+            NumeroOrden = 15,
+            ImagenUrl = "https://via.placeholder.com/150" // URL de imagen de ejemplo
+        };
+    protected override async void OnInitialized()
+    {
+        StateHasChanged();
+        // Inicializa las secciones y datos de ejemplo
+        CalificacionesData = await calificacionesService.GetDatafromFuntionCalificaciones();
+        cal_data_filtered = CalificacionesData.Where(c => c.cur_id == 1 && c.asig_id == 1).ToList();
+        asignarDatoCalificaciones();
+
+        // ActiveSection = Sections.FirstOrDefault();
+    }
+
+    private void SetActiveSection(SectionInfo section)
+    {
+        ActiveSection = section;
+        StateHasChanged();
+    }
+
+
+    private void asignarDatoCalificaciones()
+    {
+        Console.WriteLine("id de las calificaciones");
+        Console.WriteLine(cal_data_filtered[0].cal_id);
+        Console.WriteLine(cal_data_filtered[1].cal_id);
+        Console.WriteLine(cal_data_filtered[2].cal_id);
+        Console.WriteLine(cal_data_filtered[3].cal_id);
+        calificacionesData.estudiante_id = estudiante_id;
+        // competencia  1 
+        calificacionesData.P1_1 = cal_data_filtered[0].cal_p1;
+        calificacionesData.P2_1 = cal_data_filtered[0].cal_p2;
+        calificacionesData.P3_1 = cal_data_filtered[0].cal_p3;
+        calificacionesData.P4_1 = cal_data_filtered[0].cal_p4;
+        calificacionesData.rp1_1 = cal_data_filtered[0].cal_rp1;
+        calificacionesData.rp2_1 = cal_data_filtered[0].cal_rp2;
+        calificacionesData.rp3_1 = cal_data_filtered[0].cal_rp3;
+        calificacionesData.rp4_1 = cal_data_filtered[0].cal_rp4;
+        calificacionesData.asig_comp_id_1 = cal_data_filtered[0].cal_asi_comp_id;
+        calificacionesData.Id_1 = cal_data_filtered[0].cal_id;
+
+
+        calificacionesData.pp1 = Convert.ToDecimal(cal_data_filtered[0].cal_Pp1);
+        calificacionesData.pp2 = Convert.ToDecimal(cal_data_filtered[0].cal_Pp2);
+        calificacionesData.pp3 = Convert.ToDecimal(cal_data_filtered[0].cal_Pp3);
+        calificacionesData.pp4 = Convert.ToDecimal(cal_data_filtered[0].cal_Pp3);
+
+        // competencia 2
+
+        calificacionesData.P1_2 = cal_data_filtered[1].cal_p1;
+        calificacionesData.P2_2 = cal_data_filtered[1].cal_p2;
+        calificacionesData.P3_2 = cal_data_filtered[1].cal_p3;
+        calificacionesData.P4_2 = cal_data_filtered[1].cal_p4;
+        calificacionesData.rp1_2 = cal_data_filtered[1].cal_rp1;
+        calificacionesData.rp2_2 = cal_data_filtered[1].cal_rp2;
+        calificacionesData.rp3_2 = cal_data_filtered[1].cal_rp3;
+        calificacionesData.rp4_2 = cal_data_filtered[1].cal_rp4;
+        calificacionesData.asig_comp_id_2 = cal_data_filtered[1].cal_asi_comp_id;
+        calificacionesData.Id_2 = cal_data_filtered[1].cal_id;
+
+
+        calificacionesData.pp1 = Convert.ToDecimal(cal_data_filtered[1].cal_Pp1);
+        calificacionesData.pp2 = Convert.ToDecimal(cal_data_filtered[1].cal_Pp2);
+        calificacionesData.pp3 = Convert.ToDecimal(cal_data_filtered[1].cal_Pp3);
+        calificacionesData.pp4 = Convert.ToDecimal(cal_data_filtered[1].cal_Pp3);
+
+        //competencia 3
+
+        calificacionesData.P1_3 = cal_data_filtered[2].cal_p1;
+        calificacionesData.P2_3 = cal_data_filtered[2].cal_p2;
+        calificacionesData.P3_3 = cal_data_filtered[2].cal_p3;
+        calificacionesData.P4_3 = cal_data_filtered[2].cal_p4;
+        calificacionesData.rp1_3 = cal_data_filtered[2].cal_rp1;
+        calificacionesData.rp2_3 = cal_data_filtered[2].cal_rp2;
+        calificacionesData.rp3_3 = cal_data_filtered[2].cal_rp3;
+        calificacionesData.rp4_3 = cal_data_filtered[2].cal_rp4;
+        calificacionesData.asig_comp_id_3 = cal_data_filtered[2].cal_asi_comp_id;
+        calificacionesData.Id_3 = cal_data_filtered[2].cal_id;
+
+        calificacionesData.pp1 = Convert.ToDecimal(cal_data_filtered[2].cal_Pp1);
+        calificacionesData.pp2 = Convert.ToDecimal(cal_data_filtered[2].cal_Pp2);
+        calificacionesData.pp3 = Convert.ToDecimal(cal_data_filtered[2].cal_Pp3);
+        calificacionesData.pp4 = Convert.ToDecimal(cal_data_filtered[2].cal_Pp3);
+
+        //comptencia 4
+
+        calificacionesData.P1_4 = cal_data_filtered[3].cal_p1;
+        calificacionesData.P2_4 = cal_data_filtered[3].cal_p2;
+        calificacionesData.P3_4 = cal_data_filtered[3].cal_p3;
+        calificacionesData.P4_4 = cal_data_filtered[3].cal_p4;
+        calificacionesData.rp1_4 = cal_data_filtered[3].cal_rp1;
+        calificacionesData.rp2_4 = cal_data_filtered[3].cal_rp2;
+        calificacionesData.rp3_4 = cal_data_filtered[3].cal_rp3;
+        calificacionesData.rp4_4 = cal_data_filtered[3].cal_rp4;
+        calificacionesData.asig_comp_id_4 = cal_data_filtered[0].cal_asi_comp_id;
+        calificacionesData.Id_4 = cal_data_filtered[3].cal_id;
+        //promedios
+
+        calificacionesData.pp1 = Convert.ToDecimal(cal_data_filtered[5].cal_Pp1);
+        calificacionesData.pp2 = Convert.ToDecimal(cal_data_filtered[5].cal_Pp2);
+        calificacionesData.pp3 = Convert.ToDecimal(cal_data_filtered[5].cal_Pp3);
+        calificacionesData.pp4 = Convert.ToDecimal(cal_data_filtered[5].cal_Pp4);
+        calificacionesData.calFinal = Convert.ToDecimal( cal_data_filtered[5].cal_final);
+
+
+    }
+
+    private void OnInputChange(ChangeEventArgs e, int comp_id, string campo)
+    {
+
+        if (int.TryParse(e.Value?.ToString(), out var result))
+        {
+
+            var clave = campo;
+            var competenciaID = comp_id;
+            var valor = result;
+
+            Console.WriteLine("valor " + result);
+            asignarValores(clave, valor);
+            CalcularPromedio(competenciaID.ToString());
+        }
+    }
+    private void asignarValores(string clave, int valor )
+    {
+        switch (clave)
+        {
+            case "P1_1":
+                calificacionesData.P1_1 = valor;
+                break;
+            case "P2_1":
+                calificacionesData.P2_1 = valor;
+                break;
+            case "P3_1":
+                calificacionesData.P3_1 = valor;
+                break;
+            case "P4_1": 
+                calificacionesData.P4_1 = valor;
+                break;
+            case "rp1_1":    
+                calificacionesData.rp1_1 = valor;
+                break;
+            case "rp2_1":
+                calificacionesData.rp2_1 = valor;
+                break;
+            case "rp3_1":
+                calificacionesData.rp3_1 = valor;
+                break;
+            case  "rp4_1":
+                calificacionesData.rp4_1 = valor;
+                break;
+            case "P1_2":
+                calificacionesData.P1_2 = valor;
+                break;
+            case "P2_2":
+                calificacionesData.P2_2 = valor;
+                break;
+            case "P3_2":
+                calificacionesData.P3_2 = valor;
+                break;
+            case "P4_2":
+                calificacionesData.P4_2 = valor;
+                break;
+            case "rp1_2":
+                calificacionesData.rp1_2 = valor;
+                break;
+            case "rp2_2":
+                calificacionesData.rp2_2 = valor;
+                break;
+            case "rp3_2":
+                calificacionesData.rp3_2 = valor;
+                break;
+            case "rp4_2":
+                calificacionesData.rp4_2 = valor;
+                break;
+            case "P1_3":
+                calificacionesData.P1_3 = valor;
+                break;
+            case "P2_3":
+                calificacionesData.P2_3 = valor;
+                break;
+            case "P3_3":
+                calificacionesData.P3_3 = valor;
+                break;
+            case "P4_3":
+                calificacionesData.P4_3 = valor;
+                break;
+            case "rp1_3":
+                calificacionesData.rp1_3 = valor;
+                break;
+            case "rp2_3":
+                calificacionesData.rp2_3 = valor;
+                break;
+            case "rp3_3":
+                calificacionesData.rp3_3 = valor;
+                break;
+            case "rp4_3":
+                calificacionesData.rp4_3 = valor;
+                break;
+            case "P1_4":
+                calificacionesData.P1_4= valor;
+                break;
+            case "P2_4":
+                calificacionesData.P2_4 = valor;
+                break;
+            case "P3_4":
+                calificacionesData.P3_4 = valor;
+                break;
+            case "P4_4":
+                calificacionesData.P4_4 = valor;
+                break;
+            case "rp1_4":
+                calificacionesData.rp1_4 = valor;
+                break;
+            case "rp2_4":
+                calificacionesData.rp2_4 = valor;
+                break;
+            case "rp3_4":
+                calificacionesData.rp3_4 = valor;
+                break;
+            case "rp4_4":
+                calificacionesData.rp4_4 = valor;
+                break;
+            default:
+                break;
+        }
+
+    }
+    private void CalcularPromedio( string referencia)
+    {
+        int? P1, P2, P3, P4 = 0;
+        int? RP1 = 0, RP2 = 0, RP3 = 0, RP4 = 0;
+        int valor1 = 0;
+        int valor2 = 0;
+        int valor3 = 0;
+        int valor4 = 0;
+        decimal resultado = 0;
+        decimal calificacionFinal = 0;
+        Console.WriteLine(referencia);
+        switch (referencia)
+        {
+
+            case "1":
+
+                P1 =  Convert.ToInt16(calificacionesData.P1_1);
+                P2 = Convert.ToInt16(calificacionesData.P2_1);
+                P3 = Convert.ToInt16(calificacionesData.P3_1);
+                P4 = Convert.ToInt16(calificacionesData.P4_1);
+                RP1 = Convert.ToInt16(calificacionesData.rp1_1);
+                RP2 = Convert.ToInt16(calificacionesData.rp2_1);
+                RP3 = Convert.ToInt16(calificacionesData.rp3_1);
+                RP4 = Convert.ToInt16(calificacionesData.rp4_1);
+                valor1 = (P1.HasValue && P1 < 70 && RP1.HasValue) ? RP1.Value : (P1 ?? 0);
+                valor2 = (P2.HasValue && P2 < 70 && RP2.HasValue) ? RP2.Value : (P2 ?? 0);
+                valor3 = (P3.HasValue && P3.Value < 70 && RP3.HasValue) ? RP3.Value : (P3 ?? 0);
+                valor4 = (P4.HasValue && P4.Value < 70 && RP4.HasValue) ? RP4.Value : (P4 ?? 0);
+                resultado = (valor1 + valor2 + valor3 + valor4) / 4;
+                calificacionesData.pp1 = resultado;
+                calificacionesData.Promedio_1 = resultado;
+                StateHasChanged();
+                break;
+            case "2":
+
+                P1 = Convert.ToInt16(calificacionesData.P1_2);
+                P2 = Convert.ToInt16(calificacionesData.P2_2);
+                P3 = Convert.ToInt16(calificacionesData.P3_2);
+                P4 = Convert.ToInt16(calificacionesData.P4_2);
+                RP1 = Convert.ToInt16(calificacionesData.rp1_2);
+                RP2 = Convert.ToInt16(calificacionesData.rp2_2);
+                RP3 = Convert.ToInt16(calificacionesData.rp3_2);
+                RP4 = Convert.ToInt16(calificacionesData.rp4_2);
+                valor1 = (P1.HasValue && P1 < 70 && RP1.HasValue) ? RP1.Value : (P1 ?? 0);
+                valor2 = (P2.HasValue && P2 < 70 && RP2.HasValue) ? RP2.Value : (P2 ?? 0);
+                valor3 = (P3.HasValue && P3.Value < 70 && RP3.HasValue) ? RP3.Value : (P3 ?? 0);
+                valor4 = (P4.HasValue && P4.Value < 70 && RP4.HasValue) ? RP4.Value : (P4 ?? 0);
+                resultado = (valor1 + valor2 + valor3 + valor4) / 4;
+                calificacionesData.pp2 = resultado;
+                calificacionesData.Promedio_2 = resultado;
+                StateHasChanged();
+                break;
+            case "3":
+
+                P1 = Convert.ToInt16(calificacionesData.P1_3);
+                P2 = Convert.ToInt16(calificacionesData.P2_3);
+                P3 = Convert.ToInt16(calificacionesData.P3_3);
+                P4 = Convert.ToInt16(calificacionesData.P4_3);
+                RP1 = Convert.ToInt16(calificacionesData.rp1_3);
+                RP2 = Convert.ToInt16(calificacionesData.rp2_3);
+                RP3 = Convert.ToInt16(calificacionesData.rp3_3);
+                RP4 = Convert.ToInt16(calificacionesData.rp4_3);
+                valor1 = (P1.HasValue && P1 < 70 && RP1.HasValue) ? RP1.Value : (P1 ?? 0);
+                valor2 = (P2.HasValue && P2 < 70 && RP2.HasValue) ? RP2.Value : (P2 ?? 0);
+                valor3 = (P3.HasValue && P3.Value < 70 && RP3.HasValue) ? RP3.Value : (P3 ?? 0);
+                valor4 = (P4.HasValue && P4.Value < 70 && RP4.HasValue) ? RP4.Value : (P4 ?? 0);
+                resultado = (valor1 + valor2 + valor3 + valor4) / 4;
+                calificacionesData.pp3 = resultado;
+                calificacionesData.Promedio_3 = resultado;
+                StateHasChanged();
+                break;
+            case "4":
+
+                P1 = Convert.ToInt16(calificacionesData.P1_4);
+                P2 = Convert.ToInt16(calificacionesData.P2_4);
+                P3 = Convert.ToInt16(calificacionesData.P3_4);
+                P4 = Convert.ToInt16(calificacionesData.P4_4);
+                RP1 = Convert.ToInt16(calificacionesData.rp1_4);
+                RP2 = Convert.ToInt16(calificacionesData.rp2_4);
+                RP3 = Convert.ToInt16(calificacionesData.rp3_4);
+                RP4 = Convert.ToInt16(calificacionesData.rp4_4);
+                valor1 = (P1.HasValue && P1 < 70 && RP1.HasValue) ? RP1.Value : (P1 ?? 0);
+                valor2 = (P2.HasValue && P2 < 70 && RP2.HasValue) ? RP2.Value : (P2 ?? 0);
+                valor3 = (P3.HasValue && P3.Value < 70 && RP3.HasValue) ? RP3.Value : (P3 ?? 0);
+                valor4 = (P4.HasValue && P4.Value < 70 && RP4.HasValue) ? RP4.Value : (P4 ?? 0);
+                resultado = (valor1 + valor2 + valor3 + valor4) / 4;
+                calificacionesData.pp4 = resultado;
+                calificacionesData.Promedio_4 = resultado;
+                StateHasChanged();
+
+                break;
+            default:
+
+                break;
+
+        }
+        // calificacionesData[] = (valor1 ?? 0) + (valor2 ?? 0);
+        calificacionFinal = Convert.ToDecimal((calificacionesData.pp1 + calificacionesData.pp2 + calificacionesData.pp3 + calificacionesData.pp4)) / 4;
+        calificacionesData.calFinal = calificacionFinal;
+    }
+
+    private void natigateToEstudiantes()
+    {
+        NavigationManager.NavigateTo("/ListaEstudiantes");
+    }
+    private async Task registrarDatos()
+    {
+        var resultado = await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "Registrando las calificaciones",
+                Text = "Deseas registrar los datos de las calificiaciones",
+                Icon = SweetAlertIcon.Question,
+                ShowCancelButton = true
+            });
+
+        if (resultado.IsConfirmed)
+        {
+            try
+            {
+                var calificacionesRegistered = await calificacionesService.Editar(calificacionesData.GetCalificiones(calificacionesData));
+                resultado = await Swal.FireAsync(new SweetAlertOptions
+                    {
+                        Title = "Registrando las Calificaciones",
+                        Text = "Datos registrados Con exito",
+                        Icon = SweetAlertIcon.Success,
+                        ShowCancelButton = false
+                    });
+            }
+            catch(Exception e)
+            {
+                resultado = await Swal.FireAsync(new SweetAlertOptions
+                    {
+                        Title = "Registrando las Calificaciones",
+                        Text = $"Error al registrar los datos [{e.Message}]",
+                        Icon = SweetAlertIcon.Success,
+                        ShowCancelButton = false
+                    });
+            }
+
+        }
+    }
+    public class Registro 
+    {
+        
+        public int estudiante_id { get; set; }
+        public int Id_1 { get; set; }
+        public int? P1_1 { get; set; } = 0;
+        public int? P2_1 { get; set; } = 0;
+        public int? P3_1 { get; set; } = 0;
+        public int? P4_1 { get; set; } = 0;
+        public decimal? rp1_1 { get; set; } = 0;
+        public decimal? rp2_1 { get; set; } = 0;
+        public decimal? rp3_1 { get; set; } = 0;
+        public decimal? rp4_1 { get; set; } = 0;
+        public decimal Promedio_1 { get; set; } = 0;
+        public int asig_comp_id_1 { get; set; } = 0;
+
+        public int Id_2 { get; set; }
+        public int? P1_2 { get; set; } = 0;
+        public int? P2_2 { get; set; } = 0;
+        public int? P3_2 { get; set; } = 0;
+        public int? P4_2 { get; set; } = 0;
+        public decimal? rp1_2 { get; set; } = 0;
+        public decimal? rp2_2 { get; set; } = 0;
+        public decimal? rp3_2 { get; set; } = 0;
+        public decimal? rp4_2 { get; set; } = 0;
+        public decimal? Promedio_2 { get; set; } = 0;
+        public int asig_comp_id_2 { get; set; } = 0;
+
+        public int Id_3 { get; set; }
+        public int? P1_3 { get; set; } = 0;
+        public int? P2_3 { get; set; } = 0;
+        public int? P3_3 { get; set; } = 0;
+        public int? P4_3 { get; set; } = 0;
+        public decimal? rp1_3 { get; set; } = 0;
+        public decimal? rp2_3 { get; set; } = 0;
+        public decimal? rp3_3 { get; set; } = 0;
+        public decimal? rp4_3 { get; set; } = 0;
+        public decimal Promedio_3 { get; set; } = 0;
+        public int asig_comp_id_3 { get; set; } = 0;
+
+        public int Id_4 { get; set; }
+        public int? P1_4 { get; set; } = 0;
+        public int? P2_4 { get; set; } = 0;
+        public int? P3_4 { get; set; } = 0;
+        public int? P4_4 { get; set; } = 0;
+        public decimal? rp1_4 { get; set; } = 0;
+        public decimal? rp2_4 { get; set; } = 0;
+        public decimal? rp3_4 { get; set; } = 0;
+        public decimal? rp4_4 { get; set; } = 0;
+        public decimal? Promedio_4 { get; set; } = 0;
+        public int asig_comp_id_4 { get; set; } = 0;
+
+        public int Id_5 { get; set; }
+        public decimal? pp1 { get; set; } = 0;
+        public decimal? pp2 { get; set; } = 0;
+        public decimal? pp3 { get; set; } = 0;
+        public decimal? pp4 { get; set; } = 0;
+        public int? comp_id1 { get; set; } = 0;
+        public int? comp_id2 { get; set; } = 0;
+        public int? comp_id3 { get; set; } = 0;
+        public int? comp_id4 { get; set; } = 0;
+        public decimal? calFinal { get; set; } = 0;
+        public Registro()
+        {
+        }
+        public List<CalificacionesDTO> GetCalificiones(Registro _competencias)
+        {
+            CalificacionesDTO registro = new CalificacionesDTO();
+            List<CalificacionesDTO> calificiones = new List<CalificacionesDTO>();
+            calificiones.Add(new CalificacionesDTO
+            {
+                  
+                Id   = _competencias.Id_1,
+                Asigcompid   = _competencias.asig_comp_id_1,
+                cal_final    = _competencias.calFinal,
+                cal_Pp1      = _competencias.pp1,
+                cal_Pp2      = _competencias.pp2,
+                cal_Pp3      = _competencias.pp3,
+                cal_Pp4      = _competencias.pp4,
+                cal_rp1      = _competencias.rp1_1,
+                cal_rp2      = _competencias.rp2_1,
+                cal_rp3      = _competencias.rp3_1,
+                cal_rp4      = _competencias.rp4_1,
+                P1           = _competencias.P1_1,
+                P2           = _competencias.P2_1,
+                P3           = _competencias.P3_1,
+                P4           = _competencias.P4_1,
+                Estudianteid = estudiante_id
+
+            }
+           );
+            calificiones.Add(new CalificacionesDTO
+                {
+                    Id = _competencias.Id_2,
+                    Asigcompid = _competencias.asig_comp_id_2,
+                    cal_final = _competencias.calFinal,
+                    cal_Pp1 = _competencias.pp1,
+                    cal_Pp2 = _competencias.pp2,
+                    cal_Pp3 = _competencias.pp3,
+                    cal_Pp4 = _competencias.pp4,
+                    cal_rp1 = _competencias.rp1_2,
+                    cal_rp2 = _competencias.rp2_2,
+                    cal_rp3 = _competencias.rp3_2,
+                    cal_rp4 = _competencias.rp4_2,
+                    P1 = _competencias.P1_2,
+                    P2 = _competencias.P2_2,
+                    P3 = _competencias.P3_2,
+                    P4 = _competencias.P4_2,
+                    Estudianteid = estudiante_id
+               }
+           );
+            calificiones.Add(new CalificacionesDTO
+                {
+                    Id = _competencias.Id_3,
+                    Asigcompid = _competencias.asig_comp_id_3,
+                    cal_final = _competencias.calFinal,
+                    cal_Pp1 = _competencias.pp1,
+                    cal_Pp2 = _competencias.pp2,
+                    cal_Pp3 = _competencias.pp3,
+                    cal_Pp4 = _competencias.pp4,
+                    cal_rp1 = _competencias.rp1_3,
+                    cal_rp2 = _competencias.rp2_3,
+                    cal_rp3 = _competencias.rp3_3,
+                    cal_rp4 = _competencias.rp4_3,
+                    P1 = _competencias.P1_3,
+                    P2 = _competencias.P2_3,
+                    P3 = _competencias.P3_3,
+                    P4 = _competencias.P4_3,
+                    Estudianteid = estudiante_id
+                }
+           );
+            calificiones.Add(new CalificacionesDTO
+                {
+                    Id = _competencias.Id_4,
+                    Asigcompid = _competencias.asig_comp_id_4,
+                    cal_final = _competencias.calFinal,
+                    cal_Pp1 = _competencias.pp1,
+                    cal_Pp2 = _competencias.pp2,
+                    cal_Pp3 = _competencias.pp3,
+                    cal_Pp4 = _competencias.pp4,
+                    cal_rp1 = _competencias.rp1_4,
+                    cal_rp2 = _competencias.rp2_4,
+                    cal_rp3 = _competencias.rp3_4,
+                    cal_rp4 = _competencias.rp4_4,
+                    P1 = _competencias.P1_4,
+                    P2 = _competencias.P2_4,
+                    P3 = _competencias.P3_4,
+                    P4 = _competencias.P4_4,
+                    Estudianteid = estudiante_id
+                }
+           );
+            return calificiones;
+
+        }
+
+    }
+
+    public class SectionInfo
+    {
+        public string? SectionName { get; set; }
+        public string? sectionID { get; set; }
+        public List<Registro>? TableData { get; set; }
+    }
+    // Modelo de datos
+    public class EstudianteInfo
+    {
+        public string? Nombre { get; set; }
+        public string? Apellido { get; set; }
+        public int? NumeroOrden { get; set; }
+        public string? ImagenUrl { get; set; }
+    }
+}

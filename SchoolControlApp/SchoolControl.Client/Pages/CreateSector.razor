@@ -1,0 +1,146 @@
+﻿@page "/CreateSector"
+
+@using SchoolControl.Shared;
+@using SchoolControl.Client.Services;
+@using CurrieTechnologies.Razor.SweetAlert2;
+
+@inject SweetAlertService Swal;
+@inject ICiudadServices CiudadesServices;
+@inject IProvinciaServices ProvinciaServices;
+@inject ISectorServices sectoresServices;
+@inject NavigationManager navegacion;
+
+<div class="card mt-4">
+    <div class="card-header">
+        <h3 class="card-title">@titulo</h3>
+    </div>
+    <div class="card-body">
+        <EditForm Model="sector">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="mb-3">
+                <label for="nombre" class="form-label">Nombre</label>
+                <InputText id="nombre" class="form-control" @bind-Value="sector.Nombre" />
+                <ValidationMessage For="@(() => sector.Nombre)" />
+            </div>
+            <div class="mb-3">
+                <label for="provinciaSelect" class="form-label">Provincia:</label>
+                 <InputSelect @bind-Value="provincia.Id"  id="provinciaSelect" class="form-select" @onchange="OnProvinciaChanged">
+                    <option value="0">Seleccione una provincia</option>
+                    @foreach (var provincia in Provincias)
+                    {
+                        <option value="@provincia.Id"  selected="@(provincia.Id == ProvinciaSeleccionadaId)">@provincia.Nombre</option>
+                    }
+                </InputSelect>
+            </div>
+
+            <div class="mb-3">
+                <label for="ciudadSelect" class="form-label">Ciudad:</label>
+                <InputSelect id="ciudadID" @bind-Value="sector.CiudadId"  class="form-select" disabled="@(!CiudadesFiltradas.Any())">
+                    <option value="0">Seleccione una ciudad</option>
+                    @foreach (var ciudad in CiudadesFiltradas)
+                    {
+                        <option value="@ciudad.Id">@ciudad.Nombre</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="mb-3">
+                <button type="button" class="btn btn-primary me-2" @onclick="HandleValidSubmit">
+                    <i class="fa-solid fa-floppy-disk"></i> Guardar
+                </button>
+                <button type="button" class="btn btn-secondary" @onclick="HandleCancel">
+                    <i class="fa-solid fa-ban"></i> Cancelar
+                </button>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+
+
+
+@code {
+    [Parameter]
+    public EventCallback<string> OnValueSentBack { get; set; }
+    [Parameter]
+    public int id { get; set; } = 0;
+    private int? ciudadID {get; set;} = 0;
+    private int? ProvinciaSeleccionadaId = 0;
+    string titulo = string.Empty;
+    string btnTexto = string.Empty;
+    SectorDTO sector = new SectorDTO();
+    CiudadDTO ciudad = new CiudadDTO();
+    ProvinciaDTO provincia = new  ProvinciaDTO();
+    private List<ProvinciaDTO> Provincias  = new List<ProvinciaDTO>();
+    private List<CiudadDTO>    CiudadesFiltradas = new List<CiudadDTO>();
+    private List<CiudadDTO>    Ciudades = new List<CiudadDTO>();
+    protected override async Task OnInitializedAsync()
+    {
+        Provincias = await ProvinciaServices.Lista(0);
+        Ciudades = await CiudadesServices.Lista(0);
+
+        if (id != 0)
+        {
+            sector = await sectoresServices.Buscar(id);
+            btnTexto = "Actualizar sector";
+            titulo = "Editar sector";
+            ciudadID = sector.CiudadId;
+            CiudadesFiltradas = Ciudades
+            .Where(c => c.Id == ciudadID)
+            .ToList();
+            ProvinciaSeleccionadaId = CiudadesFiltradas[0].ProvinciaId;
+            provincia = await ProvinciaServices.Buscar((int) ProvinciaSeleccionadaId);
+
+        }
+        else
+        {
+
+            sector.Nombre = "";
+            btnTexto = "Guardar sector";
+            titulo = "Nuevo sector";
+        }
+    }
+    private void OnProvinciaChanged(ChangeEventArgs e)
+    {
+        ProvinciaSeleccionadaId = int.Parse(e.Value.ToString());
+        CiudadesFiltradas = Ciudades.Where(c => c.ProvinciaId == ProvinciaSeleccionadaId).ToList();
+
+    }
+
+    public void respuesta()
+    {
+        SendBackValue("false,sn");
+    }
+    public void SendBackValue(string value)
+    {
+        OnValueSentBack.InvokeAsync(value);
+    }
+    private void HandleCancel()
+    {
+        SendBackValue("false,s,0");
+    }
+
+    private async Task HandleValidSubmit()
+    {
+       
+
+        int idDevuelto = 0;
+        if (id == 0)
+        {
+
+            idDevuelto = await sectoresServices.Guardar(sector);
+        }
+        else
+        {
+            Console.WriteLine(id.ToString() + "  llego aqui");
+            idDevuelto = await sectoresServices.Editar(sector, sector.Id);
+        }
+
+        if (idDevuelto != 0)
+        {
+            HandleCancel();
+        }
+
+    }
+}

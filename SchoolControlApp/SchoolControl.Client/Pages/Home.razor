@@ -1,7 +1,14 @@
 ﻿@page "/"
-
+@using Microsoft.AspNetCore.Authorization;
+@using Microsoft.AspNetCore.Components.Authorization;
+@attribute [Authorize]
 <PageTitle>Home</PageTitle>
+<AuthorizeView>
+    <Authorized>
+        <h1>Hello, world!</h1>
 
-<h1>Hello, world!</h1>
+        Welcome to your new app.
+        <h1> @context.User.Identity!.Name</h1>
+    </Authorized>
+</AuthorizeView>
 
-Welcome to your new app.

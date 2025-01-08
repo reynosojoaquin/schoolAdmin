@@ -19,6 +19,8 @@ public partial class User
 
     public int? RoleId { get; set; }
 
+    public string? Password { get; set; }
+
     public virtual ICollection<PendingEmailConfirmation> PendingEmailConfirmations { get; set; } = new List<PendingEmailConfirmation>();
 
     public virtual Role? Role { get; set; }

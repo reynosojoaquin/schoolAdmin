@@ -15,7 +15,15 @@ public partial class SchoolControlDbContext : DbContext
     {
     }
 
+    public virtual DbSet<Asignatura> Asignaturas { get; set; }
+
+    public virtual DbSet<AsignaturasCompetencia> AsignaturasCompetencias { get; set; }
+
+    public virtual DbSet<Calificacione> Calificaciones { get; set; }
+
     public virtual DbSet<Ciudade> Ciudades { get; set; }
+
+    public virtual DbSet<Competencia> Competencias { get; set; }
 
     public virtual DbSet<Contacto> Contactos { get; set; }
 
@@ -27,17 +35,21 @@ public partial class SchoolControlDbContext : DbContext
 
     public virtual DbSet<Curriculumtipo> Curriculumtipos { get; set; }
 
+    public virtual DbSet<Curso> Cursos { get; set; }
+
     public virtual DbSet<Direccione> Direcciones { get; set; }
 
-    public virtual DbSet<Empleado> Empleados { get; set; }
+    public virtual DbSet<Docente> Docentes { get; set; }
+
+    public virtual DbSet<EmpleadosAdm> EmpleadosAdms { get; set; }
+
+    public virtual DbSet<Estudiante> Estudiantes { get; set; }
 
     public virtual DbSet<LugarNacimiento> LugarNacimientos { get; set; }
 
     public virtual DbSet<Nacionalidade> Nacionalidades { get; set; }
 
     public virtual DbSet<PendingEmailConfirmation> PendingEmailConfirmations { get; set; }
-
-    public virtual DbSet<Persona> Personas { get; set; }
 
     public virtual DbSet<PosicionesEmpledo> PosicionesEmpledos { get; set; }
 
@@ -62,10 +74,65 @@ public partial class SchoolControlDbContext : DbContext
     public virtual DbSet<UsersCredential> UsersCredentials { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    { }
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseNpgsql("Host=localhost;Database=SchoolControlDB;Port=5432;Username=postgres;Password=admin");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<Asignatura>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("asignatura_pk");
+
+            entity.ToTable("asignatura");
+
+            entity.Property(e => e.Id)
+                .UseIdentityAlwaysColumn()
+                .HasColumnName("id");
+            entity.Property(e => e.Cursoid).HasColumnName("cursoid");
+            entity.Property(e => e.Nombre)
+                .HasColumnType("character varying")
+                .HasColumnName("nombre");
+            entity.Property(e => e.Responsable).HasColumnName("responsable");
+        });
+
+        modelBuilder.Entity<AsignaturasCompetencia>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("asignaturas_competencias_pk");
+
+            entity.ToTable("asignaturas_competencias");
+
+            entity.Property(e => e.Id)
+                .UseIdentityAlwaysColumn()
+                .HasColumnName("id");
+            entity.Property(e => e.Asignaturaid).HasColumnName("asignaturaid");
+            entity.Property(e => e.Competenciaid).HasColumnName("competenciaid");
+            entity.Property(e => e.Cursoid).HasColumnName("cursoid");
+        });
+
+        modelBuilder.Entity<Calificacione>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("calificaciones_pk");
+
+            entity.ToTable("calificaciones");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.AsigCompId).HasColumnName("asig_comp_id");
+            entity.Property(e => e.Estudianteid).HasColumnName("estudianteid");
+            entity.Property(e => e.Final).HasColumnName("final");
+            entity.Property(e => e.P1).HasColumnName("p1");
+            entity.Property(e => e.P2).HasColumnName("p2");
+            entity.Property(e => e.P3).HasColumnName("p3");
+            entity.Property(e => e.P4).HasColumnName("p4");
+            entity.Property(e => e.Pp1).HasColumnName("pp1");
+            entity.Property(e => e.Pp2).HasColumnName("pp2");
+            entity.Property(e => e.Pp3).HasColumnName("pp3");
+            entity.Property(e => e.Pp4).HasColumnName("pp4");
+            entity.Property(e => e.Rp1).HasColumnName("rp1");
+            entity.Property(e => e.Rp2).HasColumnName("rp2");
+            entity.Property(e => e.Rp3).HasColumnName("rp3");
+            entity.Property(e => e.Rp4).HasColumnName("rp4");
+        });
+
         modelBuilder.Entity<Ciudade>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("ciudades_pkey");
@@ -80,6 +147,20 @@ public partial class SchoolControlDbContext : DbContext
                 .HasForeignKey(d => d.ProvinciaId)
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("ciudades_provincia_id_fkey");
+        });
+
+        modelBuilder.Entity<Competencia>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("comptencias_pk");
+
+            entity.ToTable("competencias");
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("id");
+            entity.Property(e => e.Descripcion)
+                .HasColumnType("character varying")
+                .HasColumnName("descripcion");
         });
 
         modelBuilder.Entity<Contacto>(entity =>
@@ -164,6 +245,21 @@ public partial class SchoolControlDbContext : DbContext
             entity.Property(e => e.Descripcion).HasColumnName("descripcion");
         });
 
+        modelBuilder.Entity<Curso>(entity =>
+        {
+            entity.HasKey(e => e.Cursoid).HasName("newtable_pk");
+
+            entity.ToTable("cursos");
+
+            entity.Property(e => e.Cursoid)
+                .UseIdentityAlwaysColumn()
+                .HasColumnName("cursoid");
+            entity.Property(e => e.Nombre)
+                .HasColumnType("character varying")
+                .HasColumnName("nombre");
+            entity.Property(e => e.Responsable).HasColumnName("responsable");
+        });
+
         modelBuilder.Entity<Direccione>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("direcciones_pkey");
@@ -203,28 +299,105 @@ public partial class SchoolControlDbContext : DbContext
                 .HasConstraintName("direcciones_tipo_id_fkey");
         });
 
-        modelBuilder.Entity<Empleado>(entity =>
+        modelBuilder.Entity<Docente>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("personas_pkey");
+
+            entity.HasIndex(e => e.Cedula, "personas_cedula_key").IsUnique();
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("nextval('personas_id_seq'::regclass)")
+                .HasColumnName("id");
+            entity.Property(e => e.Activo).HasColumnName("activo");
+            entity.Property(e => e.Apellidos).HasColumnName("apellidos");
+            entity.Property(e => e.Cedula).HasColumnName("cedula");
+            entity.Property(e => e.Correo).HasColumnName("correo");
+            entity.Property(e => e.Direccion)
+                .HasColumnType("character varying")
+                .HasColumnName("direccion");
+            entity.Property(e => e.EstadoCivil).HasColumnName("estado_civil");
+            entity.Property(e => e.FechaIngreso).HasColumnName("fecha_ingreso");
+            entity.Property(e => e.FechaNacimiento).HasColumnName("fecha_nacimiento");
+            entity.Property(e => e.Licencia).HasColumnName("licencia");
+            entity.Property(e => e.LugarNacimientoId).HasColumnName("lugar_nacimiento_id");
+            entity.Property(e => e.NacionalidadId).HasColumnName("nacionalidad_id");
+            entity.Property(e => e.Nombres).HasColumnName("nombres");
+            entity.Property(e => e.Sexo).HasColumnName("sexo");
+            entity.Property(e => e.Telefono)
+                .HasColumnType("character varying")
+                .HasColumnName("telefono");
+            entity.Property(e => e.Url).HasColumnName("url");
+            entity.Property(e => e.Userid).HasColumnName("userid");
+
+            entity.HasOne(d => d.LugarNacimiento).WithMany(p => p.Docentes)
+                .HasForeignKey(d => d.LugarNacimientoId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("personas_lugar_nacimiento_id_fkey");
+
+            entity.HasOne(d => d.Nacionalidad).WithMany(p => p.Docentes)
+                .HasForeignKey(d => d.NacionalidadId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("personas_nacionalidad_id_fkey");
+        });
+
+        modelBuilder.Entity<EmpleadosAdm>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("empleados_pkey");
 
-            entity.ToTable("empleados");
+            entity.ToTable("empleados_adm");
+
+            entity.HasIndex(e => e.Cedula, "empleados_cedula_key").IsUnique();
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("nextval('empleados_id_seq'::regclass)")
+                .HasColumnName("id");
+            entity.Property(e => e.Activo).HasColumnName("activo");
+            entity.Property(e => e.Apellidos).HasColumnName("apellidos");
+            entity.Property(e => e.Cedula).HasColumnName("cedula");
+            entity.Property(e => e.Correo).HasColumnName("correo");
+            entity.Property(e => e.EstadoCivil).HasColumnName("estado_civil");
+            entity.Property(e => e.FechaNacimiento).HasColumnName("fecha_nacimiento");
+            entity.Property(e => e.Licencia).HasColumnName("licencia");
+            entity.Property(e => e.LugarNacimientoId).HasColumnName("lugar_nacimiento_id");
+            entity.Property(e => e.NacionalidadId).HasColumnName("nacionalidad_id");
+            entity.Property(e => e.Nombres).HasColumnName("nombres");
+            entity.Property(e => e.Sexo).HasColumnName("sexo");
+            entity.Property(e => e.Url).HasColumnName("url");
+        });
+
+        modelBuilder.Entity<Estudiante>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("estudiante_pkey");
+
+            entity.ToTable("estudiantes");
+
+            entity.HasIndex(e => e.Cedula, "estudiante_cedula_key").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.PersonaId).HasColumnName("persona_id");
-            entity.Property(e => e.PosicionId).HasColumnName("posicion_id");
-            entity.Property(e => e.PosicionesEmpledoId).HasColumnName("posiciones_empledo_id");
-            entity.Property(e => e.TipoEmpleadoId).HasColumnName("tipo_empleado_id");
-            entity.Property(e => e.TiposEmpledoId).HasColumnName("tipos_empledo_id");
+            entity.Property(e => e.Activo).HasColumnName("activo");
+            entity.Property(e => e.Apellidos).HasColumnName("apellidos");
+            entity.Property(e => e.Cedula).HasColumnName("cedula");
+            entity.Property(e => e.Correo).HasColumnName("correo");
+            entity.Property(e => e.Cursoid).HasColumnName("cursoid");
+            entity.Property(e => e.EstadoCivil).HasColumnName("estado_civil");
+            entity.Property(e => e.FechaNacimiento).HasColumnName("fecha_nacimiento");
+            entity.Property(e => e.Licencia).HasColumnName("licencia");
+            entity.Property(e => e.LugarNacimientoId).HasColumnName("lugar_nacimiento_id");
+            entity.Property(e => e.NacionalidadId).HasColumnName("nacionalidad_id");
+            entity.Property(e => e.Nombres).HasColumnName("nombres");
+            entity.Property(e => e.NumOrden).HasColumnName("num_orden");
+            entity.Property(e => e.Sexo).HasColumnName("sexo");
+            entity.Property(e => e.Url).HasColumnName("url");
 
-            entity.HasOne(d => d.PosicionesEmpledo).WithMany(p => p.Empleados)
-                .HasForeignKey(d => d.PosicionesEmpledoId)
+            entity.HasOne(d => d.LugarNacimiento).WithMany(p => p.Estudiantes)
+                .HasForeignKey(d => d.LugarNacimientoId)
                 .OnDelete(DeleteBehavior.SetNull)
-                .HasConstraintName("empleados_posiciones_empledo_id_fkey");
+                .HasConstraintName("estudainte_lugar_nacimiento_id_fkey");
 
-            entity.HasOne(d => d.TiposEmpledo).WithMany(p => p.Empleados)
-                .HasForeignKey(d => d.TiposEmpledoId)
+            entity.HasOne(d => d.Nacionalidad).WithMany(p => p.Estudiantes)
+                .HasForeignKey(d => d.NacionalidadId)
                 .OnDelete(DeleteBehavior.SetNull)
-                .HasConstraintName("empleados_tipos_empledo_id_fkey");
+                .HasConstraintName("estudiante_nacionalidad_id_fkey");
         });
 
         modelBuilder.Entity<LugarNacimiento>(entity =>
@@ -265,39 +438,6 @@ public partial class SchoolControlDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("pending_email_confirmations_user_id_fkey");
-        });
-
-        modelBuilder.Entity<Persona>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("personas_pkey");
-
-            entity.ToTable("personas");
-
-            entity.HasIndex(e => e.Cedula, "personas_cedula_key").IsUnique();
-
-            entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.Activo).HasColumnName("activo");
-            entity.Property(e => e.Apellidos).HasColumnName("apellidos");
-            entity.Property(e => e.Cedula).HasColumnName("cedula");
-            entity.Property(e => e.Correo).HasColumnName("correo");
-            entity.Property(e => e.EstadoCivil).HasColumnName("estado_civil");
-            entity.Property(e => e.FechaNacimiento).HasColumnName("fecha_nacimiento");
-            entity.Property(e => e.Licencia).HasColumnName("licencia");
-            entity.Property(e => e.LugarNacimientoId).HasColumnName("lugar_nacimiento_id");
-            entity.Property(e => e.NacionalidadId).HasColumnName("nacionalidad_id");
-            entity.Property(e => e.Nombres).HasColumnName("nombres");
-            entity.Property(e => e.Sexo).HasColumnName("sexo");
-            entity.Property(e => e.Url).HasColumnName("url");
-
-            entity.HasOne(d => d.LugarNacimiento).WithMany(p => p.Personas)
-                .HasForeignKey(d => d.LugarNacimientoId)
-                .OnDelete(DeleteBehavior.SetNull)
-                .HasConstraintName("personas_lugar_nacimiento_id_fkey");
-
-            entity.HasOne(d => d.Nacionalidad).WithMany(p => p.Personas)
-                .HasForeignKey(d => d.NacionalidadId)
-                .OnDelete(DeleteBehavior.SetNull)
-                .HasConstraintName("personas_nacionalidad_id_fkey");
         });
 
         modelBuilder.Entity<PosicionesEmpledo>(entity =>
@@ -420,6 +560,9 @@ public partial class SchoolControlDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
             entity.Property(e => e.Email).HasColumnName("email");
             entity.Property(e => e.Fullname).HasColumnName("fullname");
+            entity.Property(e => e.Password)
+                .HasColumnType("character varying")
+                .HasColumnName("password");
             entity.Property(e => e.RoleId).HasColumnName("role_id");
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
             entity.Property(e => e.Username).HasColumnName("username");

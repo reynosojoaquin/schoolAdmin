@@ -74,7 +74,7 @@ namespace SchoolControl.Server.Controllers
         }
 
         [HttpPost]
-        [Route("Guardar/{id}")]
+        [Route("Guardar")]
         public async Task<IActionResult> Guardar(ProvinciaDTO provincia)
         {
             var responseApi = new ResponseApi<int>();
@@ -117,27 +117,28 @@ namespace SchoolControl.Server.Controllers
             try
             {
                 var DBProvincia = await _dbContext.Provincias.FirstOrDefaultAsync(x => x.Id == id);
-
                 if (DBProvincia != null)
                 {
                     DBProvincia.Nombre = provincia.Nombre;
-                    _dbContext.Provincias.Add(DBProvincia);
+                    _dbContext.Entry(DBProvincia).State = EntityState.Modified;
                     await _dbContext.SaveChangesAsync();
                     responseApi.correcto = true;
                     responseApi.Valor = DBProvincia.Id;
-                    responseApi.Mensaje = "Provincia modificada con exito";
+                    Console.WriteLine(responseApi.Valor);
+                    Console.WriteLine("valor id"+DBProvincia.Id);
                 }
                 else
                 {
                     responseApi.correcto = false;
-                    responseApi.Mensaje = "Ciudad no encontrada";
+                    responseApi.Mensaje = "Provincia no encontrada";
                 }
 
             }
             catch (Exception ex)
             {
                 responseApi.correcto = false;
-                responseApi.Mensaje = "Error al modificar la provincia => "+ex.Message;
+                responseApi.Mensaje = ex.Message+"===> INNER ==>  "+ex.InnerException.Message;
+                Console.WriteLine(ex.Message);
             }
             return Ok(responseApi);
         }
@@ -171,42 +172,11 @@ namespace SchoolControl.Server.Controllers
             catch (Exception ex)
             {
                 responseApi.correcto = false;
-                responseApi.Mensaje = ex.Message;
+                responseApi.Mensaje = ex.Message+" INNER "+ex.InnerException.Message;
             }
             return Ok(responseApi);
         }
-        [HttpGet]
-        [Route("page")]
-        public async Task<(IEnumerable<ProvinciaDTO>provincias,int TotalCount)> GetProvincias([FromQuery] string? filter ="S", [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
-        {
-                var listaProvincia = new  List<ProvinciaDTO>();
-                var resposeApi = new ResponseApi<List<ProvinciaDTO>>();
-                foreach(var item in await _dbContext.Provincias.ToListAsync())
-                {
-                    listaProvincia.Add(new ProvinciaDTO
-                    {
-                        Id = item.Id,
-                        Nombre = item.Nombre
-                    });
-                }
-                var ListaProvinciasDTO = new List<ProvinciaDTO>();
-                var provinciasFiltered = listaProvincia.Where(x => x.Nombre.Contains(filter));
-
-                // Total de elementos después del filtrado
-                var totalCount =  provinciasFiltered.Count();
-                Console.WriteLine(Convert.ToString(totalCount));
-                // Paginación usando LINQ
-                var provincias = await _dbContext.Provincias
-                    .Skip((page - 1) * pageSize)
-                    .Take(pageSize)
-                    .Select(p => new ProvinciaDTO
-                    {
-                        Id = p.Id,
-                        Nombre = p.Nombre
-                    }).ToListAsync();
-
-                return  (provincias, totalCount);
-        }
+       
 
     }
 }

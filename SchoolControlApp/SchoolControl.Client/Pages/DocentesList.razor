@@ -1,0 +1,60 @@
+﻿@page "/docentes"
+@using SchoolControl.Shared;
+@using SchoolControl.Client.Services;
+@using CurrieTechnologies.Razor.SweetAlert2;
+
+@inject  IDocentesServices DocentesService;
+@inject SweetAlertService Swal;
+
+
+<h3>Administración de Docentes</h3>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Nombres</th>
+            <th>Apellidos</th>
+            <th>Cédula</th>
+            <th>Correo</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var docente in docentes)
+        {
+            <tr>
+                <td>@docente.Nombres</td>
+                <td>@docente.Apellido</td>
+                <td>@docente.Cedula</td>
+                <td>@docente.Correo</td>
+                <td>
+                    <button class="btn btn-primary btn-sm" @onclick="() => EditDocente(docente.ID)">Editar</button>
+                    <button class="btn btn-danger btn-sm" @onclick="() => DeleteDocente(docente.ID)">Eliminar</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private List<DocenteDTO> docentes = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        docentes = await DocentesService.GetDocentesAsync();
+    }
+
+    private async Task EditDocente(int id)
+    {
+        // Implementar lógica para editar un docente
+    }
+
+    private async Task DeleteDocente(int id)
+    {
+        var success = await DocentesService.DeleteDocenteAsync(id);
+        if (success)
+        {
+            docentes = await DocentesService.GetDocentesAsync();
+        }
+    }
+}
