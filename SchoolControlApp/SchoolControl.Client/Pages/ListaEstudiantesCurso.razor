@@ -1,0 +1,166 @@
+﻿@page "/ListaEstudiantesCurso/{parametros}"
+
+@using SchoolControl.Shared;
+@using SchoolControl.Client.Services;
+@using CurrieTechnologies.Razor.SweetAlert2;
+
+@inject SweetAlertService Swal;
+@inject IEstudianteServices EstudianteServices;
+@inject NavigationManager NavigationManager;
+<div class="card mt-6">
+    <div class="card-header">
+        <h3 class="card-title">Estudiantes </h3>
+    </div>
+    <div class="card-body">
+        <div class="container mt-2">
+            <!-- Fila para el filtro y el botón -->
+            <div class="row mb-1">
+
+                <div class="col-md-12">
+                    <!-- Campo para filtrar datos -->
+                    <input type="text" @bind-value="searchTerm" @onkeypress="OnKeyPress" id="filterInput" class="form-control" placeholder="Filtrar Estudiantes...">
+                </div>
+
+            </div>
+        </div>
+
+        <table class="table table-striped  ">
+            <thead>
+                <th>Id</th>
+                <th>Nombre</th>
+                <th>Apellido</th>
+                <th>SIGERD</th>
+                <th>Acciones</th>
+            </thead>
+            <tbody>
+                @if (Estudiantes == null)
+                {
+                    <tr>
+                        <td colspan="5" align="center">
+                            <img style="with:50px" src="https://media.tenor.com/2BLI5EO7yVAAAAAi/loading-image.gif" />
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var item in EstudiantesFiltrados)
+                    {
+                        <tr>
+                            <td>@item.Id</td>
+                            <td>@item.Nombres</td>
+                            <td>@item.Apellidos</td>
+                            <td>@item.SigerdId</td>
+                            <td>
+                                <button class="btn btn-sm btn-info" @onclick="(()=> CalificarEstudiantes(cursoID,item.Id))">
+                                    <i class="fas nav-icon fa-check"></i>&nbspCalificar
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+
+        </table>
+        <button type="button" class="btn btn-primary mt-3" @onclick="HandleCancel">
+            <i class="nav-icon fas fa-window-close"></i> Cancelar
+        </button>
+    </div>
+</div>
+
+
+
+
+@code {
+    [Parameter]
+    public string parametros { get; set; }
+    public int cursoID { get; set; } 
+    public int asignID { get; set; }
+    public string icono { get; set; }
+    public string Nombre { get; set; }  
+    public string searchTerm = string.Empty;
+    List<EstudiantesDTO>? Estudiantes = null;
+    List<EstudiantesDTO>? EstudiantesFiltrados = null;
+    [Parameter]
+    public bool showFirstPage { get; set; }
+    [Parameter]
+    public EventCallback<string> OnValueSentBack { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        cursoID = Convert.ToInt16(parametros.Split(',')[0]);
+        asignID = Convert.ToInt16(parametros.Split(',')[1]);
+        icono = parametros.Split(',')[2];
+        Nombre = parametros.Split(',')[3];
+        Estudiantes = await EstudianteServices.getStudentClassRoom(cursoID);
+        EstudiantesFiltrados = Estudiantes;
+    }
+    private void HandleCancel()
+    {
+     
+        NavigationManager.NavigateTo("javascript:history.back()", forceLoad: false);
+    }
+    private async Task FiltrarEstudiantes()
+    {
+        // Estudiantes = await EstudianteServices.GetStudentFiltered(searchTerm);
+        filtrarEstudiantes(searchTerm);
+    }
+    private async Task OnKeyPress(KeyboardEventArgs e)
+    {
+        // Filtrar cuando se presione "Enter"
+        if (e.Key == "Enter")
+        {
+            await FiltrarEstudiantes();
+        }
+    }
+    private async Task eliminar(int id)
+    {
+        var resultado = await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "Eliminar Estudiantes",
+                Text = "Deseas eliminar el Estudiante",
+                Icon = SweetAlertIcon.Question,
+                ShowCancelButton = true
+            });
+
+        if (resultado.IsConfirmed)
+        {
+            var eliminado = await EstudianteServices.Eliminar(id);
+            if (eliminado)
+                Estudiantes = Estudiantes.FindAll(e => e.Id != id);
+        }
+    }
+    private async Task Modificar(int id)
+    {
+        showCreatePage(id);
+    }
+    public void showCreatePage(int value)
+    {
+        SendBackValue("true,p," + Convert.ToString(value));
+    }
+    public void SendBackValue(string value)
+    {
+        OnValueSentBack.InvokeAsync(value);
+    }
+    private void CalificarEstudiantes(int cursoid,int estudianteID)
+    {
+        string parametros = $"{cursoid},{asignID},{estudianteID},{Nombre},{icono}";
+        NavigationManager.NavigateTo($"/Calificaciones/{parametros}");
+    }
+    private void filtrarEstudiantes(string nombre)
+    {
+        EstudiantesFiltrados = Estudiantes.Where(e => e.Nombres.ToLower().Contains(nombre.ToLower())).ToList();
+        StateHasChanged();
+    }
+
+}
+<style>
+     .col-id {
+        width: 100px; /* Ajusta este valor según el tamaño del contenido de la columna Id */
+        text-align: center;
+    }
+
+    .col-nombre {
+        width: 1px; /* Ajuste inicial para que tome el espacio restante */
+        white-space: nowrap; /* Evita el ajuste de línea en el contenido */
+    }
+</style>

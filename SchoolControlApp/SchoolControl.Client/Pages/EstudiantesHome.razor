@@ -1,0 +1,85 @@
+﻿@page "/EstudiantesHome"
+@using Microsoft.AspNetCore.Authorization;
+@using Microsoft.AspNetCore.Components.Authorization;
+@attribute [Authorize]
+@using SchoolControl.Client.Pages;
+<h3>Estudiantes</h3>
+<div class="card card-primary card-outline">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-edit"></i>
+           Configuracion general de los estudiantes
+        </h3>
+    </div>
+    <div class="card-body">
+        <h4>Opciones</h4>
+        <div class="row">
+            <div class="col-5 col-sm-3">
+                <div class="nav flex-column nav-tabs h-100" id="vert-tabs-tab" role="tablist" aria-orientation="vertical">
+                    <a class="nav-link active" id="vert-tabs-estudiantes-tab" data-bs-toggle="pill" href="#vert-tabs-estudiantes" role="tab" aria-controls="vert-tabs-estudiantes" aria-selected="true">Estudiantes</a>
+                </div>
+            </div>
+            <div class="col-7 col-sm-9">
+                <div class="tab-content" id="vert-tabs-tabContent">
+                    <div class="tab-pane fade show active" id="vert-tabs-provincia" role="tabpanel" aria-labelledby="vert-tabs-provincia-tab">
+
+                        @switch (opcion)
+                        {
+                            case "INFO":
+                                <EstudianteInfo id="@ID" OnValueSentBack="ReceiveValue"/>
+                                break;
+                            case "ADD":
+                                <AddEstudiante id="@ID" OnValueSentBack="ReceiveValue" />
+                            break;
+                            default : 
+                                <ListaEstudiantes OnValueSentBack = "ReceiveValue" />
+                            break;
+                        }
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <!-- /.card -->
+</div>
+@code {
+    private int ID = 0;
+    private bool  showIndexEstudiantes = true;
+    private bool showAddEstudiantes = false;
+    private bool showInfoEstudiantes = false;
+    private string receivedValue = string.Empty;
+    public string titulo = "";
+    public string opcion = "";
+    private void TogglePageEstudiantes(string value)
+    {
+       showIndexEstudiantes = !Convert.ToBoolean(value); ;
+    }
+    private void TogglePageEstudiantesADD(string value)
+    {
+        showIndexEstudiantes = !Convert.ToBoolean(value); ;
+    }
+    private void TogglePageEstudiantesInfo(string value)
+    {
+        showIndexEstudiantes = !Convert.ToBoolean(value); ;
+    }
+    private void ReceiveValue(string value)
+    {
+        string[] valores = value.Split(',');
+        opcion =valores[0];
+        if(opcion == "ADD")
+        {
+            string val1 = valores[0];
+            string val2 = valores[1];
+            ID = Convert.ToInt32(val2);
+                     
+        }
+        if (opcion == "INFO")
+        {
+            string val1 = valores[1];
+            ID = Convert.ToInt32(val1);
+        }
+       
+    }
+}

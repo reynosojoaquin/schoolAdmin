@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using OfficeOpenXml;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -28,7 +29,7 @@ builder.Services.AddCors(opciones => {
     });
 });
 
-var key = Encoding.ASCII.GetBytes(builder.Configuration["Jwt:key"]!);
+var key = Encoding.ASCII.GetBytes(builder.Configuration["Jwt:JWT_KEY"]!);
 // Configuración de JWT desde appsettings.json
 builder.Services.AddAuthentication(options =>
 {
@@ -50,7 +51,7 @@ builder.Services.AddAuthentication(options =>
 
 
 builder.Services.AddAuthorization();
-
+AppContext.SetSwitch("EPPlus.ExcelPackage.UseLegacyLicenseContext", true);
 var app = builder.Build();
 
 // USER JWT

@@ -9,7 +9,7 @@ public partial class Nacionalidade
 
     public string Nombre { get; set; } = null!;
 
-    public int? NacionalidadId { get; set; }
+    public string? Cod { get; set; }
 
     public virtual ICollection<Docente> Docentes { get; set; } = new List<Docente>();
 

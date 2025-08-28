@@ -1,11 +1,12 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
-
+@using SchoolControl.Client.Extensiones;
+@inject AutenticationExtension AuthStateProvider;
 
 <aside class="main-sidebar sidebar-dark-primary elevation-4">
     <!-- Brand Logo -->
     <a href="index3.html" class="brand-link">
         <img src="dist/img/AdminLTELogo.png" alt="AdminLTE Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
-        <span class="brand-text font-weight-light">AdminLTE 3</span>
+        <span class="brand-text font-weight-light">LRTFD</span>
     </a>
 
     <!-- Sidebar -->
@@ -16,7 +17,7 @@
                 <img src="dist/img/user2-160x160.jpg" class="img-circle elevation-2" alt="User Image">
             </div>
             <div class="info">
-                <a href="#" class="d-block">Alexander Pierce</a>
+                <a href="#" class="d-block">@userName</a>
             </div>
         </div>
 
@@ -26,72 +27,131 @@
         <AuthorizeView>
             <Authorized>
                 <!-- Sidebar Menu -->
-            <nav class="mt-2">
-                <li class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
-                    <!-- Add icons to the links using the .nav-icon class
-                         with font-awesome or any other icon font library -->
-                  
+                <nav class="mt-2">
+                    <li class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+                        <!-- Add icons to the links using the .nav-icon class
+                        with font-awesome or any other icon font library -->
+
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="/">
+                                <i class="nav-icon fa fa-home" aria-hidden="true"></i>
+                                <p>
+                                    INICIO
+                                </p>
+                            </NavLink>
+                        </li>
+
+                        <li class="nav-item ">
+                            <a href="#" class="nav-link " onclick="toggleMenu(event, 'configuracionSubmenu')">
+                                <i class="nav-icon fas fa fa-cog "></i>
+                                <p>
+                                    CONFIGURACION
+                                    <i class="right fas fa-angle-left"></i>
+                                </p>
+                            </a>
+
+                            <ul id="configuracionSubmenu" class="nav nav-treeview">
+                                @if (hasAdministrarLocalidades)
+                                {
+                                    <li class="nav-item">
+                                        <NavLink class="nav-link" href="Localidades">
+                                    <i class="nav-icon fa-lg fas fa-map-marked-alt"></i> Localidades
+                                        </NavLink>
+                                    </li>
+                                }
+                      
+                                    @if (hasAdministrarCurso)
+                                    {
                                 <li class="nav-item">
-                                    <NavLink class="nav-link" href="/">
-                                        <i class="nav-icon fa fa-home" aria-hidden="true"></i>
-                                        <p>
-                                            INICIO
-                                        </p>
+                                    <NavLink class="nav-link" href="IndexCursos">
+                                        <i class="nav-icon fa-lg fas fa-school"></i> Cursos
                                     </NavLink>
                                 </li>
-
-                                <li class="nav-item ">
-                                     <a href="#" class="nav-link " onclick="toggleMenu(event, 'configuracionSubmenu')">
-                                        <i class="nav-icon fas fa fa-cog "></i>
+                                    }
+                               
+                                @if (hasAdministrarUsuarios)
+                                {
+                                    <li class="nav-item">
                                         <p>
-                                            CONFIGURACION
-                                            <i class="right fas fa-angle-left"></i>
+                                            <NavLink class="nav-link" href="Usuarios">
+                                        <i class="nav-icon fa-lg fas far fa-user"></i>
+                                                Usuarios
+                                            </NavLink>
                                         </p>
-                                    </a>
-                                    <ul id="configuracionSubmenu" class="nav nav-treeview">
-                                        <li class="nav-item">
-                                                <NavLink class="nav-link" href="Localidades">
-                                                    <span class="bi bi-pin-map" aria-hidden="true"></span> Localidades
-                                                </NavLink>
-                                        </li>
-                                        <li class="nav-item">
+                                    </li>
+
+                                
+                                <li class="nav-item">
                                             <p>
-                                                <NavLink class="nav-link" href="Ciudades">
-                                                    Empleados
+                                                <NavLink class="nav-link" href="ListaPermisos">
+                                        <i class="nav-icon fas fa-users-cog"></i>      Roles & Permisos
                                                 </NavLink>
                                             </p>
-                                        </li>
-                                        <li class="nav-item">
-                                            <p>
-                                                <NavLink class="nav-link" href="Ciudades">
-                                                    Inventario
-                                                </NavLink>
-                                            </p>
-                                        </li>
-                                        <li class="nav-item">
-                                            <p>
-                                                <NavLink class="nav-link" href="userRegister">
-                                                    Usuarios
-                                                </NavLink>
-                                            </p>
-                                        </li>
-                                     
-                                    </ul>
+                           
+                                  </li>
                                     
-                                </li>
+                             }
+                    </ul>
+
+                </li>
+                        @if (hasAdministrarCalificaciones)
+                        {
                                 <li class="nav-item">
                                     <NavLink class="nav-link" href="/Cursos">
-                                        <i class="nav-icon fa fa-graduation-cap"></i>
+                                         <i class="nav-icon fa-lg fas fa-address-card"></i>
                                         <p>
-                                            CURSOS
+                                            CALIFICACIONES 
+                                        </p>
+                                    </NavLink>
+                    </li>
+                        }
+                        @if (hasAdministrarEmpleados)
+                        {
+                            <li class="nav-item">
+                                <NavLink class="nav-link" href="/ListaEmpleados">
+                            <i class="nav-icon fas fa-users fa-lg"></i>
+                                    <p>
+                                        EMPLEADOS
+                                    </p>
+                                </NavLink>
+                            </li>
+                        }
+                        @if (hasAdministrarDocentes)
+                        {
+                                <li class="nav-item">
+                                    <NavLink class="nav-link" href="/DocentesList">
+                            <i class="nav-icon fas fa-chalkboard-teacher fa-lg"></i>
+                                        <p>
+                                            DOCENTES
                                         </p>
                                     </NavLink>
                                 </li>
-
-
-
+                        }
+                        @if (hasAdministrarEstudiantes)
+                        {
+                            <li class="nav-item">
+                                <NavLink class="nav-link" href="/EstudiantesHome">
+                                     <i class="nav-icon fas fa-user-graduate fa-lg"></i>
+                                    <p>
+                                        ESTUDIANTES
+                                    </p>
+                                </NavLink>
+                            </li>
+                        }
+                         @if (hasAdministrarInventario)
+                    {
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="#">
+                            <i class="nav-icon fas fa-tasks fa-lg "></i>
+                            <p>
+                                INVENTARIO
+                            </p>
+                        </NavLink>
+                    </li>
+                    }
                         </li>
-                    </nav>
+                   
+                </nav>
             </Authorized>
         </AuthorizeView>
         <!-- /.sidebar-menu -->
@@ -100,28 +160,65 @@
 </aside>
 <!-- Content Wrapper. Contains page content -->
 @code {
-    // private bool collapseNavMenu = true;
+    private bool hasEditPermission = false;
+    private bool hasAdministrarLocalidades = false;
+    private bool hasAdministrarUsuarios = false;
+    private bool hasAdministrarRegistro = false;
+    private bool hasAdministrarEmpleados = false;
+    private bool hasAdministrarInventario = false;
+    private bool hasAdministrarRegistroAnecdotico = false;
+    private bool hasAdministrarOrientacion = false;
+    private bool hasAdministrarCalificaciones = false;
+    private bool hasAdministrarDocentes = false;
+    private bool hasAdministrarEstudiantes = false;
+    private bool hasAdministrarCurso = false;
+    private string? userName;
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        userName = authState.User.FindFirst("fullName")?.Value ?? "Guest";
+        if (user.Identity.IsAuthenticated)
+        {
+            hasAdministrarLocalidades = user.HasClaim("Permission.8", "Administrar Localidades.True");
+            hasAdministrarUsuarios = user.HasClaim("Permission.1", "Administrar  usuarios.True");
+            hasAdministrarRegistro = user.HasClaim("Permission.4", "Registro.True");
+            hasAdministrarEmpleados = user.HasClaim("Permission.2", "Administrar  empleados.True");
+            hasAdministrarInventario = user.HasClaim("Permission.3", "Inventario.True");
+            hasAdministrarRegistroAnecdotico = user.HasClaim("accion.7.2", "Registro Anecdotico.Modificar.True");
+            hasAdministrarOrientacion = user.HasClaim("Permission.5", "Orientacion.True");
+            hasAdministrarCalificaciones = user.HasClaim("Permission.6", "Calificaciones.True");
+            hasAdministrarDocentes = user.HasClaim("Permission.9", "Administrar Docentes.True");
+            hasAdministrarEstudiantes = user.HasClaim("Permission.10", "Administrar Estudiantes.True");
+            hasAdministrarCurso = user.HasClaim("Permission.11", "Administrar Cursos.True");
+        }
+        
+    }
 
-    // private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
 
-    // private void ToggleNavMenu()
-    // {
-    //     collapseNavMenu = !collapseNavMenu;
-    // }
+
+
+    
 }
 <script>
     $('[data-widget="treeview"]').each(function () {
         adminlte.Treeview._jQueryInterface.call($(this), "init");
     });
 
-        function toggleMenu(event, submenuId) {
-      event.preventDefault();
-      const submenu = document.getElementById(submenuId);
-      if (submenu.style.display === "none" || submenu.style.display === "") {
-        submenu.style.display = "block";
-      } else {
-        submenu.style.display = "none";
-      }
+            function toggleMenu(event, submenuId) {
+        event.preventDefault();
+        const submenu = document.getElementById(submenuId);
+        
+        if (!submenu) {
+            console.error("No se encontró el menú con ID:", submenuId);
+            return;
+        }
+
+        if (submenu.style.display === "none" || submenu.style.display === "") {
+            submenu.style.display = "block";
+        } else {
+            submenu.style.display = "none";
+        }
     }
 </script>
 <style>

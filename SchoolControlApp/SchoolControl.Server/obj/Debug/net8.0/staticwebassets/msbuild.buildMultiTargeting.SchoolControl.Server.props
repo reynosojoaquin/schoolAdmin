@@ -1,3 +1,0 @@
-﻿<Project>
-  <Import Project="..\build\SchoolControl.Server.props" />
-</Project>

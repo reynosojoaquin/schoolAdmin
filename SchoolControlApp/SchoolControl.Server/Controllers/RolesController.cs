@@ -42,6 +42,44 @@ namespace SchoolControl.Server.Controllers
             }
             return Ok(resposeApi);
         }
-       
+        [HttpPut]
+        [Route("updateSystemPermmisions/{id}")]
+
+        public async Task<IActionResult> updateSystemPermmisions(PermisosSistemaDTO permisos)
+        {
+
+            var responseApi = new ResponseApi<int>();
+
+            try
+            {
+                 
+                 foreach( var permiso in  permisos.Permisos)
+                {
+                    RolesPermiso permisoDB = await _dbContext.RolesPermisos.Where(rp => 
+                    rp.RoleId == permisos.id && rp.PermisoId == permiso.Id).FirstOrDefaultAsync();
+                    if (permisoDB != null) { 
+                        permisoDB.Activo = permiso.Activo;
+                    }
+                    foreach(var accion in permiso.Acciones)
+                    {
+                        var accionDb = await _dbContext.PermisosAcciones
+                            .Where(a => a.AccionId == accion.id && a.PermisoId == permiso.Id).FirstOrDefaultAsync();
+                        if (accionDb != null) {
+                            accionDb.Activo = accion.Activa;
+                        }
+                        _dbContext.SaveChanges();
+                    }
+                } 
+
+                responseApi.correcto = true;
+                responseApi.Valor = 1;
+             }
+            catch (Exception ex)
+            {
+                responseApi.correcto = false;
+                responseApi.Mensaje = ex.Message;
+            }
+            return Ok(responseApi);
+        }
     }
 }

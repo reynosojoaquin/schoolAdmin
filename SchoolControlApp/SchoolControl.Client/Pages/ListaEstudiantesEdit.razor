@@ -1,0 +1,386 @@
+﻿@page "/ListaEstudiantesEdit/{parametros}"
+
+@using SchoolControl.Shared;
+@using SchoolControl.Client.Services;
+@using CurrieTechnologies.Razor.SweetAlert2;
+
+@inject SweetAlertService Swal;
+@inject IEstudianteServices EstudianteServices;
+@inject ICursoServices CursoServices;
+@inject NavigationManager NavigationManager;
+@inject IJSRuntime js 
+<!--listado de estudiantes inscritos-->
+<div class="card mt-12">
+    <div class="card-header">
+        <h3 class="card-title">Estudiantes inscritos en el curso <h2>@Descripcion</h2>
+
+            <h3 class="card-title">total estudiantes :<h2>@totalEstudiantesInscritos</h2></h3>
+        </h3>
+
+    </div>
+    <div class="card-body">
+        <div class="container mt-2">
+            <!-- Fila para el filtro y el botón -->
+            <div class="row mb-1">
+                <div class="col-md-4 text-start">
+
+                    <button class="btn btn-primary" @onclick="()=> ActivarRegistro()">
+                        <i class="fas fa-file-signature"></i> Inscribir estudiante
+                    </button>
+                </div>
+                <div class="col-md-8">
+                    <!-- Campo para filtrar datos -->
+                    <input type="text" @bind-value="searchTerm" @onkeypress="OnKeyPress" @bind-value:event="oninput" id="filterInput" class="form-control" placeholder="Filtrar Estudiantes...">
+                </div>
+
+            </div>
+        </div>
+
+        <table class="table table-striped  ">
+            <thead>
+
+                <th>Id</th>
+                <th>Nombre</th>
+                <th>Apellido</th>
+                <th>SIGERD</th>
+                <th>Acciones</th>
+            </thead>
+            <tbody>
+                @if (Estudiantes == null)
+                {
+                    <tr>
+                        <td colspan="5" align="center">
+                            <img style="with:50px" src="https://media.tenor.com/2BLI5EO7yVAAAAAi/loading-image.gif" />
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var item in Estudiantes)
+                    {
+                        <tr>
+
+                            <td>@item.Id</td>
+                            <td>@item.Nombres</td>
+                            <td>@item.Apellidos</td>
+                            <td>@item.SigerdId</td>
+                            <td>
+                                <button class="btn btn-sm btn-danger" @onclick="(()=> eliminar(item.Id))">
+                                    <i class="fas fa-trash-alt"></i>&nbspEliminar
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+
+        </table>
+        <button class="mt-2 btn btn-info" @onclick="()=> CancelarRegistro()">
+            <i class="fas fa-window-close"></i> Cancelar
+        </button>
+    </div>
+
+</div>
+<!--Listado de estudiantes disponibles para inscripcion-->
+@if (mostrarInscripcionEstudiante)
+{
+    <div class="card mt-6">
+        <div class="card-header">
+            <h3 class="card-title">Estudiantes Disponibles para inscripcion<br />
+                total estudiantes : <h2 >@totalEstudiantesPorInscribir</h2>
+            </h3>
+
+        </div>
+        <div class="card-body">
+            <div class="container mt-2">
+                <!-- Fila para el filtro y el botón -->
+                <div class="row mb-1">
+
+                    <div class="col-md-12">
+                        <!-- Campo para filtrar datos -->
+                        <input type="text" @bind-value="searchTermIncripcion" @onkeypress="OnKeyPressInscripcion" @bind-value:event="oninput" id="filterInputInscribir" class="form-control" placeholder="Filtrar Estudiantes...">
+                    </div>
+
+                </div>
+            </div>
+
+            <table class="table table-striped  ">
+                <thead>
+                    <th> <input type="checkbox" @bind="selectAll" @bind:after="() => ToggleEstudiante(0)"></th>
+                    <th>Id</th>
+                    <th>Nombre</th>
+                    <th>Apellido</th>
+                    <th>SIGERD</th>
+                    <th>Acciones</th>
+                </thead>
+                <tbody>
+                    @if (Estudiantes == null)
+                    {
+                        <tr>
+                            <td colspan="5" align="center">
+                                <img style="with:50px" src="https://media.tenor.com/2BLI5EO7yVAAAAAi/loading-image.gif" />
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        if(EstudiantesIncripcionFilter != null){
+                            foreach (var item in EstudiantesIncripcionFilter)
+                            {
+                                <tr>
+                                    <td><input type="checkbox" @bind =item.selected  @bind:after="() => ToggleEstudiante(item.Id)"></td>
+                                    <td>@item.Id</td>
+                                    <td>@item.Nombres</td>
+                                    <td>@item.Apellidos</td>
+                                    <td>@item.SigerdId</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-info" @onclick="(()=> Inscribir(item.Id))">
+                                            <i class="fas fa-file-signature"></i>&nbspInscribir
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    }
+                </tbody>
+
+            </table>
+            <button class="mt-2 btn btn-info" @onclick="()=> ActivarRegistro()">
+                <i class="fas fa-window-close"></i> Cancelar
+            </button>
+        </div>
+    </div>
+}
+
+
+@code {
+    [Parameter]
+    public string parametros{ get; set; }
+    public string cursoID { get; set; } = "0";
+    public string Descripcion { get; set; } = "";
+    public string seccionID { get; set; } = "";
+    public string searchTerm = string.Empty;
+    public string searchTermIncripcion = string.Empty;
+    public bool mostrarInscripcionEstudiante = false;
+    List<EstudiantesDTO>? Estudiantes = null;
+    List<EstudiantesDTO>? EstudiantesToFilter = null;
+    List<estudiantesStatus>? EstudiantesIncripcion = new List<estudiantesStatus>();
+    List<estudiantesStatus>? EstudiantesIncripcionFilter = new List<estudiantesStatus>();
+    public int totalEstudiantesInscritos = 0;
+    public int totalEstudiantesPorInscribir = 0;
+    private HashSet<int> SelectedEstudiantesIds { get; set; } = new();
+
+    private bool selectAll = false;
+
+    [Parameter]
+    public EventCallback<string> OnValueSentBack { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        cursoID = parametros.Split(",")[0];
+        Descripcion = parametros.Split(",")[1];
+        seccionID = parametros.Split(",")[2];
+        await cargarEstudiantesCurso();
+        EstudiantesToFilter = Estudiantes;
+    }
+    private  async Task cargarEstudiantesCurso()
+    {
+        Estudiantes = await EstudianteServices.getStudentClassRoom(Convert.ToInt16(seccionID));
+        totalEstudiantesInscritos = Estudiantes.Count();
+    }   
+    private void ToggleEstudiante(int estudianteId)
+    {
+        if(estudianteId == 0)
+        {
+            if (SelectedEstudiantesIds.Contains(estudianteId))
+            {
+                SelectedEstudiantesIds.Clear();
+                foreach (var estudiante in EstudiantesIncripcion)
+                {
+                    estudiante.selected = false;
+                    SelectedEstudiantesIds.Add(estudiante.Id);
+                }
+            }
+            else
+            {
+                SelectedEstudiantesIds.Add(0);
+                foreach(var estudiante in EstudiantesIncripcion)
+                {
+                    estudiante.selected = true;
+                    SelectedEstudiantesIds.Add(estudiante.Id);
+                }
+            }
+        }
+        else
+        {
+            if (SelectedEstudiantesIds.Contains(estudianteId))
+            {
+                SelectedEstudiantesIds.Remove(estudianteId);
+            }
+            else
+            {
+                SelectedEstudiantesIds.Add(estudianteId);
+            }
+        }
+
+    }
+    private async Task FiltrarEstudiantes()
+    {
+        Estudiantes = EstudiantesToFilter.Where(e => e.Nombres.ToLower().Contains(searchTerm)).ToList();
+    }
+    private async Task FiltrarEstudiantesInscripcion()
+    {
+        EstudiantesToFilter = await EstudianteServices.getStudentFormInscripction(Convert.ToInt16(seccionID));
+        EstudiantesIncripcion = EstudiantesToFilter.Select(e => new estudiantesStatus
+            {
+                Id = e.Id,
+                Nombres = e.Nombres,
+                SigerdId = e.SigerdId,
+                Apellidos = e.Apellidos,
+                selected = false
+            }).ToList();
+        EstudiantesIncripcionFilter = EstudiantesIncripcion;
+        totalEstudiantesPorInscribir = EstudiantesIncripcionFilter.Count();
+
+
+    }
+    private async Task OnKeyPress(KeyboardEventArgs e)
+    {
+        // Filtrar cuando se presione "Enter"
+        if (e.Key == "Enter")
+        {
+
+            await FiltrarEstudiantes();
+        }
+    }
+    private async Task OnKeyPressInscripcion(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await FiltrarEstudiantesInscripcion();
+        }
+    }
+    private async Task Inscribir(int id)
+    {
+        var resultado = await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "Inscribir Estudiantes",
+                Text = "Deseas inscribir el estudiante al curso actual",
+                Icon = SweetAlertIcon.Question,
+                ShowCancelButton = true
+            });
+
+        if (resultado.IsConfirmed)
+        {
+            var inscrito = await CursoServices.InscribirEstudiante(Convert.ToInt16(seccionID), id);
+            if (inscrito)
+            {
+                var mensajeOK = await Swal.FireAsync(new SweetAlertOptions
+                        {
+                            Title = "Inscribir  Estudiante en el curso actual",
+                            Text = "El estudiante fue inscrito en el curso satisfactoriamente",
+                            Icon = SweetAlertIcon.Success,
+                            ShowCancelButton = false
+                        });
+            }
+            else
+            {
+                var mensajeError = await Swal.FireAsync(new SweetAlertOptions
+                        {
+                            Title = "Inscribir  Estudiante en el curso actual",
+                            Text = "Error inscribiendo el estudiante",
+                            Icon = SweetAlertIcon.Error,
+                            ShowCancelButton = false
+                        });
+            }
+            await cargarEstudiantesCurso();
+            await FiltrarEstudiantesInscripcion();
+        }
+
+
+    }
+
+
+    private async Task eliminar(int id)
+    {
+        var resultado = await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "Eliminar Estudiantes",
+                Text = "Deseas eliminar el Estudiante del curso actual",
+                Icon = SweetAlertIcon.Question,
+                ShowCancelButton = true
+            });
+
+        if (resultado.IsConfirmed)
+        {
+            var eliminado = await CursoServices.RemoverEstudiante(id);
+            if (eliminado)
+            {
+                Estudiantes = Estudiantes.FindAll(e => e.Id != id);
+                var mensajeOK = await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Title = "Eliminar Estudiantes",
+                    Text = "El estudiante fue removido del curso satisfactoriamente",
+                    Icon = SweetAlertIcon.Success,
+                    ShowCancelButton = false
+                }); 
+            }
+            else
+            {
+                var mensajeError = await Swal.FireAsync(new SweetAlertOptions
+                    {
+                        Title = "Eliminar Estudiantes",
+                        Text = "Error removiendo el estudiante",
+                        Icon = SweetAlertIcon.Error,
+                        ShowCancelButton = false
+                    });
+            }
+        }
+        await cargarEstudiantesCurso();
+        await FiltrarEstudiantesInscripcion();
+    }
+    private async Task Modificar(int id)
+    {
+        showCreatePage(id);
+    }
+    public void showCreatePage(int value)
+    {
+        SendBackValue("true,p," + Convert.ToString(value));
+    }
+    public void SendBackValue(string value)
+    {
+        OnValueSentBack.InvokeAsync(value);
+    }
+    private async Task ActivarRegistro()
+    {
+        mostrarInscripcionEstudiante = !mostrarInscripcionEstudiante;
+        if (mostrarInscripcionEstudiante)
+        {
+            await FiltrarEstudiantesInscripcion();
+        }
+    }
+    private async Task CancelarRegistro()
+    {
+        NavigationManager.NavigateTo("javascript:history.back()", forceLoad: false);
+    }
+    public class estudiantesStatus()
+    {
+        public int Id { get; set; }
+        public string Nombres { get; set; }
+        public string Apellidos { get; set; }
+        public string SigerdId { get; set; }
+        public bool   selected { get; set; }
+    }
+
+}
+<style>
+     .col-id {
+        width: 100px; /* Ajusta este valor según el tamaño del contenido de la columna Id */
+        text-align: center;
+    }
+
+    .col-nombre {
+        width: 1px; /* Ajuste inicial para que tome el espacio restante */
+        white-space: nowrap; /* Evita el ajuste de línea en el contenido */
+    }
+</style>

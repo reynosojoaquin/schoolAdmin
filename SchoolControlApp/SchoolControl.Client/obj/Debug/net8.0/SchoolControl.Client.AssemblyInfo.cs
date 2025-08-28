@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SchoolControl.Client")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a4af42a56accb27ac3d34759f8335fadb6e45b64")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+620d8c0157c135557a099d1fe8b73bd9fca85e49")]
 [assembly: System.Reflection.AssemblyProductAttribute("SchoolControl.Client")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SchoolControl.Client")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

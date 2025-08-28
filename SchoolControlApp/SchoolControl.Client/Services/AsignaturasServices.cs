@@ -82,7 +82,7 @@ namespace SchoolControl.Client.Services
                 throw new HttpRequestException($"Error en la solicitud HTTP: {result.StatusCode}");
             }
         }
-        public async Task<bool>            Eliminar(int id)
+        public async Task<bool> Eliminar(int id)
         {
             var result = await _httpClient.DeleteAsync($"api/Asignatura/Delete/{id}");
             var response = await result.Content.ReadFromJsonAsync<ResponseApi<int>>();
@@ -111,8 +111,7 @@ namespace SchoolControl.Client.Services
 
         public async Task<List<asignaturaDTO>> getAsignaturaTeachers(int curso_id,int responsable)
         {
-            var result = await _httpClient.GetFromJsonAsync<ResponseApi<List<asignaturaDTO>>>($"api/Asignatura/getAsignaturaTeachers?curso_id="+curso_id.ToString()+
-                "&responsable="+responsable.ToString());
+            var result = await _httpClient.GetFromJsonAsync<ResponseApi<List<asignaturaDTO>>>($"api/Asignatura/getAsignaturaTeachers/{curso_id.ToString()}/{responsable.ToString()}");
             if (result!.correcto)
             {
                 if (result.Valor != null)

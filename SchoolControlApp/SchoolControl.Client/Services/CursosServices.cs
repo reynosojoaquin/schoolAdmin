@@ -1,4 +1,7 @@
-﻿using SchoolControl.Shared;
+﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.AspNetCore.Http;
+using SchoolControl.Shared;
 using System.IO.Pipelines;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
@@ -54,13 +57,13 @@ namespace SchoolControl.Client.Services
             }
         }
 
-        public async Task<int> Editar(CursoDTO provincia,int id)
+        public async Task<int> Editar(CursoDTO curso,int id)
         {
 
             var result = new HttpResponseMessage();
             try
             { 
-                 result = await _httpClient.PutAsJsonAsync($"api/Cursos/Editar/{id}", provincia);
+                 result = await _httpClient.PutAsJsonAsync($"api/Cursos/Editar/{id}", curso);
 
             }
             catch (Exception ex) {
@@ -117,6 +120,126 @@ namespace SchoolControl.Client.Services
                 throw new Exception(result.Mensaje);
             }
         }
+        public async Task<bool>RemoverEstudiante(int estudianteID)
+        {
+            var result = await _httpClient.PostAsync($"api/Cursos/RemoverEstudiante?EstudianteID={estudianteID}",null);
+            var response = await result.Content.ReadFromJsonAsync<ResponseApi<bool>>();
+            if (response!.correcto)
+            {
+                return response.Valor;
+            }
+            else
+            {
+                throw new Exception(response.Mensaje);
+            }
+        }
+        public async Task<bool> InscribirEstudiante(int cursoID, int estudianteID)
+        {
+            var result = await _httpClient.PostAsync($"api/Cursos/InscribirEstudiante?CursoID=" +
+                $"{cursoID}&EstudianteID={estudianteID}",null);
+            var response = await result.Content.ReadFromJsonAsync<ResponseApi<bool>>();
+            if (response!.correcto)
+            {
+                return response.Valor;
+            }
+            else
+            {
+                throw new Exception(response.Mensaje);
+            }
+        }
+        
+        public async Task<bool> RegistroMasivo(MultipartFormDataContent file)
+        {
+            var result = await _httpClient.PostAsync($"api/Cursos/RegistroMasivo",file);
+            var response = await result.Content.ReadFromJsonAsync<ResponseApi<bool>>();
+            if (response!.correcto)
+            {
+                return response.Valor;
+            }
+            else
+            {
+                throw new Exception(response.Mensaje);
+            }
+        }
+
+        public async Task<bool> RegistrarSeccion(SeccionCursoDTO seccion)
+        {
+            var result = await _httpClient.PostAsJsonAsync($"api/Cursos/RegistroSeccion", seccion);
+            var response = await result.Content.ReadFromJsonAsync<ResponseApi<bool>>();
+            if (response!.correcto)
+            {
+                return response.Valor;
+            }
+            else
+            {
+                throw new Exception(response.Mensaje);
+            }
+        }
+
+        public async Task<int> GuardarSeccion(SeccionCursoDTO seccion)
+        {
+
+            var result = await _httpClient.PostAsJsonAsync($"api/Cursos/RegistrarSeccion", seccion);
+            var response = await result.Content.ReadFromJsonAsync<ResponseApi<int>>();
+            if (response!.correcto)
+            {
+                return response.Valor;
+            }
+            else
+            {
+                throw new Exception(response.Mensaje);
+            }
+        }
+
+        public async Task<int> EditarSeccion(SeccionCursoDTO seccion, int id)
+        {
+
+            var result = new HttpResponseMessage();
+            try
+            {
+                result = await _httpClient.PutAsJsonAsync($"api/Cursos/EditarSeccion/{id}", seccion);
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.InnerException.Message);
+            }
+
+            if (result.IsSuccessStatusCode)
+            {
+                var evaluar = await result.Content.ReadAsStringAsync();
+                var response = await result.Content.ReadFromJsonAsync<ResponseApi<int>>();
+                if (response != null)
+                {
+                    return response.Valor;
+                }
+                else
+                {
+                    throw new Exception(response?.Mensaje ?? "Error desconocido al procesar la respuesta.");
+                }
+            }
+            else
+            {
+                throw new HttpRequestException($"Error en la solicitud HTTP: {result.StatusCode}");
+            }
+        }
+
+        public async Task<bool> EliminarSeccion(int id)
+        {
+            var result = await _httpClient.DeleteAsync($"api/Cursos/DeleteSeccion/{id}");
+            var response = await result.Content.ReadFromJsonAsync<ResponseApi<int>>();
+            if (response!.correcto)
+            {
+                return response.correcto;
+            }
+            else
+            {
+                throw new Exception(response.Mensaje);
+            }
+        }
+
+
+
 
     }
 }

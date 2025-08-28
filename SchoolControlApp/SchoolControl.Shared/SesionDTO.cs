@@ -12,5 +12,8 @@ namespace SchoolControl.Shared
         public string Correo { get; set; } = string.Empty;
         public string Rol { get; set; } = string.Empty; 
         public string token {  get; set; } = string.Empty;
+        public string fullName { get; set; } = string.Empty;
+        public Dictionary<string, string> CustomClaims { get; set; }
+        public int Id { get; set; } = 0;
     }
 }

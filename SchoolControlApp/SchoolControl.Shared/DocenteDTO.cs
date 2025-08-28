@@ -39,9 +39,9 @@ namespace SchoolControl.Shared
 
         public string? Telefono { get; set; }
 
-        public DateOnly? FechaIngreso { get; set; }
+        public string? FechaIngreso { get; set; }
         [Required]
-        public DateOnly? FechaNacimiento { get; set;}
+        public string? FechaNacimiento { get; set;}
 
         public override string ToString()
         {

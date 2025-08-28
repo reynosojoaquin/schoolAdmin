@@ -1,0 +1,81 @@
+﻿@page "/CreateEmpleado"
+@using SchoolControl.Shared;
+@using SchoolControl.Client.Services;
+@using CurrieTechnologies.Razor.SweetAlert2;
+
+@inject SweetAlertService Swal;
+@inject IDocentesServices DocenteServices;
+@inject NavigationManager navegacion;
+
+<div class="card mt-4">
+    <div class="card-header">
+        <h3 class="card-title">@titulo</h3>
+    </div>
+    <div class="card-body">
+        <EditForm Model="provincia" >
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="mb-3">
+                <label for="nombre" class="form-label">Nombre</label>
+                <InputText id="nombre" class="form-control" @bind-Value="provincia.Nombre" />
+                <ValidationMessage For="@(() => provincia.Nombre)" />
+            </div>
+
+            <div class="mb-3">
+                <button type="button" class="btn btn-primary me-2" @onclick="HandleValidSubmit">
+                    <i class="fa-solid fa-floppy-disk"></i> Guardar
+                </button>
+                <button type="button" class="btn btn-secondary" @onclick="HandleCancel">
+                    <i class="fa-solid fa-ban"></i> Cancelar
+                </button>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+
+
+
+@code {
+    [Parameter]
+    public EventCallback<string> OnValueSentBack { get; set; }
+    [Parameter]
+    public int id { get; set; } = 0;
+    string titulo = string.Empty;
+    string btnTexto = string.Empty;
+    ProvinciaDTO provincia = new ProvinciaDTO();
+    protected override async Task OnInitializedAsync()
+    {
+       
+    }
+    
+    public void respuesta()
+    {
+        SendBackValue("false,pn");
+    }
+    public void SendBackValue(string value)
+    {
+        OnValueSentBack.InvokeAsync(value);
+    }
+    private void HandleCancel()
+    {
+        SendBackValue("false,p,0");
+    }
+
+    private async Task HandleValidSubmit()
+    {
+
+        int idDevuelto = 0;
+       
+
+        Console.WriteLine(Convert.ToString(idDevuelto));
+
+        if (idDevuelto != 0)
+        {
+            HandleCancel();
+            // navegacion.NavigateTo("/Provincia");
+        }
+      
+    }
+}

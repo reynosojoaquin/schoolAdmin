@@ -11,5 +11,6 @@ namespace SchoolControl.Shared
         public int Id { get; set; }
 
         public string NombreRol { get; set; } = null!;
+        public List<RolesPermisoDTO> Permisos { get; set; } = new List<RolesPermisoDTO>();
     }
 }

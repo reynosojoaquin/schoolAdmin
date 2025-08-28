@@ -9,67 +9,133 @@
 <EditForm Model="user" OnValidSubmit="HandleValidSubmit">
     <DataAnnotationsValidator />
     <ValidationSummary />
-    <div class="card mt-6">
-    <div class="card-header">
-            <h3 class="card-title"> <h3>Registro Usuario</h3></h3>
-    </div>
+
+  
     <div class="card-body">
-        <div class="container mt-2">
-                <div class="mb-3">
-                    <label for="username" class="form-label">Nombre de Usuario</label>
-                    <InputText id="username" class="form-control" @bind-Value="user.Username" />
-                </div>
+       
+        <div class="row">
+            <div class="col-5 col-sm-3">
+                <div class="nav flex-column nav-tabs h-100" id="vert-tabs-tab" role="tablist" aria-orientation="vertical">
+                    <a class="nav-link active" id="vert-tabs-provincia-tab" data-bs-toggle="pill" href="#vert-tabs-provincia" role="tab" aria-controls="vert-tabs-provincia" aria-selected="true">REGISTRO</a>
+                    <a class="nav-link" id="vert-tabs-ciudad-tab" data-bs-toggle="pill" href="#vert-tabs-ciudad" role="tab" aria-controls="vert-tabs-ciudad" aria-selected="false">PERMISOS</a>
+                   
 
-                <div class="mb-3">
-                    <label for="Password" class="form-label">Contraseña</label>
-                    <InputText id="password" class="form-control" type="password" @bind-Value="user.Password" />
                 </div>
-            <div class="mb-3">
-                    <label for="pass" class="form-label">Repetir contraseña</label>
-                    <InputText id="pass" class="form-control" @bind-Value="user.Password" />
             </div>
-                <div class="mb-3">
-                    <label for="roleSelect" class="form-label">Role:</label>
-                    <InputSelect @bind-Value="user.RoleId" id="roleSelect" class="form-select">
-                        <option value="0">Seleccione un role </option>
-                        @foreach (var role in Roles)
-                        {
-                            <option value="@role.Id" >@role.NombreRol</option>
-                        }
-                    </InputSelect>
-                </div>
+            <div class="col-7 col-sm-9">
+                <div class="tab-content" id="vert-tabs-tabContent">
+                    <div class="tab-pane fade show active" id="vert-tabs-provincia" role="tabpanel" aria-labelledby="vert-tabs-provincia-tab">
+                        <div class="card mt-10">
+                            <div class="card-header">
+                                <h3 class="card-title"> <h3>Registro Usuario</h3></h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="container mt-2">
+                                    <div class="mb-3">
+                                        <label for="username" class="form-label">Nombre de Usuario</label>
+                                        <InputText id="username" class="form-control" @bind-Value="user.Username" />
+                                    </div>
 
+                                    <div class="mb-3">
+                                        <label for="Password" class="form-label">Contraseña</label>
+                                        <InputText id="password" class="form-control" type="password" @bind-Value="user.Password" />
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="pass" class="form-label">Repetir contraseña</label>
+                                        <InputText id="pass" class="form-control" @bind-Value="user.Password" />
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="roleSelect" class="form-label">Role:</label>
+                                        <InputSelect @bind-Value="user.RoleId" id="roleSelect" class="form-select">
+                                            <option value="0">Seleccione un role </option>
+                                            @foreach (var role in Roles)
+                                            {
+                                                <option value="@role.Id">@role.NombreRol</option>
+                                            }
+                                        </InputSelect>
+                                    </div>
+                                    <div class="card mt-6">
+                                        <div class="card-header">
+                                            <h2 class="card-title"> Empleado</h2>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="container mt-2">
+                                                <div class="mb-3">
 
+                                                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#selectDocenteModal">
+                                                        Seleccionar Empleado
+                                                    </button>
+                                                    <p class="mt-2">
+                                                        Empleado seleccionado: <strong>
+                                                            @if (selectedDocente != null)
+                                                            {
+                                                                @selectedDocente.Nombres @selectedDocente.Apellido
+                                                            }
+                                                        </strong>
+                                                    </p>
+                                                </div>
+                                            </div>
 
-
-
-                <div class="card mt-6">
-                    <div class="card-header">
-                        <h2 class="card-title"> Empleado</h2>
-                    </div>
-                    <div class="card-body">
-                        <div class="container mt-2">
-                                <div class="mb-3">
-                                   
-                                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#selectDocenteModal">
-                                        Seleccionar Empleado
-                                    </button>
-                                <p class="mt-2">Empleado seleccionado: <strong>
-                                    @if(selectedDocente != null){
-                                            @selectedDocente.Nombres @selectedDocente.Apellido
-                                        }
-                                      </strong></p>
+                                        </div>
+                                    </div>
+                                   <button type="submit" class="btn btn-primary">Registrar</button>
                                 </div>
+                            </div>
                         </div>
-
                     </div>
-                </div>
-      
+                    <div class="tab-pane fade" id="vert-tabs-ciudad" role="tabpanel" aria-labelledby="vert-tabs-ciudad-tab">
+                        <div class="card mt-12">
+                            <div class="card-header">
+                                <h3 class="card-title"> <h3>Permisos Usuario</h3></h3>
+                            </div>
+                            <div class="card-body">
+                                <ul>
+                                    @foreach (var role in LstPermisos)
+                                    {
+                                        <li>
+                                            <b>@role.rolName</b>
+                                            @foreach(var permiso in role.Permisos)
+                                            {
+                                                <ul>
+                                                    <li>
+                                                        <input type="checkbox" @bind="permiso.Activo" @bind:after="() => TogglePermission(permiso.Id)" />
+                                                        @permiso.Descripcion
+                                                        <ul>
 
-            <button type="submit" class="btn btn-primary">Registrar</button>
+                                                           
+                                                                @foreach(var accion in permiso.Acciones)
+                                                                {
+                                                                    <li>
+                                                                    <input type="checkbox" @bind="accion.Activa" @bind:after="() => ToggleAction(accion.id.GetValueOrDefault())" />
+                                                                    @accion.Descripcion
+                                                                    </li>
+                                                                }
+                                                                
+                                                          
+
+                                                        </ul>
+                                                    </li>
+
+                                                </ul>
+                                            }
+                                           
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                   
+                </div>
             </div>
-            </div>
-            </div>
+        </div>
+
+    </div>
+
+
+
+
+   
 
 </EditForm>
 <!-- Modal para seleccionar docente -->
@@ -105,19 +171,52 @@
 }
 
 @code {
+    [Parameter]
+    public EventCallback<string> OnValueSentBack { get; set; }
+    [Parameter]
+    public int userID { get; set; } = 0;
     private UserDto user = new();
-
+    private string currentRol = "";
     private List<DocenteDTO> DocentesList = new();
     private string? message;
-    private int userID = 0;
     private DocenteDTO? selectedDocente;
     private List<RoleDto> Roles = new  List<RoleDto>();
     private int RoleSelectedId = 0;
+    private List<PermisosSistemaDTO> LstPermisos = new List<PermisosSistemaDTO>(); 
+
+    private HashSet<int> SelectedPermissionIds { get; set; } = new();
+    private HashSet<int> SelectedActionIds { get; set; } = new();
+
+
     protected override async Task OnInitializedAsync()
     {
         DocentesList = await
         DocentesService.GetDocentesAsync();
         Roles = await RoleService.GetRoles();
+        LstPermisos = await UserService.GetUserPermmissionAsync(userID);
+    }
+    private void TogglePermission(int permissionId)
+    {
+        if (SelectedPermissionIds.Contains(permissionId))
+        {
+            SelectedPermissionIds.Remove(permissionId);
+        }
+        else
+        {
+            SelectedPermissionIds.Add(permissionId);
+        }
+    }
+
+    private void ToggleAction(int actionId)
+    {
+        if (SelectedActionIds.Contains(actionId))
+        {
+            SelectedActionIds.Remove(actionId);
+        }
+        else
+        {
+            SelectedActionIds.Add(actionId);
+        }
     }
     private void SelectDocente(DocenteDTO docente)
     {        
@@ -133,6 +232,7 @@
             user.docenteID = selectedDocente.ID;
             user.Fullname = $"{selectedDocente.Nombres} {selectedDocente.Apellido}";
             user.Email = selectedDocente.Correo;
+            user.role.NombreRol = "";
             userID = await UserService.RegisterUser(user);
             message = "Usuario registrado satisfactoriamente";
         }

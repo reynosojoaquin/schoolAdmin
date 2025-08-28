@@ -14,5 +14,8 @@ namespace SchoolControl.Shared
         public string? Nombre { get; set; }
 
         public int? Responsable { get; set; }
+        public int seccionID { get; set; }
+
+        public string? seccion { get; set; }
     }
 }

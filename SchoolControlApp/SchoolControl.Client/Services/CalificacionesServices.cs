@@ -93,9 +93,10 @@ namespace SchoolControl.Client.Services
                 throw new Exception(response.Mensaje);
             }
         }
-        public async Task<List<InfoCalificacionesDTO>> GetDatafromFuntionCalificaciones()
+        public async Task<List<InfoCalificacionesDTO>> GetDatafromFuntionCalificaciones(int curID,int estID, int asigID)
         {
-            var result = await _httpClient.GetFromJsonAsync<ResponseApi<List<InfoCalificacionesDTO>>>("api/Calificaciones/GetDataCalificaciones");
+            var result = await _httpClient.GetFromJsonAsync<ResponseApi<List<InfoCalificacionesDTO>>>($"api/Calificaciones/" +
+                $"GetDataCalificaciones/?cursoID={curID}&estudianteID={estID}&asigID={asigID}");
             if (result!.correcto)
             {
                 return result.Valor.ToList();

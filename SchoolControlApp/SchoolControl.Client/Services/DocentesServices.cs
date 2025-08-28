@@ -48,5 +48,18 @@ namespace SchoolControl.Client.Services
             var response = await _httpClient.DeleteAsync($"api/Docentes/{id}");
             return response.IsSuccessStatusCode;
         }
+        public async Task<bool> RegistroMasivo(MultipartFormDataContent file)
+        {
+            var result = await _httpClient.PostAsync($"api/Docentes/RegistroMasivo", file);
+            var response = await result.Content.ReadFromJsonAsync<ResponseApi<bool>>();
+            if (response!.correcto)
+            {
+                return response.Valor;
+            }
+            else
+            {
+                throw new Exception(response.Mensaje);
+            }
+        }
     }
 }

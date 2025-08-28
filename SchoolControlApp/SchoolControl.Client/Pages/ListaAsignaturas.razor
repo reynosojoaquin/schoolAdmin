@@ -31,9 +31,9 @@
 
         <table class="table table-striped  ">
             <thead>
-            <th>Id</th>
-            <th>Nombre</th>
-            <th>Acciones</th>
+                <th>Id</th>
+                <th>Nombre</th>
+                <th>Acciones</th>
             </thead>
             <tbody>
                 @if (ListaAsignatura == null)
@@ -58,7 +58,7 @@
                                 <button class="btn btn-sm btn-danger" @onclick="(()=> eliminar(item.id))">
                                     <i class="fas fa-trash-alt"></i>&nbspEliminar
                                 </button>
-                                <button class="btn btn-sm btn-success" @onclick="(()=> mostrarEstudiantes(item.id))">
+                                <button class="btn btn-sm btn-success" @onclick="(()=> mostrarEstudiantes(item.CursoID.GetValueOrDefault(),item.id,item.icono,item.Nombre))">
                                     <i class="fas  fa-users"></i>&nbspEstudiantes
                                 </button>
                             </td>
@@ -68,6 +68,9 @@
             </tbody>
 
         </table>
+        <button type="button" class="btn btn-primary mt-3" @onclick="HandleCancel">
+            <i class="nav-icon fas fa-window-close"></i> Cancelar
+        </button>
     </div>
 </div>
 
@@ -79,11 +82,10 @@
     public string parametros { get; set; } ="";
     [Parameter]
     public int? curso_id  { get; set; } =0;
-
+    public int responsable { get; set; } = 0;
     public int? asignatura_id { get; set; }
     [Parameter]
     public bool showFirstPage { get; set; }
-
     [Parameter]
     public EventCallback<string> OnValueSentBack { get; set; }
 
@@ -94,8 +96,11 @@
     protected override async Task OnInitializedAsync()
     {
         // CurrentAsignatura = await AsignaturaServices.;
-        curso_id = CurrentAsignatura.CursoID;
-        ListaAsignatura = await AsignaturaServices.getAsignaturaTeachers( Convert.ToInt32(curso_id),Convert.ToInt32(asignatura_id));
+        //  curso_id = CurrentAsignatura.CursoID;
+
+        curso_id = Convert.ToInt32(parametros.Split(",")[0]);
+        responsable = Convert.ToInt32(parametros.Split(",")[1]);
+        ListaAsignatura = await AsignaturaServices.getAsignaturaTeachers( Convert.ToInt32(curso_id),Convert.ToInt32(responsable));
     }
 
     private async Task  FiltrarAsignaturas()
@@ -127,6 +132,10 @@
                 ListaAsignatura = ListaAsignatura.FindAll(e => e.id != id);
         }
     }
+    private void HandleCancel()
+    {
+        NavigationManager.NavigateTo("javascript:history.back()", forceLoad: false);
+    }
     private async Task Modificar(int id)
     {
         showCreatePage(id);
@@ -139,10 +148,10 @@
     {
         OnValueSentBack.InvokeAsync(value);
     }
-    private void mostrarEstudiantes(int asignatura_id)
+    private void mostrarEstudiantes(int CursoID,int asignID,string icono,string descripcion)
     {
-        string parametros = "";
-        NavigationManager.NavigateTo($"/ListaEstudiantes/{asignatura_id}");
+        string parametros = $"{CursoID},{asignID},{icono},{descripcion}";
+        NavigationManager.NavigateTo($"/ListaEstudiantesCurso/{parametros}");
     }
 
 

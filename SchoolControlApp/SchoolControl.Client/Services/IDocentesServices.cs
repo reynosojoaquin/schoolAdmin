@@ -9,5 +9,6 @@ namespace SchoolControl.Client.Services
         Task<bool> CreateDocenteAsync(DocenteDTO docente);
         Task<bool> UpdateDocenteAsync(DocenteDTO docente);
         Task<bool> DeleteDocenteAsync(int id);
+        Task<bool> RegistroMasivo(MultipartFormDataContent file);
     }
 }

@@ -39,7 +39,7 @@ namespace SchoolControl.Client.Services
        
         public async Task<int> Guardar(CiudadDTO Ciudad)
         {
-            Console.WriteLine("LLego aqui => " + Ciudad.Id);
+          
             var result = await _httpClient.PostAsJsonAsync($"api/Ciudad/Guardar", Ciudad);
             var response = await result.Content.ReadFromJsonAsync<ResponseApi<int>>();
             if (response!.correcto)
@@ -53,7 +53,7 @@ namespace SchoolControl.Client.Services
         }
         public async Task<int>             Editar(CiudadDTO Ciudad, int id)
         {
-            Console.WriteLine("llego al metodo ");
+           
             var result = new HttpResponseMessage();
             try
             {

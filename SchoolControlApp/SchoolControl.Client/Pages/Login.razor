@@ -5,6 +5,7 @@
 @using SchoolControl.Shared;
 @using SchoolControl.Client.Extensiones;
 @using Microsoft.AspNetCore.Components.Authorization;
+@using System
 @inject AuthenticationStateProvider autenticacionProvider
 @inject NavigationManager navManger;
 <div class="container-fluid vh-100 d-flex p-0">
@@ -23,32 +24,51 @@
                 </div>
                 <div class="mb-3">
                     <label for="password" class="form-label">Contraseña</label>
-                    <InputText id="password" type="password" class="form-control" @bind-Value="loginModel.Password" />
+                    <input id="password" type="password" class="form-control"  @bind-value ="loginModel.Password" />
                 </div>
                 <button type="submit" class="btn btn-primary w-100">Entrar</button>
             </EditForm>
+            <!-- Mensaje de error -->
+            @if (showErrorMessage)
+            {
+                <div class="alert alert-danger mt-3">
+                    <strong>Error:</strong> Usuario o contraseña incorrectos.
+                </div>
+            }
         </div>
     </div>
 </div>
 
 @code {
-    private LoginDto loginModel = new LoginDto();
-
+    private LoginViewModel loginModel { get; set; } = new LoginViewModel();
+    private bool showErrorMessage { get; set; } = false;
     private async void HandleLogin()
     {
-        var loginResponse = await httpclient.PostAsJsonAsync<LoginDto>("/api/User/Login", loginModel);
-        if(loginResponse.IsSuccessStatusCode)
-        {
-            var sesionUsuario = await loginResponse.Content.ReadFromJsonAsync<SesionDTO>();
-            var autenticacionExt = (AutenticationExtension)autenticacionProvider;
-            await autenticacionExt.ActualizarEstadoAutenticacion(sesionUsuario);
-            navManger.NavigateTo("/");
-        }
+
+       
+        var loginResponse = await httpclient.PostAsJsonAsync<LoginViewModel>("/api/User/Login", loginModel);
+            if (loginResponse.IsSuccessStatusCode)
+            {
+                var sesionUsuario = await loginResponse.Content.ReadFromJsonAsync<ResponseApi<SesionDTO>>();
+                var autenticacionExt = (AutenticationExtension)autenticacionProvider;
+                await autenticacionExt.ActualizarEstadoAutenticacion(sesionUsuario.Valor);
+                showErrorMessage = false;
+                navManger.NavigateTo("/");
+            }
+        else if (loginResponse.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            {
+                showErrorMessage = true;
+                Console.WriteLine(loginResponse.StatusCode);
+                StateHasChanged();
+            }
+      
+       
     }
 
     public class LoginModel
     {
         public string Username { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
+        public string message { get; set; } = string.Empty;
     }
 }

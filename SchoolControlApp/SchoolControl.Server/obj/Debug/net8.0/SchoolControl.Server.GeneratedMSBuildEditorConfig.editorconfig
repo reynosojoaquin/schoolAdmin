@@ -25,6 +25,8 @@ build_property.SupportLocalizedComponentNames =
 build_property.GenerateRazorMetadataSourceChecksumAttributes = 
 build_property.MSBuildProjectDirectory = C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Server
 build_property._RazorSourceGeneratorDebug = 
+build_property.EffectiveAnalysisLevelStyle = 8.0
+build_property.EnableCodeStyleSeverity = 
 
 [C:/Users/reyno/OneDrive/Documentos/Programacion/Proyectos/schoolAdmin/SchoolControlApp/SchoolControl.Server/Views/Docentes/Create.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRG9jZW50ZXNcQ3JlYXRlLmNzaHRtbA==

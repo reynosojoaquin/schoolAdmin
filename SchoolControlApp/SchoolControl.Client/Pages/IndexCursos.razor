@@ -1,0 +1,430 @@
+﻿@page "/IndexCursos"
+
+@using SchoolControl.Shared;
+@using SchoolControl.Client.Services;
+@using CurrieTechnologies.Razor.SweetAlert2;
+@using Microsoft.AspNetCore.Authorization;
+@using Microsoft.AspNetCore.Components.Authorization;
+@using OfficeOpenXml;
+@using SchoolControl.Client.Extensiones;
+
+@inject AutenticationExtension AuthStateProvider;
+@attribute [Authorize]
+@using System.Net.Http.Headers
+
+@inject SweetAlertService Swal;
+@inject ICursoServices CursoServices;
+@inject NavigationManager NavigationManager
+<div class="card mt-6">
+    <div class="card-header">
+        <h3 class="card-title">INDICE DE CURSOS ACTIVOS</h3>
+    </div>
+    <div class="card-body">
+        <!-- Fila para el filtro y el botón -->
+        <div class="row  mb-1 border border-1 rounded p-3">
+            <label class="mb-1">
+                Registro masivo de cursos
+            </label>
+            <div class="col-md-3 ">
+
+                    <label for="archivoExcel" class="btn btn-primary">
+                        📁 Seleccionar archivo Excel
+                    </label>
+                    <InputFile id="archivoExcel" class="d-none" OnChange="CargarArchivoExcel" accept=".xlsx" />
+
+                @if (nombreArchivo is not null)
+                {
+                    <p>Archivo seleccionado: <strong>@nombreArchivo</strong></p>
+                }
+                <!--datos registrados en el archivo-->
+                <table class="table table-striped  ">
+                    <thead>
+                        <th>CursoID</th>
+                        <th>Seccion</th>
+                        <th>Responsable</th>
+                    </thead>
+                    <tbody>
+                        @if (ListaCursos == null)
+                        {
+                            <tr>
+                                <td colspan="5" align="center">
+                                    <img style="with:50px" src="https://media.tenor.com/2BLI5EO7yVAAAAAi/loading-image.gif" />
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            foreach (var item in fileData)
+                            {
+                                <tr>
+                                    <td>@item.CursoId</td>
+                                    <td>@item.Descripcion</td>
+                                    <td>@item.responsable</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+
+                </table>
+
+
+            </div>
+            <div class="col-md-2">
+                <button class="btn @(!fileSelected ? "btn-primary" : "btn-success")" disabled="@(!fileSelected)" @onclick="()=> registroMasivo()">
+                    <i class="fas fa-save me-2"></i> Registrar
+                </button>
+
+            </div>
+            <div class="col-md-2">
+
+            </div>
+            <div class="col-md-2">
+            </div>
+        </div>
+        <div class="row  mb-1 border border-1 rounded p-3">
+            <div class="col-2">
+
+            </div>
+            <div class="col-10">
+
+            </div>
+            <div class="row">
+                <div class="col-2">
+                    <button class="btn-primary mb-2" @onclick="()=> addSection=!addSection">
+                        <i class="fas fa-plus-circle me-2"></i> Agregar Seccion
+                    </button>
+                </div>
+
+                <EditForm Model="currentSection" OnValidSubmit="Guardar">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+
+                    @if (addSection)
+                    {
+                        <div class="container">
+                            <div class="row">
+                                <div class="col">
+                                    <div class="card p-4 border rounded shadow-sm">
+                                        <h5 class="mb-4">Agregar Sección</h5>
+
+                                        <!-- Selección de Curso -->
+                                        <div class="mb-3">
+                                            <label class="form-label">Curso</label>
+                                            <select class="form-select" @bind="currentSection.CursoId">
+                                                <option value="">-- Seleccione un curso --</option>
+                                                @foreach (var curso in CursosDisponibles)
+                                                {
+                                                    <option value="@curso.Cursoid">@curso.Nombre</option>
+                                                }
+                                            </select>
+                                        </div>
+
+                                        <!-- Selección de Letra A - J -->
+                                        <div class="mb-3">
+                                            <label class="form-label">Letra de Sección</label>
+                                            <select class="form-select" @bind="currentSection.Descripcion">
+                                                @foreach (var letra in Letras)
+                                                {
+                                                    <option value="@letra">@letra</option>
+                                                }
+                                            </select>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col">
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="fas fa-save me-2"></i> Guardar Sección
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </EditForm>
+
+
+
+            </div>
+        </div>
+
+        <div class="row mb-1">
+            <div class="col-md-12">
+                <!-- Campo para filtrar datos -->
+                <input type="text" @bind-value="searchTerm" @onkeypress="OnKeyPress" id="filterInput" class="form-control" placeholder="Filtrar Cursos...">
+            </div>
+        </div>
+        <table class="table table-striped  " >
+            <thead>
+                <th>Id</th>
+                <th>Nombre</th>
+                <th>Seccion</th>
+                <th>Acciones</th>
+            </thead>
+            <tbody>
+                @if (ListaCursos == null)
+                {
+                    <tr>
+                        <td colspan="5" align="center">
+                            <img style="with:50px" src="https://media.tenor.com/2BLI5EO7yVAAAAAi/loading-image.gif" />
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    foreach(var item in ListaCursos)
+                    {
+                        <tr>
+                            <td>@item.seccionID</td>
+                            <td>@item.Nombre</td>
+                            <td>@item.seccion</td>
+                            <td>
+                                <button class="btn btn-sm btn-danger"@onclick="(()=> eliminar(item.Cursoid))">
+                                    <i class="fas fa-trash-alt"></i>&nbspEliminar
+                                </button>
+                                <button class="btn btn-sm btn-success" @onclick="()=>mostrarEstudiantes(item.Cursoid,item.Nombre+item.seccion,item.seccionID)">
+                                    <i class="fa fas fa-child" aria-hidden="true"></i>&nbspEstudiantes
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+
+        </table>
+    </div>
+</div>
+
+
+
+
+@code {
+    [Parameter]
+    public string responsable { get; set; } = "";
+    public string searchTerm = string.Empty;
+    List<CursoDTO>? ListaCursos = null;
+    [Parameter]
+    public bool showFirstPage { get; set; }
+    [Parameter]
+    public EventCallback<string> OnValueSentBack { get; set; }
+    public int user_id { get; set; }
+    private bool fileSelected = false;
+    private bool addSection = false;
+    private string? mensaje;
+    private IBrowserFile archivo;
+    private string nombreArchivo;
+    private List<SeccionCursoDTO> fileData = new List<SeccionCursoDTO>();
+    private SeccionCursoDTO currentSection = new SeccionCursoDTO
+    {
+        CursoId = 0,
+        Descripcion = "",
+        Id         = 0,
+        responsable = ""
+    };
+    private List<CursoDTO> CursosDisponibles = new List<CursoDTO>();
+
+
+    private List<string> Letras = Enumerable.Range('A', 10).Select(x => ((char)x).ToString()).ToList();
+    private async Task CargarArchivoExcel(InputFileChangeEventArgs e)
+    {
+        archivo = e.File;
+        if (archivo is null || archivo.ContentType != "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        {
+            mensaje = "Por favor, seleccione un archivo .xlsx válido.";
+            return;
+        }
+        fileSelected = true;
+        nombreArchivo = e.File.Name;
+
+        EPPlusLicense ePPlusLicense = new EPPlusLicense();
+        ePPlusLicense.SetNonCommercialPersonal("RTFD");
+        try
+        {
+            using var stream = e.File.OpenReadStream();
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            ms.Position = 0;
+            using var package = new ExcelPackage(ms);
+            var worksheet = package.Workbook.Worksheets[0];
+            var rowCount = worksheet.Dimension.Rows;
+
+            var secciones = new List<SeccionCursoDTO>();
+            for (int row = 2; row <= rowCount; row++)
+            {
+                try
+                {
+                    secciones.Add(new SeccionCursoDTO
+                        {
+                            Descripcion = worksheet.Cells[row, 1].Value?.ToString(),
+                            CursoId = int.Parse(worksheet.Cells[row, 2].Value?.ToString() ?? "0"),
+                            responsable = worksheet.Cells[row, 3].Value?.ToString()
+                        });
+
+
+                }
+                catch (Exception ex)
+                {
+
+                }
+            }
+            fileData = secciones;
+        }
+        catch (Exception exe)
+        {
+
+        }
+
+    }
+    private async Task registroMasivo()
+    {
+        var resultado = await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "Carga masiva de cursos",
+                Text = "Deseas cargar los cursos",
+                Icon = SweetAlertIcon.Question,
+                ShowCancelButton = true
+            });
+
+        if (resultado.IsConfirmed)
+        {
+
+
+            var content = new MultipartFormDataContent();
+            var fileContent = new StreamContent(archivo.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024)); // 10MB
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(archivo.ContentType);
+            content.Add(content: fileContent, name: "\"file\"", fileName: archivo.Name);
+            var registrados = await CursoServices.RegistroMasivo(content);
+            if (registrados)
+            {
+                var result = await Swal.FireAsync(new SweetAlertOptions
+                    {
+                        Title = "Carga masiva de cursos",
+                        Text = "Datos cargados satisfactoriamente",
+                        Icon = SweetAlertIcon.Info,
+                        ShowCancelButton = false
+                    });
+                await  cargarCursos();
+            }
+
+        }
+    }
+    private async Task registrarCurso()
+    {
+
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        user_id = Convert.ToInt16(authState.User.FindFirst("Id")?.Value);
+        await cargarCursos();
+    }
+    private async Task cargarCursos()
+    {
+        ListaCursos = await CursoServices.Lista(0);
+        CursosDisponibles = ListaCursos
+    .DistinctBy(curso => curso.Cursoid)
+    .ToList(); ;
+
+    }
+    private async Task FiltrarCursos()
+    {
+        List<CursoDTO> cursos = await CursoServices.Lista(0);
+        ListaCursos = cursos.Where(c => c.Nombre != null &&
+                 c.Nombre.IndexOf(searchTerm, StringComparison.OrdinalIgnoreCase) >= 0)
+     .ToList();
+    }
+    private async Task Guardar()
+    {
+        if(currentSection.CursoId != 0){
+        var resultado = await Swal.FireAsync(new SweetAlertOptions
+        {
+          Title = "Registrar Seccion",
+          Text  = "Deseas registrar la seccion actual",
+          Icon  = SweetAlertIcon.Question,
+          ShowCancelButton = true
+        });
+
+        if (resultado.IsConfirmed)
+        {
+            try
+            {
+                var response = await CursoServices.GuardarSeccion(currentSection);
+                    var resultadoOK = await Swal.FireAsync(new SweetAlertOptions
+                        {
+                            Title = "Registrar Seccion",
+                            Text = "Seccion registrada con exito",
+                            Icon = SweetAlertIcon.Question,
+                            ShowCancelButton = true
+                        });
+                       await cargarCursos();
+            }
+            catch (Exception e)
+            {
+                await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Title = "Registrar Seccion",
+                    Text = "Error registrando la seccion comunicarse con el administrador \n"+e.Message,
+                    Icon = SweetAlertIcon.Info,
+                    ShowCancelButton = false
+                });
+            }
+
+        }
+       }
+    }
+
+    private async Task OnKeyPress(KeyboardEventArgs e)
+    {
+        // Filtrar cuando se presione "Enter"
+        if (e.Key == "Enter")
+        {
+            await FiltrarCursos();
+        }
+    }
+    private async Task eliminar(int id)
+    {
+        var resultado = await Swal.FireAsync(new SweetAlertOptions
+        {
+          Title = "Eliminar Cursos",
+          Text  = "Deseas eliminar el Curso",
+          Icon  = SweetAlertIcon.Question,
+          ShowCancelButton = true
+        });
+
+        if (resultado.IsConfirmed)
+        {
+            var eliminado = await CursoServices.EliminarSeccion(id);
+            if (eliminado)
+                ListaCursos = ListaCursos.FindAll(e => e.Cursoid != id);
+        }
+    }
+    private async Task Modificar(int id)
+    {
+        showCreatePage(id);
+    }
+    public void showCreatePage(int value)
+    {
+        SendBackValue("true,p,"+Convert.ToString(value));
+    }
+    public void SendBackValue(string value)
+    {
+        OnValueSentBack.InvokeAsync(value);
+    }
+    private  void mostrarEstudiantes(int? curso_id,string Descripcion,int seccionID){
+        NavigationManager.NavigateTo($"/ListaEstudiantesEdit/{curso_id},{Descripcion},{seccionID}");
+    }
+
+
+}
+<style>
+     .col-id {
+        width: 100px; /* Ajusta este valor según el tamaño del contenido de la columna Id */
+        text-align: center;
+    }
+
+    .col-nombre {
+        width: 1px; /* Ajuste inicial para que tome el espacio restante */
+        white-space: nowrap; /* Evita el ajuste de línea en el contenido */
+    }
+</style>

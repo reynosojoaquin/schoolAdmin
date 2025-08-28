@@ -12,4 +12,6 @@ public partial class Asignatura
     public int? Cursoid { get; set; }
 
     public int? Responsable { get; set; }
+
+    public string? Icon { get; set; }
 }

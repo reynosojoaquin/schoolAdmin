@@ -1,0 +1,202 @@
+﻿@page "/EstudianteInfo"
+@using SchoolControl.Shared;
+@using SchoolControl.Client.Services;
+@using CurrieTechnologies.Razor.SweetAlert2;
+@using BlazorInputMask;
+@using System.Globalization;
+@inject HttpClient Http;
+@inject SweetAlertService Swal;
+@inject IEstudianteServices EstudianteServices;
+@inject ILugarNacimientoServices LugarNacimientoServices;
+@inject INacionalidadServices NacionalidadServices;
+@inject IPadresServices PadresServices;
+@inject IHistoriaClinicaServices HistoriaClinicaServices;
+@inject NavigationManager navegacion;
+
+<h3 class="mb-1"><i class="fas fa-graduation-cap"></i>Informacion del Estudiante</h3>
+<hr />
+<ul class="nav nav-tabs mb-3" id="studentTab" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="personal-tab" data-bs-toggle="tab" data-bs-target="#personal" type="button" role="tab">Datos Personales</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="academic-tab" data-bs-toggle="tab" data-bs-target="#academic" type="button" role="tab">Datos Académicos</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="parent-tab" data-bs-toggle="tab" data-bs-target="#parent" type="button" role="tab">Padre o Tutor</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="clinic-tab" data-bs-toggle="tab" data-bs-target="#clinic" type="button" role="tab">Historia Clínica</button>
+    </li>
+</ul>
+
+<div class="tab-content border rounded p-3">
+    <!-- DATOS PERSONALES -->
+    <div class="tab-pane fade show active" id="personal" role="tabpanel">
+        <div class="row">
+            <!-- Columna de información -->
+            <div class="col-md-8">
+                <dl class="row">
+                    <dt class="col-sm-4">Nombres</dt>
+                    <dd class="col-sm-8">@DBEstudiante.Nombres.ToString()</dd>
+
+                    <dt class="col-sm-4">Apellidos</dt>
+                    <dd class="col-sm-8">@DBEstudiante.Apellidos.ToString()</dd>
+
+                    <dt class="col-sm-4">Cédula</dt>
+                    <dd class="col-sm-8">@DBEstudiante?.Cedula.ToString()</dd>
+
+                    <dt class="col-sm-4">Fecha de Nacimiento</dt>
+                    <dd class="col-sm-8">@(DBEstudiante?.FechaNacimiento.ToString()) </dd>
+
+                    <dt class="col-sm-4">Sexo</dt>
+                    <dd class="col-sm-8">@(DBEstudiante?.Sexo.ToString())</dd>
+
+                    <dt class="col-sm-4">Estado Civil</dt>
+                    <dd class="col-sm-8">@(DBEstudiante?.EstadoCivil.ToString())</dd>
+
+                    <dt class="col-sm-4">Correo</dt>
+                    <dd class="col-sm-8">@(DBEstudiante?.Correo.ToString())</dd>
+
+                    <dt class="col-sm-4">Nacionalidad</dt>
+                    <dd class="col-sm-8">@DBEstudiante?.Nacionalidad.Nombre</dd>
+
+                    <dt class="col-sm-4">Lugar de Nacimiento</dt>
+                    <dd class="col-sm-8">@DBEstudiante?.LugarNacimiento.Nombre</dd>
+              
+                </dl>
+            </div>
+
+            <!-- Columna de imagen -->
+            <div class="col-md-3 text-center">
+                <img src="@DBEstudiante.Url" alt="Foto del Estudiante" class="img-thumbnail" width="150" />
+            </div>
+        </div>
+    </div>
+
+    <!-- DATOS ACADÉMICOS -->
+    <div class="tab-pane fade" id="academic" role="tabpanel">
+        <dl class="row">
+            <dt class="col-sm-4">Curso</dt>
+            <dd class="col-sm-8">@DBEstudiante.cursoID</dd>
+
+            <dt class="col-sm-4">Número de Orden</dt>
+            <dd class="col-sm-8">@DBEstudiante.NumOrden</dd>
+            <dt class="col-sm-4">SIGERD ID</dt>
+            <dd class="col-sm-8">@DBEstudiante.SigerdId</dd>
+        </dl>
+    </div>
+
+    <!-- PADRE O TUTOR -->
+    <div class="tab-pane fade" id="parent" role="tabpanel">
+        <dl class="row">
+            @foreach (var padre in DBEstudiante.Padres)
+            {
+                <dl class="row border-bottom mb-3 pb-2">
+                    <dt class="col-sm-4">Nombre</dt>
+                    <dd class="col-sm-8">@padre.Nombre</dd>
+                    <dt class="col-sm-4">Teléfono</dt>
+                    <dd class="col-sm-8">@padre.Telefono</dd>
+                    <dt class="col-sm-4">Relación</dt>
+                    <dd class="col-sm-8">@padre.Parentesco</dd>
+                </dl>
+            }
+        </dl>
+    </div>
+
+    <!-- HISTORIA CLÍNICA -->
+    <div class="tab-pane fade" id="clinic" role="tabpanel">
+        <dl class="row">
+            @foreach (var historia in DBEstudiante.HistoriasClinicas)
+            {
+                <dl class="row border-bottom mb-3 pb-2">
+                    <dt class="col-sm-4">Descripcion</dt>
+                    <dd class="col-sm-8">@historia.Descripcion</dd>
+                    <dt class="col-sm-4">Tipo</dt>
+                    <dd class="col-sm-8">@historia.Tipo</dd>
+                </dl>
+                <br />
+            }
+        </dl>
+    </div>
+</div>
+<button class="btn-primary mt-3" @onclick="()=> BackToIndex()">
+    <i class="fas fa-arrow-left"></i> Volver al Listado
+</button>
+@code {
+    [Parameter]
+    public EventCallback<string> OnValueSentBack { get; set; }
+    [Parameter]
+    public int id { get; set; } = 0;
+    public List<NacionalidadDTO> nacionalidadList { get; set; } = new();
+    public List<LugarNacimientoDTO> lugarNacimientoLst { get; set; } = new();
+    EstudiantesDTO DBEstudiante = new EstudiantesDTO
+        {
+            Nombres = "Carlos",
+            Apellidos = "Pérez",
+            Cedula = "123456789",
+            FechaNacimiento = Convert.ToString(new DateTime(2005, 6, 10)),
+            Sexo = "Masculino",
+            EstadoCivil = "Soltero",
+            Correo = "carlos.perez@example.com",
+            NacionalidadId = 1,
+            LugarNacimientoId = 1,
+            Licencia = "No",
+            Url = "https://via.placeholder.com/120",
+            Activo = true,
+            cursoID = 1,
+            NumOrden = 15,
+            SigerdId = "SIG123456"
+        };
+    PadresDTO DBpadre = new PadresDTO
+        {
+            Nombre = "José",
+            Apellido = "Pérez",
+            Parentesco = "Padre",
+            Telefono = "809-555-1234"
+        };
+    HistoriaClinicaDTO DBhistoriaClinica = new HistoriaClinicaDTO
+        {
+            Tipo = "Alergia",
+            Descripcion = "Alérgico al maní"
+        };
+
+    protected override async Task OnInitializedAsync()
+    {
+       var   objEstudiante = await EstudianteServices.Buscar(id);
+        DBEstudiante = new EstudiantesDTO
+        {
+            Id = objEstudiante?.Id ?? 0, 
+            Activo = objEstudiante?.Activo ?? false, 
+            Apellidos = objEstudiante?.Apellidos ?? string.Empty, 
+            Cedula = objEstudiante?.Cedula ?? string.Empty,
+            Correo = objEstudiante?.Correo ?? string.Empty, 
+            EstadoCivil = objEstudiante?.EstadoCivil ?? string.Empty,   
+            FechaNacimiento = objEstudiante?.FechaNacimiento ?? string.Empty,
+            Licencia = objEstudiante?.Licencia ?? string.Empty,
+            cursoID = objEstudiante?.cursoID ?? 0,
+            Nombres = objEstudiante?.Nombres ?? string.Empty,
+            NumOrden = objEstudiante?.NumOrden ?? 0,
+            Sexo = objEstudiante?.Sexo ?? string.Empty,
+            SigerdId = objEstudiante?.SigerdId ?? string.Empty,
+            NacionalidadId = objEstudiante?.NacionalidadId ?? 0,
+            LugarNacimientoId = objEstudiante?.LugarNacimientoId ?? 0,
+            Url = objEstudiante?.Url ?? string.Empty,
+            Nacionalidad = objEstudiante?.Nacionalidad ?? new NacionalidadDTO(),
+            LugarNacimiento = objEstudiante?.LugarNacimiento ?? new LugarNacimientoDTO(),
+            Padres = objEstudiante?.Padres ?? new List<PadresDTO> { DBpadre },
+            HistoriasClinicas = objEstudiante?.HistoriasClinicas ?? new List<HistoriaClinicaDTO> { DBhistoriaClinica },
+            promovido = objEstudiante?.promovido ?? false
+            
+        };
+    }
+    public void SendBackValue(string value)
+    {
+        OnValueSentBack.InvokeAsync(value);
+    }
+    private async Task BackToIndex()
+    {
+        SendBackValue("");
+    }
+}
+

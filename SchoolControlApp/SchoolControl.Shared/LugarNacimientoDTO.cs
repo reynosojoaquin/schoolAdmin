@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace SchoolControl.Shared
 {
-    internal class LugarNacimientoDTO
+ public  class LugarNacimientoDTO
     {
         public int Id { get; set; }
 

@@ -11,7 +11,7 @@ public partial class Estudiante
 
     public string Apellidos { get; set; } = null!;
 
-    public string Cedula { get; set; } = null!;
+    public string? Cedula { get; set; }
 
     public bool? Activo { get; set; }
 
@@ -35,7 +35,17 @@ public partial class Estudiante
 
     public int? NumOrden { get; set; }
 
+    public string? SigerdId { get; set; }
+
+    public bool? Promovido { get; set; }
+
+    public bool? Esnuevoingreso { get; set; }
+
+    public virtual ICollection<HistoriaClinica> HistoriaClinicas { get; set; } = new List<HistoriaClinica>();
+
     public virtual LugarNacimiento? LugarNacimiento { get; set; }
 
     public virtual Nacionalidade? Nacionalidad { get; set; }
+
+    public virtual ICollection<Padre> Padres { get; set; } = new List<Padre>();
 }

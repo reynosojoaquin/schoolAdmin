@@ -6,11 +6,11 @@ using SchoolControl.Client.Services;
 using Blazored.SessionStorage;
 using Microsoft.AspNetCore.Components.Authorization;
 using SchoolControl.Client.Extensiones;
+using System.Globalization;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
-
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("http://localhost:5254") });
 builder.Services.AddScoped<IProvinciaServices,ProvinciaServices>();
 builder.Services.AddScoped<ICiudadServices, CiudadServices>();
@@ -21,11 +21,17 @@ builder.Services.AddScoped<ICursoServices, CursosServices>();
 builder.Services.AddScoped<IEstudianteServices, EstudiantesServices> ();
 builder.Services.AddScoped<IAsignaturaServices, AsignaturaServices>();
 builder.Services.AddScoped<ICalificacionesServices, CalificacionesServices>();
+builder.Services.AddScoped<ILugarNacimientoServices, LugarNacimientoServices>();
+builder.Services.AddScoped<INacionalidadServices, NacionalidadServices>();
 builder.Services.AddScoped<IDocentesServices, DocentesService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IRolesService, RoleService>();
+builder.Services.AddScoped<IHistoriaClinicaServices, HistoriaClinicaServices>();
+builder.Services.AddScoped<IPadresServices, PadresServices>();
 builder.Services.AddSweetAlert2();
 builder.Services.AddBlazoredSessionStorage();
 builder.Services.AddAuthorizationCore();
 builder.Services.AddScoped<AuthenticationStateProvider, AutenticationExtension>();
+builder.Services.AddScoped<AutenticationExtension, AutenticationExtension>();
+
 await builder.Build().RunAsync();

@@ -1,4 +1,4 @@
-﻿@page "/Calificaciones"
+﻿@page "/Calificaciones/{parametros}"
 @using SchoolControl.Shared;
 @using SchoolControl.Client.Services;
 @using System.ComponentModel;
@@ -6,24 +6,31 @@
 @inject NavigationManager NavigationManager;
 @inject ICalificacionesServices calificacionesService;
 @inject SweetAlertService Swal;
+@inject IEstudianteServices EstudianteServices;
 <div class="card mb-3 mx-auto" style="max-width: 50vw; padding: 2px;">
     <div class="row g-0">
         <!-- Imagen del Estudiante -->
-        <div class="col-6">
-            <img src="@Estudiante.ImagenUrl" class="img-fluid rounded-start h-100" alt="Imagen del Estudiante" style="object-fit: cover;">
+        <div class="col-3">
+            <img src="@estudiante.Url" class="img-fluid rounded-start  max-width: 100px; max-height: 100px;border:thick" alt="Imagen del Estudiante" style="object-fit: cover;">
         </div>
 
         <!-- Datos del Estudiante -->
-        <div class="col-6 d-flex align-items-center">
+        <div class="col-8 d-flex align-items-center">
             <div class="card-body">
-               
+
                 <ul class="list-group list-group-flush">
-                    <li class="list-group-item"><strong>Nombre:</strong> @Estudiante.Nombre</li>
-                    <li class="list-group-item"><strong>Apellido:</strong> @Estudiante.Apellido</li>
-                    <li class="list-group-item"><strong>Número de Orden:</strong> @Estudiante.NumeroOrden</li>
+                    <li class="list-group-item ml-2"><strong>Nombre:</strong> @estudiante.Nombres</li>
+                    <li class="list-group-item ml-2"><strong>Apellido:</strong> @estudiante.Apellidos</li>
+                    <li class="list-group-item ml-2"><strong>Número de Orden:</strong> @estudiante.NumOrden</li>
                 </ul>
             </div>
         </div>
+    </div>
+</div>
+<!--descripcion de la asigantura actual -->
+<div class="card">
+    <div class="card-body font-weight-bold fs-3 ">
+        <i class="@asignaturaIcono"></i> @asignaturaNombre
     </div>
 </div>
 <!-- Acordeón para Secciones Dinámicas -->
@@ -49,16 +56,10 @@
                     </thead>
                     <tbody>
                         <tr>
-                          
-                            @* @onchange="@(() => CalcularResultado(1))" class="form-control"
-                            <td><input type="number" name="P1_1" @bind-value"="calificacionesData.P1_1" @onchange="@(() => CalcularResultado(1))" class="form-control"></td>
-                            <InputNumber Value="ClientId" TValue="int" ValueChanged="@ClientIdChanged"
-                            ValueExpression="@(()=> ClientId)">
-                            <InputNumber TValue="int?" Value="calificacionesData.comp_id1" class="form-control" ValueChanged="P1_1Changed" ValueExpression="@(()=>calificacionesData.P1_1)"> </InputNumber>
-                            <input type="number" @bind-value="calificacionesData.P1_1" @bind-value:event="onchange" @onchange="@(() => CalcularPromedio(1))" class="form-control">
-                            *@
+
+
                             <td><input type="number" value="@calificacionesData.P1_1" @onchange="(e => OnInputChange(e,competencias[0].id,competencias[0].campos[0]))" class="form-control" />  </td>
-                             <td><input type="number" value="@calificacionesData.rp1_1" @onchange="(e => OnInputChange(e, competencias[0].id,competencias[0].campos[4]))" class="form-control"></td>
+                            <td><input type="number" value="@calificacionesData.rp1_1" @onchange="(e => OnInputChange(e, competencias[0].id,competencias[0].campos[4]))" class="form-control"></td>
                             <td><input type="number" value="@calificacionesData.P2_1" @onchange="(e => OnInputChange(e,competencias[0].id,competencias[0].campos[1]))" class="form-control"></td>
                             <td><input type="number" value="@calificacionesData.rp2_1" @onchange="(e => OnInputChange(e, competencias[0].id,competencias[0].campos[5]))" class="form-control"></td>
                             <td><input type="number" value="@calificacionesData.P3_1" @onchange="(e => OnInputChange(e, competencias[0].id,competencias[0].campos[2]))" class="form-control"></td>
@@ -66,7 +67,7 @@
                             <td><input type="number" value="@calificacionesData.P4_1" @onchange="(e => OnInputChange(e, competencias[0].id,competencias[0].campos[3]))" class="form-control"></td>
                             <td><input type="number" value="@calificacionesData.rp4_1" @onchange="(e => OnInputChange(e, competencias[0].id,competencias[0].campos[7]))" class="form-control"></td>
                             <td> @calificacionesData.Promedio_1 </td>
-                           
+
                         </tr>
                     </tbody>
                 </table>
@@ -78,7 +79,7 @@
             <div class="accordion-body">
                 <table class="table table-bordered table-hover table-striped mt-3">
                     <!--!-->
-                  <thead class="table-dark">
+                    <thead class="table-dark">
                         <tr>
                             <th>P1</th>
                             <th>RP1</th>
@@ -93,7 +94,7 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td><input type="number" value="@calificacionesData.P1_2" @onchange="(e => OnInputChange(e,competencias[1].id,competencias[1].campos[0]))" class="form-control" />  </td>
+                            <td><input type="number" value="@calificacionesData.P1_2" @onchange="(e => OnInputChange(e,competencias[1].id,competencias[1].campos[0]))" class="form-control" /></td>
                             <td><input type="number" value="@calificacionesData.rp1_2" @onchange="(e => OnInputChange(e, competencias[1].id,competencias[1].campos[4]))" class="form-control"></td>
                             <td><input type="number" value="@calificacionesData.P2_2" @onchange="(e => OnInputChange(e,competencias[1].id,competencias[1].campos[1]))" class="form-control"></td>
                             <td><input type="number" value="@calificacionesData.rp2_2" @onchange="(e => OnInputChange(e, competencias[1].id,competencias[1].campos[5]))" class="form-control"></td>
@@ -128,7 +129,7 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td><input type="number" value="@calificacionesData.P1_3" @onchange="(e => OnInputChange(e,competencias[2].id,competencias[2].campos[0]))" class="form-control" />  </td>
+                            <td><input type="number" value="@calificacionesData.P1_3" @onchange="(e => OnInputChange(e,competencias[2].id,competencias[2].campos[0]))" class="form-control" /></td>
                             <td><input type="number" value="@calificacionesData.rp1_3" @onchange="(e => OnInputChange(e, competencias[2].id,competencias[2].campos[4]))" class="form-control"></td>
                             <td><input type="number" value="@calificacionesData.P2_3" @onchange="(e => OnInputChange(e,competencias[2].id,competencias[2].campos[1]))" class="form-control"></td>
                             <td><input type="number" value="@calificacionesData.rp2_3" @onchange="(e => OnInputChange(e, competencias[2].id,competencias[2].campos[5]))" class="form-control"></td>
@@ -164,7 +165,7 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td><input type="number" value="@calificacionesData.P1_4" @onchange="(e => OnInputChange(e,competencias[3].id,competencias[3].campos[0]))" class="form-control" />  </td>
+                            <td><input type="number" value="@calificacionesData.P1_4" @onchange="(e => OnInputChange(e,competencias[3].id,competencias[3].campos[0]))" class="form-control" /></td>
                             <td><input type="number" value="@calificacionesData.rp1_4" @onchange="(e => OnInputChange(e, competencias[3].id,competencias[3].campos[4]))" class="form-control"></td>
                             <td><input type="number" value="@calificacionesData.P2_4" @onchange="(e => OnInputChange(e,competencias[3].id,competencias[3].campos[1]))" class="form-control"></td>
                             <td><input type="number" value="@calificacionesData.rp2_4" @onchange="(e => OnInputChange(e, competencias[3].id,competencias[3].campos[5]))" class="form-control"></td>
@@ -184,8 +185,8 @@
         <div id="collapse-5" class="accordion-collapse collapse " aria-labelledby="heading-5" data-bs-parent="#accordionCompetencias">
             <div class="accordion-body">
                 <table class="table table-bordered table-hover table-striped mt-3">
-                   
-                  
+
+
                     <thead class="table-dark">
                         <tr>
                             <th colspan="9" class="text-center">Detalles de calificaciones parciales y calificación final</th>
@@ -223,6 +224,13 @@
 </div>
 
 @code {
+    [Parameter]
+    public string parametros{ get; set; }
+    public int estudianteID { get; set; }
+    public int cursoID { get; set; }
+    public int asignaturaID { get; set; }
+    public string asignaturaNombre { get; set; }
+    public string asignaturaIcono { get; set; }
     public struct competencia
     {
         public int  id { get; set; }
@@ -234,7 +242,7 @@
         }
     }
 
-    public int estudiante_id { get; set; } = 1;
+    EstudiantesDTO estudiante = new EstudiantesDTO();   
     private int numero = 10;
     private InfoCalificacionesDTO RegistroCalificaciones = new InfoCalificacionesDTO();
     private SectionInfo? ActiveSection = new SectionInfo();
@@ -259,14 +267,25 @@
         };
     protected override async void OnInitialized()
     {
-        StateHasChanged();
-        // Inicializa las secciones y datos de ejemplo
-        CalificacionesData = await calificacionesService.GetDatafromFuntionCalificaciones();
-        cal_data_filtered = CalificacionesData.Where(c => c.cur_id == 1 && c.asig_id == 1).ToList();
-        asignarDatoCalificaciones();
+        estudianteID = Convert.ToInt16(parametros.Split(',')[2]);
+        cursoID = Convert.ToInt16(parametros.Split(',')[0]);
+        asignaturaID = Convert.ToInt16(parametros.Split(',')[1]);
+        asignaturaNombre = parametros.Split(',')[3];    
+        asignaturaIcono = parametros.Split(',')[4];
+        estudiante = await EstudianteServices.Buscar(estudianteID);
+        Estudiante.NumeroOrden = estudiante.NumOrden;
+        Estudiante.Nombre      = estudiante.Nombres;
+        Estudiante.Apellido    = estudiante.Apellidos;
+        Estudiante.ImagenUrl   = estudiante.Url;
 
+        // Inicializa las secciones y datos de ejemplo
+        CalificacionesData = await calificacionesService.GetDatafromFuntionCalificaciones(cursoID,estudianteID,asignaturaID);
+        cal_data_filtered = CalificacionesData.Where(c => c.cur_id == cursoID && c.asig_id == asignaturaID).OrderBy(c=>c.cal_asi_comp_id).ToList();
+        asignarDatoCalificaciones();
+        StateHasChanged();
         // ActiveSection = Sections.FirstOrDefault();
     }
+
 
     private void SetActiveSection(SectionInfo section)
     {
@@ -277,88 +296,91 @@
 
     private void asignarDatoCalificaciones()
     {
-        Console.WriteLine("id de las calificaciones");
-        Console.WriteLine(cal_data_filtered[0].cal_id);
-        Console.WriteLine(cal_data_filtered[1].cal_id);
-        Console.WriteLine(cal_data_filtered[2].cal_id);
-        Console.WriteLine(cal_data_filtered[3].cal_id);
-        calificacionesData.estudiante_id = estudiante_id;
-        // competencia  1 
-        calificacionesData.P1_1 = cal_data_filtered[0].cal_p1;
-        calificacionesData.P2_1 = cal_data_filtered[0].cal_p2;
-        calificacionesData.P3_1 = cal_data_filtered[0].cal_p3;
-        calificacionesData.P4_1 = cal_data_filtered[0].cal_p4;
-        calificacionesData.rp1_1 = cal_data_filtered[0].cal_rp1;
-        calificacionesData.rp2_1 = cal_data_filtered[0].cal_rp2;
-        calificacionesData.rp3_1 = cal_data_filtered[0].cal_rp3;
-        calificacionesData.rp4_1 = cal_data_filtered[0].cal_rp4;
-        calificacionesData.asig_comp_id_1 = cal_data_filtered[0].cal_asi_comp_id;
-        calificacionesData.Id_1 = cal_data_filtered[0].cal_id;
+        if (cal_data_filtered.Count > 0)
+        {
+            Console.WriteLine("id de las calificaciones");
+            Console.WriteLine(cal_data_filtered[0].cal_id);
+            Console.WriteLine(cal_data_filtered[1].cal_id);
+            Console.WriteLine(cal_data_filtered[2].cal_id);
+            Console.WriteLine(cal_data_filtered[3].cal_id);
+            calificacionesData.estudiante_id = Convert.ToInt16(estudianteID);
+            // competencia  1 
+            calificacionesData.P1_1 = cal_data_filtered[0].cal_p1;
+            calificacionesData.P2_1 = cal_data_filtered[0].cal_p2;
+            calificacionesData.P3_1 = cal_data_filtered[0].cal_p3;
+            calificacionesData.P4_1 = cal_data_filtered[0].cal_p4;
+            calificacionesData.rp1_1 = cal_data_filtered[0].cal_rp1;
+            calificacionesData.rp2_1 = cal_data_filtered[0].cal_rp2;
+            calificacionesData.rp3_1 = cal_data_filtered[0].cal_rp3;
+            calificacionesData.rp4_1 = cal_data_filtered[0].cal_rp4;
+            calificacionesData.asig_comp_id_1 = cal_data_filtered[0].cal_asi_comp_id;
+            calificacionesData.Id_1 = cal_data_filtered[0].cal_id;
 
 
-        calificacionesData.pp1 = Convert.ToDecimal(cal_data_filtered[0].cal_Pp1);
-        calificacionesData.pp2 = Convert.ToDecimal(cal_data_filtered[0].cal_Pp2);
-        calificacionesData.pp3 = Convert.ToDecimal(cal_data_filtered[0].cal_Pp3);
-        calificacionesData.pp4 = Convert.ToDecimal(cal_data_filtered[0].cal_Pp3);
+            calificacionesData.pp1 = Convert.ToDecimal(cal_data_filtered[0].cal_Pp1);
+            calificacionesData.pp2 = Convert.ToDecimal(cal_data_filtered[0].cal_Pp2);
+            calificacionesData.pp3 = Convert.ToDecimal(cal_data_filtered[0].cal_Pp3);
+            calificacionesData.pp4 = Convert.ToDecimal(cal_data_filtered[0].cal_Pp3);
+            CalcularPromedio("1");
+            // competencia 2
 
-        // competencia 2
-
-        calificacionesData.P1_2 = cal_data_filtered[1].cal_p1;
-        calificacionesData.P2_2 = cal_data_filtered[1].cal_p2;
-        calificacionesData.P3_2 = cal_data_filtered[1].cal_p3;
-        calificacionesData.P4_2 = cal_data_filtered[1].cal_p4;
-        calificacionesData.rp1_2 = cal_data_filtered[1].cal_rp1;
-        calificacionesData.rp2_2 = cal_data_filtered[1].cal_rp2;
-        calificacionesData.rp3_2 = cal_data_filtered[1].cal_rp3;
-        calificacionesData.rp4_2 = cal_data_filtered[1].cal_rp4;
-        calificacionesData.asig_comp_id_2 = cal_data_filtered[1].cal_asi_comp_id;
-        calificacionesData.Id_2 = cal_data_filtered[1].cal_id;
-
-
-        calificacionesData.pp1 = Convert.ToDecimal(cal_data_filtered[1].cal_Pp1);
-        calificacionesData.pp2 = Convert.ToDecimal(cal_data_filtered[1].cal_Pp2);
-        calificacionesData.pp3 = Convert.ToDecimal(cal_data_filtered[1].cal_Pp3);
-        calificacionesData.pp4 = Convert.ToDecimal(cal_data_filtered[1].cal_Pp3);
-
-        //competencia 3
-
-        calificacionesData.P1_3 = cal_data_filtered[2].cal_p1;
-        calificacionesData.P2_3 = cal_data_filtered[2].cal_p2;
-        calificacionesData.P3_3 = cal_data_filtered[2].cal_p3;
-        calificacionesData.P4_3 = cal_data_filtered[2].cal_p4;
-        calificacionesData.rp1_3 = cal_data_filtered[2].cal_rp1;
-        calificacionesData.rp2_3 = cal_data_filtered[2].cal_rp2;
-        calificacionesData.rp3_3 = cal_data_filtered[2].cal_rp3;
-        calificacionesData.rp4_3 = cal_data_filtered[2].cal_rp4;
-        calificacionesData.asig_comp_id_3 = cal_data_filtered[2].cal_asi_comp_id;
-        calificacionesData.Id_3 = cal_data_filtered[2].cal_id;
-
-        calificacionesData.pp1 = Convert.ToDecimal(cal_data_filtered[2].cal_Pp1);
-        calificacionesData.pp2 = Convert.ToDecimal(cal_data_filtered[2].cal_Pp2);
-        calificacionesData.pp3 = Convert.ToDecimal(cal_data_filtered[2].cal_Pp3);
-        calificacionesData.pp4 = Convert.ToDecimal(cal_data_filtered[2].cal_Pp3);
-
-        //comptencia 4
-
-        calificacionesData.P1_4 = cal_data_filtered[3].cal_p1;
-        calificacionesData.P2_4 = cal_data_filtered[3].cal_p2;
-        calificacionesData.P3_4 = cal_data_filtered[3].cal_p3;
-        calificacionesData.P4_4 = cal_data_filtered[3].cal_p4;
-        calificacionesData.rp1_4 = cal_data_filtered[3].cal_rp1;
-        calificacionesData.rp2_4 = cal_data_filtered[3].cal_rp2;
-        calificacionesData.rp3_4 = cal_data_filtered[3].cal_rp3;
-        calificacionesData.rp4_4 = cal_data_filtered[3].cal_rp4;
-        calificacionesData.asig_comp_id_4 = cal_data_filtered[0].cal_asi_comp_id;
-        calificacionesData.Id_4 = cal_data_filtered[3].cal_id;
-        //promedios
-
-        calificacionesData.pp1 = Convert.ToDecimal(cal_data_filtered[5].cal_Pp1);
-        calificacionesData.pp2 = Convert.ToDecimal(cal_data_filtered[5].cal_Pp2);
-        calificacionesData.pp3 = Convert.ToDecimal(cal_data_filtered[5].cal_Pp3);
-        calificacionesData.pp4 = Convert.ToDecimal(cal_data_filtered[5].cal_Pp4);
-        calificacionesData.calFinal = Convert.ToDecimal( cal_data_filtered[5].cal_final);
+            calificacionesData.P1_2 = cal_data_filtered[1].cal_p1;
+            calificacionesData.P2_2 = cal_data_filtered[1].cal_p2;
+            calificacionesData.P3_2 = cal_data_filtered[1].cal_p3;
+            calificacionesData.P4_2 = cal_data_filtered[1].cal_p4;
+            calificacionesData.rp1_2 = cal_data_filtered[1].cal_rp1;
+            calificacionesData.rp2_2 = cal_data_filtered[1].cal_rp2;
+            calificacionesData.rp3_2 = cal_data_filtered[1].cal_rp3;
+            calificacionesData.rp4_2 = cal_data_filtered[1].cal_rp4;
+            calificacionesData.asig_comp_id_2 = cal_data_filtered[1].cal_asi_comp_id;
+            calificacionesData.Id_2 = cal_data_filtered[1].cal_id;
 
 
+            calificacionesData.pp1 = Convert.ToDecimal(cal_data_filtered[1].cal_Pp1);
+            calificacionesData.pp2 = Convert.ToDecimal(cal_data_filtered[1].cal_Pp2);
+            calificacionesData.pp3 = Convert.ToDecimal(cal_data_filtered[1].cal_Pp3);
+            calificacionesData.pp4 = Convert.ToDecimal(cal_data_filtered[1].cal_Pp3);
+            CalcularPromedio("2");
+            //competencia 3
+
+            calificacionesData.P1_3 = cal_data_filtered[2].cal_p1;
+            calificacionesData.P2_3 = cal_data_filtered[2].cal_p2;
+            calificacionesData.P3_3 = cal_data_filtered[2].cal_p3;
+            calificacionesData.P4_3 = cal_data_filtered[2].cal_p4;
+            calificacionesData.rp1_3 = cal_data_filtered[2].cal_rp1;
+            calificacionesData.rp2_3 = cal_data_filtered[2].cal_rp2;
+            calificacionesData.rp3_3 = cal_data_filtered[2].cal_rp3;
+            calificacionesData.rp4_3 = cal_data_filtered[2].cal_rp4;
+            calificacionesData.asig_comp_id_3 = cal_data_filtered[2].cal_asi_comp_id;
+            calificacionesData.Id_3 = cal_data_filtered[2].cal_id;
+
+            calificacionesData.pp1 = Convert.ToDecimal(cal_data_filtered[2].cal_Pp1);
+            calificacionesData.pp2 = Convert.ToDecimal(cal_data_filtered[2].cal_Pp2);
+            calificacionesData.pp3 = Convert.ToDecimal(cal_data_filtered[2].cal_Pp3);
+            calificacionesData.pp4 = Convert.ToDecimal(cal_data_filtered[2].cal_Pp3);
+            CalcularPromedio("3");
+            //comptencia 4
+
+            calificacionesData.P1_4 = cal_data_filtered[3].cal_p1;
+            calificacionesData.P2_4 = cal_data_filtered[3].cal_p2;
+            calificacionesData.P3_4 = cal_data_filtered[3].cal_p3;
+            calificacionesData.P4_4 = cal_data_filtered[3].cal_p4;
+            calificacionesData.rp1_4 = cal_data_filtered[3].cal_rp1;
+            calificacionesData.rp2_4 = cal_data_filtered[3].cal_rp2;
+            calificacionesData.rp3_4 = cal_data_filtered[3].cal_rp3;
+            calificacionesData.rp4_4 = cal_data_filtered[3].cal_rp4;
+            calificacionesData.asig_comp_id_4 = cal_data_filtered[0].cal_asi_comp_id;
+            calificacionesData.Id_4 = cal_data_filtered[3].cal_id;
+            CalcularPromedio("4");
+            //promedios
+
+            calificacionesData.pp1 = Convert.ToDecimal(cal_data_filtered[4].cal_Pp1);
+            calificacionesData.pp2 = Convert.ToDecimal(cal_data_filtered[4].cal_Pp2);
+            calificacionesData.pp3 = Convert.ToDecimal(cal_data_filtered[4].cal_Pp3);
+            calificacionesData.pp4 = Convert.ToDecimal(cal_data_filtered[4].cal_Pp4);
+            calificacionesData.calFinal = Convert.ToDecimal(cal_data_filtered[4].cal_final);
+
+        }
     }
 
     private void OnInputChange(ChangeEventArgs e, int comp_id, string campo)
@@ -491,7 +513,7 @@
         int valor4 = 0;
         decimal resultado = 0;
         decimal calificacionFinal = 0;
-        Console.WriteLine(referencia);
+        calificacionesData.curso_id = cursoID;
         switch (referencia)
         {
 
@@ -512,6 +534,7 @@
                 resultado = (valor1 + valor2 + valor3 + valor4) / 4;
                 calificacionesData.pp1 = resultado;
                 calificacionesData.Promedio_1 = resultado;
+
                 StateHasChanged();
                 break;
             case "2":
@@ -584,7 +607,7 @@
 
     private void natigateToEstudiantes()
     {
-        NavigationManager.NavigateTo("/ListaEstudiantes");
+        NavigationManager.NavigateTo("javascript:history.back()", forceLoad: false);
     }
     private async Task registrarDatos()
     {
@@ -600,6 +623,7 @@
         {
             try
             {
+                calificacionesData.estudiante_id = estudiante.Id;
                 var calificacionesRegistered = await calificacionesService.Editar(calificacionesData.GetCalificiones(calificacionesData));
                 resultado = await Swal.FireAsync(new SweetAlertOptions
                     {
@@ -624,7 +648,7 @@
     }
     public class Registro 
     {
-        
+        public int curso_id { get; set; }
         public int estudiante_id { get; set; }
         public int Id_1 { get; set; }
         public int? P1_1 { get; set; } = 0;
@@ -709,7 +733,8 @@
                 P2           = _competencias.P2_1,
                 P3           = _competencias.P3_1,
                 P4           = _competencias.P4_1,
-                Estudianteid = estudiante_id
+                Estudianteid = estudiante_id,
+                    cursoID = curso_id
 
             }
            );
@@ -730,7 +755,8 @@
                     P2 = _competencias.P2_2,
                     P3 = _competencias.P3_2,
                     P4 = _competencias.P4_2,
-                    Estudianteid = estudiante_id
+                    Estudianteid = estudiante_id,
+                       cursoID = curso_id
                }
            );
             calificiones.Add(new CalificacionesDTO
@@ -750,7 +776,8 @@
                     P2 = _competencias.P2_3,
                     P3 = _competencias.P3_3,
                     P4 = _competencias.P4_3,
-                    Estudianteid = estudiante_id
+                    Estudianteid = estudiante_id,
+                    cursoID = curso_id
                 }
            );
             calificiones.Add(new CalificacionesDTO
@@ -770,7 +797,9 @@
                     P2 = _competencias.P2_4,
                     P3 = _competencias.P3_4,
                     P4 = _competencias.P4_4,
-                    Estudianteid = estudiante_id
+                    Estudianteid = estudiante_id,
+                    cursoID = curso_id
+
                 }
            );
             return calificiones;
