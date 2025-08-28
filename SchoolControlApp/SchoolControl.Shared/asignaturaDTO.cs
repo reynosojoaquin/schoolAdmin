@@ -12,6 +12,6 @@ namespace SchoolControl.Shared
         public string? Nombre { get; set; }
         public int? CursoID { get; set; }
         public int? responsable { get; set; }
-
+        public string icono { get; set; }   
     }
 }

@@ -1,0 +1,55 @@
+﻿@page "/Usuarios"
+@using Microsoft.AspNetCore.Authorization;
+@using Microsoft.AspNetCore.Components.Authorization;
+@attribute [Authorize]
+@using SchoolControl.Client.Pages;
+<h3>Control de Usuarios</h3>
+<div class="card card-primary card-outline">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-edit"></i>
+           Configuracion general de los usuarios
+        </h3>
+    </div>
+    <div class="card-body">
+        <div class="col-12 col-sm-9">
+                       @if (showIndexUsuarios)
+                        {
+                            <ListaUsuarios OnValueSentBack="ReceiveValue" />
+                        }
+                        else
+                        {
+                            <RegisterUser userID="@userID" OnValueSentBack="ReceiveValue" />
+                        }
+         </div>
+     
+    </div>
+    <!-- /.card -->
+</div>
+@code {
+    private int userID = 0;
+    private bool showIndexUsuarios = true;
+    private string receivedValue = string.Empty;
+    public string titulo = "";
+    private void TogglePageProvincia(string value)
+    {
+
+        showIndexUsuarios = !Convert.ToBoolean(value); ;
+
+    }
+  
+    private void ReceiveValue(string value)
+    {
+        string[] valores = value.Split(',');
+        string opcion =valores[1];
+        if(opcion == "p")
+        {
+
+            string val1 = valores[0];
+            string val2 = valores[2];
+            TogglePageProvincia(val1);
+            userID = Convert.ToInt32(val2);
+        }
+      
+    }
+}

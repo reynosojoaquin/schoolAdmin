@@ -30,7 +30,8 @@ namespace SchoolControl.Server.Controllers
                         id            = item.Id,
                         Nombre        = item.Nombre,
                         CursoID       = item.Cursoid, 
-                        responsable   = item.Responsable
+                        responsable   = item.Responsable,
+                        icono = item.Icon
                     });
                 }
                 resposeApi.correcto = true;
@@ -57,7 +58,8 @@ namespace SchoolControl.Server.Controllers
                     asignaturaDTO.id            = asignatura.Id;
                     asignaturaDTO.Nombre        = asignatura.Nombre;
                     asignaturaDTO.CursoID       = asignatura.Cursoid;
-                    asignaturaDTO.responsable = asignatura.Responsable;
+                    asignaturaDTO.responsable   = asignatura.Responsable;
+                    asignaturaDTO.icono = asignatura.Icon;
                 }
                 responseApi.correcto = true;
                 responseApi.Valor = asignaturaDTO;
@@ -82,7 +84,8 @@ namespace SchoolControl.Server.Controllers
                 {
                     Nombre      = asignatura.Nombre,
                     Cursoid     = asignatura.CursoID,
-                    Responsable = asignatura.responsable
+                    Responsable = asignatura.responsable,
+                    Icon = asignatura.icono 
 
                 };
                 _dbContext.Asignaturas.Add(DBasignatura);
@@ -175,7 +178,7 @@ namespace SchoolControl.Server.Controllers
         }
 
         [HttpGet]
-        [Route("getAsignaturaTeachers")]
+        [Route("getAsignaturaTeachers/{curso_id}/{responsable}")]
         public async Task<IActionResult> getAsignaturaTeachers(int curso_id,int responsable )
         {
 
@@ -188,13 +191,20 @@ namespace SchoolControl.Server.Controllers
                      (
                         from _asignatura in _dbContext.Asignaturas
                         join Curso in _dbContext.Cursos
-                        on _asignatura.Cursoid equals Curso.Cursoid where Curso.Cursoid == curso_id && _asignatura.Responsable == responsable
+                        on _asignatura.Cursoid equals Curso.Cursoid 
+                        join _docentes in _dbContext.Docentes on _asignatura.Responsable equals
+                        _docentes.Id
+                        
+                        where Curso.Cursoid == curso_id 
+                        && _asignatura.Responsable == responsable
                        // group Curso by new { Curso.Cursoid, Curso.Nombre, Curso.Responsable } into cursoGroup
                         select new asignaturaDTO
                         {
                           id             = _asignatura.Id,
                           Nombre         = _asignatura.Nombre,
-                          responsable    = _asignatura.Responsable
+                          responsable    = _asignatura.Responsable,
+                          CursoID        = _asignatura.Cursoid,
+                          icono          = _asignatura.Icon
                         }
                      ).ToList();
 

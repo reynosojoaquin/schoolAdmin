@@ -28,7 +28,16 @@ namespace SchoolControl.Client.Services
 
         public async Task<DocenteDTO?> GetDocenteByIdAsync(int id)
         {
-            return await _httpClient.GetFromJsonAsync<DocenteDTO>($"api/Docentes/{id}");
+           
+            var result = await _httpClient.GetFromJsonAsync<ResponseApi<DocenteDTO>>($"api/Docentes/Buscar/{id}"); 
+            if (result!.correcto)
+            {
+                return result.Valor;
+            }
+            else
+            {
+                throw new Exception(result.Mensaje);
+            }
         }
 
         public async Task<bool> CreateDocenteAsync(DocenteDTO docente)
@@ -47,6 +56,19 @@ namespace SchoolControl.Client.Services
         {
             var response = await _httpClient.DeleteAsync($"api/Docentes/{id}");
             return response.IsSuccessStatusCode;
+        }
+        public async Task<bool> RegistroMasivo(MultipartFormDataContent file)
+        {
+            var result = await _httpClient.PostAsync($"api/Docentes/RegistroMasivo", file);
+            var response = await result.Content.ReadFromJsonAsync<ResponseApi<bool>>();
+            if (response!.correcto)
+            {
+                return response.Valor;
+            }
+            else
+            {
+                throw new Exception(response.Mensaje);
+            }
         }
     }
 }

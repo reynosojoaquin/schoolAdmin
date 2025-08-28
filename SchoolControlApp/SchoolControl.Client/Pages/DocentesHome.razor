@@ -1,0 +1,85 @@
+﻿@page "/DocentesHome"
+@using Microsoft.AspNetCore.Authorization;
+@using Microsoft.AspNetCore.Components.Authorization;
+@attribute [Authorize]
+@using SchoolControl.Client.Pages;
+<h3>Docentes</h3>
+<div class="card card-primary card-outline">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-edit"></i>
+           Configuracion general de los Docentes
+        </h3>
+    </div>
+    <div class="card-body">
+        <h4>Opciones</h4>
+        <div class="row">
+            <div class="col-5 col-sm-3">
+                <div class="nav flex-column nav-tabs h-100" id="vert-tabs-tab" role="tablist" aria-orientation="vertical">
+                    <a class="nav-link active" id="vert-tabs-docentes-tab" data-bs-toggle="pill" href="#vert-tabs-docentes" role="tab" aria-controls="vert-tabs-docentes" aria-selected="true">Docentes</a>
+                </div>
+            </div>
+            <div class="col-7 col-sm-9">
+                <div class="tab-content" id="vert-tabs-tabContent">
+                    <div class="tab-pane fade show active" id="vert-tabs-docentes-detail" role="tabpanel" aria-labelledby="vert-tabs-docentes-datail-tab">
+
+                        @switch (opcion)
+                        {
+                            case "INFO":
+                                <DocenteInfo id="@ID" OnValueSentBack="ReceiveValue"/>
+                                break;
+                            case "ADD":
+                                <AddDocente id="@ID" OnValueSentBack="ReceiveValue" />
+                            break;
+                            default : 
+                                <DocentesList OnValueSentBack = "ReceiveValue" />
+                            break;
+                        }
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <!-- /.card -->
+</div>
+@code {
+    private int ID = 0;
+    private bool  showIndexDocentes = true;
+    private bool showAddDocentes = false;
+    private bool showInfoDocentes = false;
+    private string receivedValue = string.Empty;
+    public string titulo = "";
+    public string opcion = "";
+    private void TogglePageDocentes(string value)
+    {
+       showIndexDocentes = !Convert.ToBoolean(value); ;
+    }
+    private void TogglePageDocentesADD(string value)
+    {
+        showIndexDocentes = !Convert.ToBoolean(value); ;
+    }
+    private void TogglePageDocentesInfo(string value)
+    {
+        showIndexDocentes = !Convert.ToBoolean(value); ;
+    }
+    private void ReceiveValue(string value)
+    {
+        string[] valores = value.Split(',');
+        opcion =valores[0];
+        if(opcion == "ADD")
+        {
+            string val1 = valores[0];
+            string val2 = valores[1];
+            ID = Convert.ToInt32(val2);
+                     
+        }
+        if (opcion == "INFO")
+        {
+            string val1 = valores[1];
+            ID = Convert.ToInt32(val1);
+        }
+       
+    }
+}

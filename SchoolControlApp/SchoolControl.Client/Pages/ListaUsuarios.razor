@@ -1,0 +1,158 @@
+﻿@page  "/ListaUsuarios"
+
+@using SchoolControl.Shared;
+@using SchoolControl.Client.Services;
+@using CurrieTechnologies.Razor.SweetAlert2;
+
+@inject SweetAlertService Swal;
+@inject IUserService UserServices;
+@inject NavigationManager NavigationManager
+<div class="card mt-12">
+    <div class="card-header">
+        <h3 class="card-title">USUARIOS</h3>
+    </div>
+    <div class="card-body">
+        <div class="container mt-2">
+            <!-- Fila para el filtro y el botón -->
+            <div class="row mb-1">
+                <div class="col-md-4 text-start">
+
+                    <button class="btn btn-primary" @onclick="()=> showCreatePage(0)">
+                        <i class="fas fa-plus"></i> Añadir Nuevo Usuario
+                    </button>
+                </div>
+                <div class="col-md-8">
+                    <!-- Campo para filtrar datos -->
+                    <input type="text" @bind-value="searchTerm" @onkeypress="OnKeyPress" id="filterInput" class="form-control" placeholder="Filtrar Usuarios...">
+                </div>
+
+            </div>
+        </div>
+
+        <table class="table table-striped  ">
+            <thead>
+            <th>Id</th>
+            <th>Nombre</th>
+            <th>Rol</th>
+            <th>Acciones</th>
+            </thead>
+            <tbody>
+                @if (ListUsuarios == null)
+                {
+                    <tr>
+                        <td colspan="5" align="center">
+                            <img style="with:50px" src="https://media.tenor.com/2BLI5EO7yVAAAAAi/loading-image.gif" />
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var item in ListUsuarios)
+                    {
+                        <tr>
+                            <td>@item.Id</td>
+                            <td>@item.Fullname</td>
+                            <td>@item.role.NombreRol</td>
+                            <td>
+                                <button class="btn btn-sm btn-info" @onclick="(()=> Modificar(item.Id))" >
+                                    <i class="fas fa-edit"></i>&nbsp Editar
+                                </button>
+                                <button class="btn btn-sm btn-danger" @onclick="(()=> eliminar(item.Id))">
+                                    <i class="fas fa-trash-alt"></i>&nbspEliminar
+                                </button>
+                             </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+
+        </table>
+    </div>
+</div>
+
+
+
+
+@code {
+
+    [Parameter]
+    public int? user_id  { get; set; } =0;
+    public bool showFirstPage { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnValueSentBack { get; set; }
+
+    public string searchTerm = string.Empty;
+    List<UserDto>? ListUsuarios = null;
+    public UserDto CurrentUser = null; 
+
+    protected override async Task OnInitializedAsync()
+    {
+        ListUsuarios = await UserServices.Lista(0);
+        foreach(UserDto user in ListUsuarios)
+        {
+            Console.WriteLine($"{user.Id} {user.Username} {user.role.NombreRol}");
+        }
+       
+    }
+
+    private async Task  FiltrarUsuarios()
+    {
+        // ListaCursos = await CursoServices.GetCountryFiltered(searchTerm);
+    }
+    private async Task OnKeyPress(KeyboardEventArgs e)
+    {
+        // Filtrar cuando se presione "Enter"
+        if (e.Key == "Enter")
+        {
+            await FiltrarUsuarios();
+        }
+    }
+    private async Task eliminar(int id)
+    {
+        // var resultado = await Swal.FireAsync(new SweetAlertOptions
+        //     {
+        //         Title = "Eliminar Asignatura",
+        //         Text = "Deseas eliminar el Asignatura",
+        //         Icon = SweetAlertIcon.Question,
+        //         ShowCancelButton = true
+        //     });
+
+        // if (resultado.IsConfirmed)
+        // {
+        //     var eliminado = await AsignaturaServices.Eliminar(id);
+        //     if (eliminado)
+        //         ListaAsignatura = ListaAsignatura.FindAll(e => e.id != id);
+        // }
+    }
+    private async Task Modificar(int id)
+    {
+        showCreatePage(id);
+    }
+    public void showCreatePage(int value)
+    {
+        SendBackValue("true,p," + Convert.ToString(value));
+    }
+    public void SendBackValue(string value)
+    {
+        OnValueSentBack.InvokeAsync(value);
+    }
+    private void mostrarUsuarios()
+    {
+        string parametros = "";
+       // NavigationManager.NavigateTo($"/ListaEstudiantes/{asignatura_id}");
+    }
+
+
+}
+<style>
+     .col-id {
+        width: 100px; /* Ajusta este valor según el tamaño del contenido de la columna Id */
+        text-align: center;
+    }
+
+    .col-nombre {
+        width: 1px; /* Ajuste inicial para que tome el espacio restante */
+        white-space: nowrap; /* Evita el ajuste de línea en el contenido */
+    }
+</style>

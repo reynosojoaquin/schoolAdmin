@@ -1,17 +1,102 @@
-﻿@page "/docentes"
+﻿@page "/DocentesList"
 @using SchoolControl.Shared;
 @using SchoolControl.Client.Services;
 @using CurrieTechnologies.Razor.SweetAlert2;
-
+@using OfficeOpenXml;
+@using SchoolControl.Client.Extensiones;
 @inject  IDocentesServices DocentesService;
 @inject SweetAlertService Swal;
 
 
 <h3>Administración de Docentes</h3>
+<div class="card-body">
+    <!-- Fila para el filtro y el botón -->
+    <div class="row  mb-1 border border-1 rounded p-3">
+        <label class="mb-1">
+            Registro masivo de docentes
+        </label>
+        <div class="col-md-12 ">
 
+            <label for="archivoExcel" class="btn btn-primary">
+                📁 Seleccionar archivo Excel
+            </label>
+            <InputFile id="archivoExcel" class="d-none" OnChange="CargarArchivoExcel" accept=".xlsx" />
+
+            @if (nombreArchivo is not null)
+            {
+                <p>Archivo seleccionado: <strong>@nombreArchivo</strong></p>
+                <p>Total encontrados: <strong>@fileData.Count</strong></p>
+            }
+            <!--datos registrados en el archivo-->
+            <table class="table table-striped  ">
+                <thead>
+                <th>Nombre</th>
+                <th>Apellido</th>
+                <th>Cedula</th>
+                </thead>
+                <tbody>
+                    @if (fileData != null)
+                    {
+
+                        @foreach (var item in fileData)
+                        {
+                            <tr>
+                                <td>@item.Nombres</td>
+                                <td>@item.Apellido</td>
+                                <td>@item.Cedula</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+
+            </table>
+        </div>
+        <div class="col-md-12">
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-10 text-start">
+                        <button class="btn @(!fileSelected ? "btn-primary" : "btn-success")" disabled="@(!fileSelected)" @onclick="() => registroMasivo()">
+                            <i class="fas fa-save me-2"></i> Registrar
+                        </button>
+                        <button class="btn @(!fileSelected ? "btn-primary" : "btn-danger")" disabled="@(!fileSelected)" @onclick="() => CancelarRegistroMasivo()">
+                            <i class="fas fa-times-circle"></i> Cancelar
+                        </button>
+                    </div>
+
+                </div>
+
+            </div>
+
+
+        </div>
+        <div class="col-md-2">
+        </div>
+        <div class="col-md-2">
+        </div>
+    </div>
+
+</div>
+<div class="container mt-2">
+    <!-- Fila para el filtro y el botón -->
+    <div class="row mb-1">
+        <div class="col-md-2 text-start">
+
+            <button class="btn btn-primary" @onclick="() => showCreatePage(0)">
+                <i class="fas fa-plus"></i> Añadir Nuevo
+            </button>
+        </div>
+        <div class="col-md-10">
+            <!-- Campo para filtrar datos -->
+            <input  type="text" @bind-value="searchTerm" @bind-value:event="oninput" @onkeypress="OnKeyPress" id="filterInput" class="form-control w-100" placeholder="Filtrar Docentes...">
+        </div>
+
+    </div>
+</div>
+<br />
 <table class="table table-striped">
     <thead>
         <tr>
+            <th>ID</th>
             <th>Nombres</th>
             <th>Apellidos</th>
             <th>Cédula</th>
@@ -20,14 +105,18 @@
         </tr>
     </thead>
     <tbody>
-        @foreach (var docente in docentes)
+        @foreach (var docente in DocentesFiltrados)
         {
             <tr>
+                <td>@docente.ID</td>
                 <td>@docente.Nombres</td>
                 <td>@docente.Apellido</td>
                 <td>@docente.Cedula</td>
                 <td>@docente.Correo</td>
                 <td>
+                    <button class="btn btn-sm btn-info" @onclick="(() => MostrarInfoDocente(docente.ID))">
+                        <i class="fas fa-info-circle"></i>&nbspInformacion
+                    </button>
                     <button class="btn btn-primary btn-sm" @onclick="() => EditDocente(docente.ID)">Editar</button>
                     <button class="btn btn-danger btn-sm" @onclick="() => DeleteDocente(docente.ID)">Eliminar</button>
                 </td>
@@ -35,20 +124,34 @@
         }
     </tbody>
 </table>
-
+<div class="card-body">
+    <label class="mb-1">
+        Registros encontrados: @DocentesFiltrados.Count()
+    </label>
+</div>
 @code {
+    [Parameter]
+    public bool showFirstPage { get; set; }
+    [Parameter]
+    public EventCallback<string> OnValueSentBack { get; set; }
+    public string searchTerm = string.Empty;
+    List<DocenteDTO>? DocentesFiltrados = new();
+    List<DocenteDTO>? EstudiantesArchivo = null;
+    private List<DocenteDTO> fileData = new List<DocenteDTO>();
+    private bool fileSelected = false;
+    private bool addSection = false;
+    private string? mensaje;
+    private IBrowserFile archivo;
+    private string nombreArchivo;
     private List<DocenteDTO> docentes = new();
-
     protected override async Task OnInitializedAsync()
     {
-        docentes = await DocentesService.GetDocentesAsync();
+        await cargarDocentes();
     }
-
     private async Task EditDocente(int id)
     {
         // Implementar lógica para editar un docente
     }
-
     private async Task DeleteDocente(int id)
     {
         var success = await DocentesService.DeleteDocenteAsync(id);
@@ -56,5 +159,170 @@
         {
             docentes = await DocentesService.GetDocentesAsync();
         }
+    }
+    private async Task cargarDocentes()
+    {
+        docentes = await DocentesService.GetDocentesAsync();
+        DocentesFiltrados.AddRange(docentes);
+    }
+    private async Task CargarArchivoExcel(InputFileChangeEventArgs e)
+    {
+        archivo = e.File;
+        if (archivo is null || archivo.ContentType != "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        {
+            mensaje = "Por favor, seleccione un archivo .xlsx válido.";
+            return;
+        }
+        fileSelected = true;
+        nombreArchivo = e.File.Name;
+
+        EPPlusLicense ePPlusLicense = new EPPlusLicense();
+        ePPlusLicense.SetNonCommercialPersonal("RTFD");
+        try
+        {
+            using var stream = e.File.OpenReadStream();
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            ms.Position = 0;
+            using var package = new ExcelPackage(ms);
+            var worksheet = package.Workbook.Worksheets[0];
+            var rowCount = worksheet.Dimension.Rows;
+
+            var docentes = new List<DocenteDTO>();
+            for (int row = 2; row <= rowCount; row++)
+            {
+                try
+                {
+                    var value = worksheet.Cells[row, 1].Value?.ToString();
+                    if (value != null)
+                    {
+                        docentes.Add(new DocenteDTO
+                        {
+                            Nombres = worksheet.Cells[row, 1].Value?.ToString(),
+                            Apellido = worksheet.Cells[row, 2].Value?.ToString(),
+                            Cedula = worksheet.Cells[row, 3].Value?.ToString(),
+                            Activo = worksheet.Cells[row, 4].Value?.ToString() == "1" ? true : false,
+                            Correo = worksheet.Cells[row, 5].Value?.ToString(),
+                            Sexo = worksheet.Cells[row, 6].Value?.ToString(),
+                            Nacionalidad = Convert.ToInt16(worksheet.Cells[row, 7].Value?.ToString()),
+                            EstadoCivil = worksheet.Cells[row, 8].Value?.ToString(),
+                            LugarNacimiento = Convert.ToInt16(worksheet.Cells[row, 9].Value?.ToString()),
+                            FechaNacimiento = worksheet.Cells[row, 10].Value?.ToString(),
+                            Telefono = worksheet.Cells[row, 11].Value?.ToString(),
+                            FechaIngreso = worksheet.Cells[row, 12].Value?.ToString()
+                        });
+                    }
+
+                }
+                catch (Exception ex)
+                {
+
+                }
+            }
+            fileData = docentes;
+            StateHasChanged();
+        }
+        catch (Exception exe)
+        {
+            var result = await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "Carga masiva de Docentes",
+                Text = "Error al registrar los datos",
+                Icon = SweetAlertIcon.Info,
+                ShowCancelButton = false
+            });
+        }
+
+    }
+    private async Task registroMasivo()
+    {
+        var resultado = await Swal.FireAsync(new SweetAlertOptions
+        {
+            Title = "Carga masiva de docentes",
+            Text = "Deseas cargar datos masivos de los docentes",
+            Icon = SweetAlertIcon.Question,
+            ShowCancelButton = true
+        });
+
+        if (resultado.IsConfirmed)
+        {
+
+
+            var content = new MultipartFormDataContent();
+            var fileContent = new StreamContent(archivo.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024)); // 10MB
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(archivo.ContentType);
+            content.Add(content: fileContent, name: "\"file\"", fileName: archivo.Name);
+            var registrados = await  DocentesService.RegistroMasivo(content);
+            if (registrados)
+            {
+                var result = await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Title = "Carga masiva de Docentes",
+                    Text = "Datos cargados satisfactoriamente",
+                    Icon = SweetAlertIcon.Info,
+                    ShowCancelButton = false
+                });
+                await CancelarRegistroMasivo();
+
+            }
+            await CancelarRegistroMasivo();
+            await cargarDocentes();
+        }
+    }
+    private async Task CancelarRegistroMasivo()
+    {
+        fileData.Clear();
+        nombreArchivo = "";
+        fileSelected = false;
+        StateHasChanged();
+    }
+    private async Task FiltrarDocentes()
+    {
+         DocentesFiltrados = docentes.Where(e => e.Nombres.ToLower().Contains(searchTerm.ToLower()) ||
+         e.Apellido.ToLower().Contains(searchTerm.ToLower())).ToList();
+        StateHasChanged();
+
+    }
+    private async Task OnKeyPress(KeyboardEventArgs e)
+    {
+        // Filtrar cuando se presione "Enter"
+        if (e.Key == "Enter")
+        {
+            StateHasChanged();
+            await FiltrarDocentes();
+        }
+    }
+    private async Task eliminar(int id)
+    {
+        var resultado = await Swal.FireAsync(new SweetAlertOptions
+        {
+            Title = "Eliminar Docente",
+            Text = "Deseas eliminar el docente",
+            Icon = SweetAlertIcon.Question,
+            ShowCancelButton = true
+        });
+
+        if (resultado.IsConfirmed)
+        {
+            var eliminado = await DocentesService.DeleteDocenteAsync(id);
+            if (eliminado)
+                docentes = docentes.FindAll(e => e.ID != id);
+        }
+    }
+    private async Task Modificar(int id)
+    {
+        showCreatePage(id);
+    }
+    public void showCreatePage(int value)
+    {
+        SendBackValue("ADD," + Convert.ToString(value));
+    }
+    public void SendBackValue(string value)
+    {
+        OnValueSentBack.InvokeAsync(value);
+    }
+    private async Task MostrarInfoDocente(int id)
+    {
+        SendBackValue("INFO," + Convert.ToString(id));
     }
 }

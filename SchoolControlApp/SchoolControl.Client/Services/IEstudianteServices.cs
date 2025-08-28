@@ -10,5 +10,8 @@ namespace SchoolControl.Client.Services
         Task<int> Editar(EstudiantesDTO estudiante, int id);
         Task<bool> Eliminar(int id);
         Task<List<EstudiantesDTO>> getStudentClassRoom(int curso_id);
+        Task<List<EstudiantesDTO>> GetStudentFiltered(string nombre);
+        Task<List<EstudiantesDTO>> getStudentFormInscripction(int curso_id);
+        Task<bool> RegistroMasivo(MultipartFormDataContent file);
     }
 }

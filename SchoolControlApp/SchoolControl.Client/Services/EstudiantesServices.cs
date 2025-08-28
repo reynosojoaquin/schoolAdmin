@@ -11,7 +11,7 @@ namespace SchoolControl.Client.Services
         }
         public async Task<List<EstudiantesDTO>> Lista(int take)
         {
-            var result = await _httpClient.GetFromJsonAsync<ResponseApi<List<EstudiantesDTO>>>("api/Estudiantes/Lista");
+            var result = await _httpClient.GetFromJsonAsync<ResponseApi<List<EstudiantesDTO>>>("api/Estudiante/Lista");
             if (result!.correcto)
             {
                 if (take != 0)
@@ -26,7 +26,7 @@ namespace SchoolControl.Client.Services
         }
         public async Task<EstudiantesDTO>Buscar(int id)
         {
-            var result = await _httpClient.GetFromJsonAsync<ResponseApi<EstudiantesDTO>>($"api/Estudiantes/Buscar/{id}");
+            var result = await _httpClient.GetFromJsonAsync<ResponseApi<EstudiantesDTO>>($"api/Estudiante/Buscar/{id}");
             if (result!.correcto)
             {
                 return result.Valor;
@@ -39,7 +39,7 @@ namespace SchoolControl.Client.Services
        
         public async Task<int>Guardar(EstudiantesDTO estudiante)
         {
-            var result = await _httpClient.PostAsJsonAsync($"api/Estudiantes/Guardar", estudiante);
+            var result = await _httpClient.PostAsJsonAsync("api/Estudiante/Guardar", estudiante);
             var response = await result.Content.ReadFromJsonAsync<ResponseApi<int>>();
             if (response!.correcto)
             {
@@ -56,7 +56,7 @@ namespace SchoolControl.Client.Services
             var result = new HttpResponseMessage();
             try
             {
-                result = await _httpClient.PutAsJsonAsync($"api/Estudiantes/Editar/{id}", estudiante);
+                result = await _httpClient.PutAsJsonAsync($"api/Estudiante/Editar/{id}", estudiante);
 
             }
             catch (Exception ex)
@@ -84,7 +84,7 @@ namespace SchoolControl.Client.Services
         }
         public async Task<bool>Eliminar(int id)
         {
-            var result = await _httpClient.DeleteAsync($"api/Estudiantes/Delete/{id}");
+            var result = await _httpClient.DeleteAsync($"api/Estudiante/Delete/{id}");
             var response = await result.Content.ReadFromJsonAsync<ResponseApi<int>>();
             if (response!.correcto)
             {
@@ -97,7 +97,7 @@ namespace SchoolControl.Client.Services
         }
         public async Task<List<EstudiantesDTO>> GetStudentFiltered(string nombre)
         {
-            var result = await _httpClient.GetFromJsonAsync<ResponseApi<List<EstudiantesDTO>>>("api/Estudiantes/Lista");
+            var result = await _httpClient.GetFromJsonAsync<ResponseApi<List<EstudiantesDTO>>>("api/Estudiante/Lista");
             if (result != null && result.Valor != null)
             {
 
@@ -125,5 +125,36 @@ namespace SchoolControl.Client.Services
                 throw new Exception(result.Mensaje);
             }
         }
+
+
+        public async Task<List<EstudiantesDTO>> getStudentFormInscripction(int curso_id)
+        {
+            var result = await _httpClient.GetFromJsonAsync<ResponseApi<List<EstudiantesDTO>>>($"api/Estudiante/getStudentForInscription?curso_id=" + curso_id.ToString());
+            if (result!.correcto)
+            {
+                if (result.Valor != null)
+                    return result.Valor.ToList();
+                else
+                    throw new Exception(result.Mensaje);
+            }
+            else
+            {
+                throw new Exception(result.Mensaje);
+            }
+        }
+        public async Task<bool> RegistroMasivo(MultipartFormDataContent file)
+        {
+            var result = await _httpClient.PostAsync($"api/Estudiante/RegistroMasivo", file);
+            var response = await result.Content.ReadFromJsonAsync<ResponseApi<bool>>();
+            if (response!.correcto)
+            {
+                return response.Valor;
+            }
+            else
+            {
+                throw new Exception(response.Mensaje);
+            }
+        }
+
     }
 }

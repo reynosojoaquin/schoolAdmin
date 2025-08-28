@@ -1,0 +1,609 @@
+﻿@page "/AddEstudiante/{id}"
+@using SchoolControl.Shared;
+@using SchoolControl.Client.Services;
+@using CurrieTechnologies.Razor.SweetAlert2;
+@using BlazorInputMask;
+@using System.Globalization;
+@inject HttpClient Http;
+@inject SweetAlertService Swal;
+@inject IEstudianteServices EstudianteServices;
+@inject ILugarNacimientoServices LugarNacimientoServices;
+@inject INacionalidadServices NacionalidadServices;
+@inject IPadresServices PadresServices;
+@inject IHistoriaClinicaServices HistoriaClinicaServices;   
+@inject NavigationManager navegacion;
+
+<div class="card mt-4">
+    <div class="card-header">
+        <h3 class="card-title">@titulo</h3>
+    </div>
+    <div class="card-body">
+
+        <!-- Nav Tabs -->
+        <ul class="nav nav-tabs" id="studentTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="estudiante-tab" data-bs-toggle="tab" data-bs-target="#estudiante" type="button" role="tab" aria-controls="estudiante" aria-selected="true">
+                    <i class="fas fa-user-graduate"></i> Estudiante
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="tutor-tab" data-bs-toggle="tab" data-bs-target="#tutor" type="button" role="tab" aria-controls="tutor" aria-selected="false">
+                    <i class="fas fa-user-friends"></i> Padre o Tutor
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="medica-tab" data-bs-toggle="tab" data-bs-target="#medica" type="button" role="tab" aria-controls="medica" aria-selected="false">
+                    <i class="fas fa-notes-medical"></i> Historia Clinica
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content p-4 border border-top-0 shadow-sm" id="studentTabContent">
+            <!-- Estudiante -->
+            <div class="tab-pane fade show active" id="estudiante" role="tabpanel" aria-labelledby="estudiante-tab">
+                <h5><i class="fas fa-user-graduate text-primary"></i> Información del Estudiante</h5>
+                <EditForm Model="estudiante">
+                    <DataAnnotationsValidator />
+                    <div class="container mt-4 mb-4">
+                        <div class="row">
+                            <div class="col-8">
+                                <div class="row">
+                                    <!-- Nombres -->
+                                    <div class="col-md-8">
+                                        <label class="form-label">Nombres</label>
+                                        <InputText class="form-control" @bind-Value="estudiante.Nombres" />
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <!-- Apellidos -->
+                                    <div class="col-md-8">
+                                        <label class="form-label">Apellidos</label>
+                                        <InputText class="form-control" @bind-Value="estudiante.Apellidos" />
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <!-- Cédula -->
+                                    <div class="col-md-8">
+                                        <label class="form-label">Cédula</label>
+                                        <InputText class="form-control" @bind-Value="estudiante.Cedula" />
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <!-- Correo -->
+                                    <div class="col-md-8">
+                                        <label class="form-label">Correo</label>
+                                        <InputText type="email" class="form-control" @bind-Value="estudiante.Correo" />
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <!-- Sexo -->
+                                    <div class="col-md-8">
+                                        <label class="form-label">Sexo</label>
+                                        <InputSelect class="form-select" @bind-Value="estudiante.Sexo">
+                                            <option value="">Seleccione</option>
+                                            <option value="M">Masculino</option>
+                                            <option value="F">Femenino</option>
+                                        </InputSelect>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <!-- Nacionalidad -->
+                                    <div class="col-md-8">
+                                        <label class="form-label">Nacionalidad</label>
+                                        <InputSelect class="form-select" @bind-Value="estudiante.NacionalidadId">
+                                            <option value="0">Seleccionar</option>
+                                            @foreach (var item in nacionalidades)
+                                            {
+                                                <option value="@item.Id">@item.Nombre</option>
+                                            })
+                                            <option value="@nacionalidades.Count++">Otra</option>
+                                        </InputSelect>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <!-- Lugar de Nacimiento -->
+                                    <div class="col-md-8">
+                                        <label class="form-label">Lugar de Nacimiento</label>
+                                        <InputSelect class="form-select" @bind-Value="estudiante.LugarNacimientoId">
+                                            <option value="0">Seleccionar</option>
+                                            @foreach (var item in lugaresNacimiento)
+                                            {
+                                                <option value="@item.Id">@item.Nombre</option>
+                                            })
+                                            <option value="@lugaresNacimiento.Count++">Otro</option>
+
+                                        </InputSelect>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <!-- Fecha de Nacimiento -->
+                                    <div class="col-md-8">
+                                        <label class="form-label">Fecha de Nacimiento</label>
+                                        <InputDate class="form-control"
+                                        @bind-Value="fechaNacimiento" />
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <!-- Sigerd ID -->
+                                    <div class="col-md-8">
+                                        <label class="form-label">Sigerd ID</label>
+                                        <InputText class="form-control" @bind-Value="estudiante.SigerdId" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <label for="fileInput" class="btn btn-success">
+                                    <i class="nav-icon fas fa-camera"></i>
+                                    Seleccionar imagen
+                                </label>
+                                <InputFile id="fileInput" class="d-none" OnChange="OnFileChange" accept="image/*" />
+                                <br />
+                                @if (!string.IsNullOrEmpty(ImagePreview))
+                                {
+                                    <img src="@ImagePreview" alt="Vista previa" class="img-thumbnail" style="max-width: 200px; max-height: 200px;border:thick" />
+                                }
+
+                            </div>
+                        </div>
+
+                    </div>
+                    <ValidationSummary />
+
+                    <div class="mb-3">
+                        <button type="button" class="btn btn-primary me-2" @onclick="HandleValidSubmit">
+                            <i class="nav-icon fas fa-save"></i> Guardar
+                        </button>
+                        <button type="button" class="btn btn-secondary" @onclick="HandleCancel">
+                            <i class="nav-icon fas fa-window-close"></i> Cancelar
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+
+            <!-- Padre o Tutor -->
+            <div class="tab-pane fade" id="tutor" role="tabpanel" aria-labelledby="tutor-tab">
+                <h5><i class="fas fa-user-friends text-success"></i> Información del Padre o Tutor</h5>
+                <EditForm Model="@nuevoTutor" OnValidSubmit="addTutor">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label for="nombre" class="form-label">Nombre</label>
+                            <InputText id="nombre" class="form-control" @bind-Value="nuevoTutor.Nombre" />
+                            <ValidationMessage For="@(() => nuevoTutor.Nombre)" />
+                        </div>
+                        <div class="col-md-4">
+                            <label for="apellido" class="form-label">Apellido</label>
+                            <InputText id="apellido" class="form-control" @bind-Value="nuevoTutor.Apellido" />
+                            <ValidationMessage For="@(() => nuevoTutor.Apellido)" />
+                        </div>
+                        <div class="col-md-4">
+                            <label for="telefono" class="form-label">Telefono</label>
+                            <InputMask Mask="(999) 999-9999" id="telefono" class="form-control" 
+                            placeholder="(___) ___-____" @bind-Value="nuevoTutor.Telefono" />
+                            <ValidationMessage For="@(() => nuevoTutor.Telefono)" />
+                        </div>
+                        <div class="col-md-4">
+                            <label for="parentesco" class="form-label">Parentesco</label>
+                            <InputSelect id="parentesco" class="form-select" @bind-Value="nuevoTutor.Parentesco">
+                                <option value="">Seleccione...</option>
+                                <option value="Padre">Padre</option>
+                                <option value="Madre">Madre</option>
+                                <option value="Tío(a)">Tío(a)</option>
+                                <option value="Hermano(a)">Hermano(a)</option>
+                                <option value="Otro">Otro</option>
+                            </InputSelect>
+                            <ValidationMessage For="@(() => nuevoTutor.Parentesco)" />
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-plus-circle"></i>
+                        Agregar
+                    </button>
+                </EditForm>
+
+                <hr />
+
+                <h4 class="mt-4">Tutores Registrados</h4>
+
+                @if (tutoresRegistrados.Count == 0)
+                {
+                    <div class="alert alert-info">No hay tutores registrados aún.</div>
+                }
+                else
+                {
+                    <table class="table table-bordered table-striped mt-3">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>#</th>
+                                <th>Nombre</th>
+                                <th>Apellido</th>
+                                <th>Parentesco</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var tutor in tutoresRegistrados)
+                            {
+                                <tr>
+                                    <td>@(tutoresRegistrados.IndexOf(tutor) + 1)</td>
+                                    <td>@tutor.Nombre</td>
+                                    <td>@tutor.Apellido</td>
+                                    <td>@tutor.Parentesco</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-danger" @onclick="(()=> removeTutor(tutor.Id))">
+                                            <i class="fas fa-trash-alt"></i>&nbspEliminar
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+
+            <!-- Historia Médica -->
+            <div class="tab-pane fade" id="medica" role="tabpanel" aria-labelledby="medica-tab">
+                <h5><i class="fas fa-notes-medical text-danger"></i> Historia Médica</h5>
+                <EditForm Model="@nuevoHistorial" OnValidSubmit="AgregarEntradaHistorial">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+                    <div class="row g-3">
+                        <!-- Selector de Tipo -->
+                        <div class="col-md-12 mt-4">
+                            <div class="form-group">
+                                <label class="form-label">Tipo de Registro:</label>
+                                <InputSelect @bind-Value="nuevoHistorial.Tipo" class="form-select">
+                                    <option value="">Seleccionar tipo...</option>
+                                    <option value="Enfermedad">Enfermedad</option>
+                                    <option value="Alergia">Alergia</option>
+                                    <option value="Medicamento">Medicamento</option>
+                                </InputSelect>
+                                <ValidationMessage For="@(() => nuevoHistorial.Tipo)" />
+                            </div>
+                        </div>
+
+                        <!-- Campo Descripción -->
+                        <div class="col-12">
+                            <div class="form-group">
+                                <label class="form-label">Descripcion</label>
+                                <InputTextArea @bind-Value="nuevoHistorial.Descripcion" class="form-control"
+                                rows="3"  />
+                                <ValidationMessage For="@(() =>nuevoHistorial.Descripcion)" />
+                            </div>
+                        </div>
+
+                        <!-- Botón de Agregar -->
+                        <div class="col-12 mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus-circle"></i> Agregar Registro
+                            </button>
+
+                        </div>
+                        <hr />
+
+                        <h4 class="mt-4">Historia clinica Registrada</h4>
+
+                        @if (historiaClinica.Count == 0)
+                        {
+                            <div class="alert alert-info">No hay historia registrada aún.</div>
+                        }
+                        else
+                        {
+                            <table class="table table-bordered table-striped mt-3">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Tipo</th>
+                                        <th>Descripcion</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var historia in historiaClinica)
+                                    {
+                                        <tr>
+                                            <td>@(historiaClinica.IndexOf(historia) + 1)</td>
+                                            <td>@historia.Tipo</td>
+                                            <td>@historia.Descripcion</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-danger" @onclick="(()=> eliminaHistorial(historia.Id))">
+                                                    <i class="fas fa-trash-alt"></i>&nbspEliminar
+                                                </button>   
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+
+
+                    </div>
+                </EditForm>
+
+            </div>
+        </div>
+
+
+
+    </div>
+</div>
+
+
+
+
+@code {
+    [Parameter]
+    public EventCallback<string> OnValueSentBack { get; set; }
+    [Parameter]
+    public int id { get; set; } = 0;
+    string titulo = string.Empty;
+    string btnTexto = string.Empty;
+    List<NacionalidadDTO> nacionalidades = new List<NacionalidadDTO>();
+    List<LugarNacimientoDTO> lugaresNacimiento = new List<LugarNacimientoDTO>();    
+    DateTime  fechaNacimiento = DateTime.Now;
+    List<PadresDTO> tutoresRegistrados = new List<PadresDTO>();
+    List<HistoriaClinicaDTO> historiaClinica = new List<HistoriaClinicaDTO>();
+    EstudiantesDTO estudiante = new EstudiantesDTO
+    {
+        Nombres = "",
+        Apellidos = "",
+        Cedula = "",
+        Correo = "",
+        Sexo = "",
+        Url = "",
+        NacionalidadId = 0,
+        LugarNacimientoId = 0,
+        FechaNacimiento = DateTime.Now.ToShortDateString(),
+        SigerdId = "",
+        Padres =  [],
+        HistoriasClinicas =[]
+
+    };
+    private IBrowserFile selectedFile;
+    private string ImagePreview;
+    private bool IsUploading = false;
+    private PadresDTO nuevoTutor = new PadresDTO
+        {
+            Nombre = "",
+            Apellido = "",
+            Parentesco = "",
+            Telefono   = "",
+
+        };
+    private HistoriaClinicaDTO nuevoHistorial = new HistoriaClinicaDTO();
+
+    protected override async Task OnInitializedAsync()
+    {
+        lugaresNacimiento = await LugarNacimientoServices.Lista(0); 
+        nacionalidades = await NacionalidadServices.Lista(0);
+
+        if (id != 0)
+        {
+            estudiante = await EstudianteServices.Buscar(id);
+
+            fechaNacimiento = DateTime.ParseExact(estudiante.FechaNacimiento, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+            if (!string.IsNullOrEmpty(estudiante.Url))
+            {
+                ImagePreview = estudiante.Url;
+            }
+            foreach(HistoriaClinicaDTO historia in estudiante.HistoriasClinicas)
+            { 
+                historiaClinica.Add( new HistoriaClinicaDTO
+                {
+                    Descripcion = historia.Descripcion,
+                    EstudianteId = historia.EstudianteId,
+                    Id           = historia.Id,
+                    Tipo         = historia.Tipo
+                });
+
+            }
+            foreach (PadresDTO padre in estudiante.Padres)
+            {
+                tutoresRegistrados.Add(new PadresDTO
+                    {
+                        Nombre = padre.Nombre,
+                        Apellido = padre.Apellido,
+                        Parentesco = padre.Parentesco,
+                        Telefono = padre.Telefono,
+                        Id       = padre.Id,
+                        EstudianteId = padre.EstudianteId
+                    });
+            }
+
+            btnTexto = "Actualizar Estudiante";
+            titulo = "Editar Estudiante";
+        }
+        else
+        {
+            estudiante.Nombres = "";
+            btnTexto = "Guardar Estudiante";
+            titulo = "Nuevo Estudiante";
+        }
+    }
+
+    public void respuesta()
+    {
+        SendBackValue("false,En");
+    }
+    public void SendBackValue(string value)
+    {
+        OnValueSentBack.InvokeAsync(value);
+    }
+    private void HandleCancel()
+    {
+        SendBackValue(",p,0");
+    }
+    private async Task HandleValidSubmit()
+    {
+
+        int idDevuelto = 0;
+        if (id == 0)
+        {
+            try
+            {
+                estudiante.FechaNacimiento = fechaNacimiento.ToShortDateString();
+                estudiante.Url = ImagePreview;
+                estudiante.Padres = tutoresRegistrados;
+                estudiante.HistoriasClinicas = historiaClinica;
+                id = await EstudianteServices.Guardar(estudiante);
+                HandleCancel();
+            }
+            catch(Exception ex)
+            {
+                await Swal.FireAsync("Error", ex.Message, SweetAlertIcon.Success);
+            }        
+
+        }
+        else
+        {
+
+
+            estudiante.FechaNacimiento = fechaNacimiento.ToShortDateString();
+            estudiante.Url = ImagePreview;
+            estudiante.Padres = tutoresRegistrados;
+            estudiante.HistoriasClinicas = historiaClinica;
+            estudiante.Url = ImagePreview;
+            try
+            {
+                idDevuelto = await EstudianteServices.Editar(estudiante, estudiante.Id);
+                HandleCancel();
+            }catch(Exception ex)
+            {
+                await Swal.FireAsync("Error", ex.Message, SweetAlertIcon.Success);
+            }
+
+
+        }
+
+
+
+
+        if (idDevuelto != 0)
+        {
+            HandleCancel();
+            // navegacion.NavigateTo("/Provincia");
+        }
+
+    }
+    private async Task OnFileChange(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+
+        // Crear vista previa de la imagen
+        var buffer = new byte[selectedFile.Size];
+        await selectedFile.OpenReadStream().ReadAsync(buffer);
+        ImagePreview = $"data:{selectedFile.ContentType};base64,{Convert.ToBase64String(buffer)}";
+    }
+    private async Task UploadImage()
+    {
+        if (selectedFile is null) return;
+
+        IsUploading = true;
+
+        var content = new MultipartFormDataContent();
+        var fileContent = new StreamContent(selectedFile.OpenReadStream(selectedFile.Size));
+        fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(selectedFile.ContentType);
+
+        content.Add(fileContent, "file", selectedFile.Name);
+
+        var response = await Http.PostAsync("https://localhost:5001/api/upload", content);
+        IsUploading = false;
+
+        if (response.IsSuccessStatusCode)
+        {
+            Console.WriteLine("Imagen subida correctamente");
+        }
+        else
+        {
+            Console.WriteLine("Error al subir la imagen");
+        }
+    }
+    private async Task addTutor()
+    {
+        if (string.IsNullOrEmpty(nuevoTutor.Nombre) || string.IsNullOrEmpty(nuevoTutor.Apellido))
+        {
+            await Swal.FireAsync("Error", "Por favor complete todos los campos requeridos.", SweetAlertIcon.Error);
+            return;
+        }
+        // Aquí puedes agregar la lógica para guardar el nuevo tutor
+        // Por ejemplo, llamar a un servicio para guardar en la base de datos
+        // Limpiar el formulario después de agregar el tutor
+        tutoresRegistrados.Add(nuevoTutor);
+        nuevoTutor = new PadresDTO();
+        await Swal.FireAsync("Éxito", "Tutor agregado correctamente.", SweetAlertIcon.Success);
+    }
+    public async Task AgregarEntradaHistorial()
+    {
+        historiaClinica.Add(nuevoHistorial);
+        nuevoHistorial = new HistoriaClinicaDTO();
+        await Swal.FireAsync("Éxito", "Historial agregado correctamente.", SweetAlertIcon.Success);
+    }
+    private async Task removeTutor(int id){
+        if (tutoresRegistrados.Count > 0)
+        {
+            try
+            {
+               // await PadresServices.Eliminar(id);
+                var tutor = tutoresRegistrados.FirstOrDefault();
+                if (tutor != null)
+                {
+
+                    tutoresRegistrados.Remove(tutor);
+                    await Swal.FireAsync("Éxito", "Tutor eliminado correctamente.", SweetAlertIcon.Success);
+                }
+            }
+            catch (Exception ex)
+            {
+                await Swal.FireAsync("Error", ex.Message, SweetAlertIcon.Error);
+            }
+       
+        }
+        else
+        {
+            await Swal.FireAsync("Error", "No hay tutores registrados para eliminar.", SweetAlertIcon.Error);
+        }
+    }
+    private async Task  eliminaHistorial(int id)
+    {
+        var result = await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "¿Está seguro?",
+                Text = "¿Desea eliminar este registro?",
+                Icon = SweetAlertIcon.Warning,
+                ShowCancelButton = true,
+                ConfirmButtonText = "Sí, eliminar",
+                CancelButtonText = "Cancelar"
+            });
+        if (result.IsConfirmed)
+        {
+            try{
+               
+                try
+                {
+                   // await HistoriaClinicaServices.Eliminar(id);
+                    var historia = historiaClinica.FirstOrDefault(h => h.Id == id);
+                    if (historia != null)
+                    {
+                        historiaClinica.Remove(historia);
+                    };
+                
+                }
+                catch (Exception ex)
+                {
+                    await Swal.FireAsync("Error", ex.Message, SweetAlertIcon.Error);
+                }
+               
+            }
+            catch (Exception ex)
+            {
+                await Swal.FireAsync("Error", ex.Message, SweetAlertIcon.Error);
+            }
+            await Swal.FireAsync("Eliminado", "El registro ha sido eliminado.", SweetAlertIcon.Success);
+        }
+    }
+}

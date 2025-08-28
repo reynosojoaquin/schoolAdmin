@@ -27,6 +27,21 @@ namespace SchoolControl.Client.Services
             }
         }
 
+        public async Task updateSystemPermmisions(PermisosSistemaDTO permisos)
+        {
+            var result = new HttpResponseMessage();
+            try
+            {
+                result = await _httpClient.PutAsJsonAsync($"api/Roles/updateSystemPermmisions/{permisos.id}", permisos);
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.InnerException.Message);
+            }
+        }
+
+       
     }
 
        

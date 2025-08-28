@@ -14,26 +14,33 @@ namespace SchoolControl.Shared
 
         public string Apellidos { get; set; } = null!;
 
-        public string Cedula { get; set; } = null!;
+        public string? Cedula { get; set; } = string.Empty;
 
-        public bool? Activo { get; set; }
+        public bool? Activo { get; set; } = false;
 
-        public string? Correo { get; set; }
+        public string? Correo { get; set; } = string.Empty;
 
-        public string? Sexo { get; set; }
+        public string? Sexo { get; set; } = string.Empty;
 
-        public string? Url { get; set; }
+        public string? Url { get; set; } = string.Empty;
 
-        public int? NacionalidadId { get; set; }
+        public int? NacionalidadId { get; set; } = 0;
 
-        public string? EstadoCivil { get; set; }
+        public string? EstadoCivil { get; set; } = string.Empty;
 
-        public string? Licencia { get; set; }
+        public string? Licencia { get; set; } = string.Empty;
 
-        public int? LugarNacimientoId { get; set; }
+        public int? LugarNacimientoId { get; set; } =  0; 
 
-        public string? FechaNacimiento { get; set; }
+        public string? FechaNacimiento { get; set; } = "2025-08-23";
+        public string? SigerdId { get; set; } = string.Empty;
+        public int? NumOrden { get; set; } = 0;
+        public int  cursoID { get; set; } =  0;
+        public bool promovido { get; set; } = false;
 
-      
+        public virtual ICollection<HistoriaClinicaDTO> HistoriasClinicas { get; set; } = new List<HistoriaClinicaDTO>();
+        public virtual ICollection<PadresDTO> Padres { get; set; } = new List<PadresDTO>();
+        public virtual NacionalidadDTO Nacionalidad { get; set; } = new NacionalidadDTO();
+        public virtual LugarNacimientoDTO LugarNacimiento { get; set; } = new LugarNacimientoDTO();
     }
 }

@@ -30,5 +30,6 @@ namespace SchoolControl.Shared
         public decimal? cal_Pp2 { get; set; }
         public decimal? cal_Pp3 { get; set; }
         public decimal? cal_Pp4 { get; set; }
+        public int cursoID { get; set; }
     }
 }

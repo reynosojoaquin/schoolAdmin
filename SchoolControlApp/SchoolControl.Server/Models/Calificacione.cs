@@ -36,4 +36,6 @@ public partial class Calificacione
     public decimal? Pp3 { get; set; }
 
     public decimal? Pp4 { get; set; }
+
+    public int? CursoId { get; set; }
 }

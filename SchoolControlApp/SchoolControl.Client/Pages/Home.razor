@@ -1,14 +1,25 @@
 ﻿@page "/"
 @using Microsoft.AspNetCore.Authorization;
 @using Microsoft.AspNetCore.Components.Authorization;
+@using SchoolControl.Client.Extensiones;
+@inject AutenticationExtension AuthStateProvider;
 @attribute [Authorize]
 <PageTitle>Home</PageTitle>
 <AuthorizeView>
     <Authorized>
-        <h1>Hello, world!</h1>
+        
 
-        Welcome to your new app.
-        <h1> @context.User.Identity!.Name</h1>
+        Bienvenido al sistema administrativo del Liceo Coronel Rafael Tomas Fernandez Dominguez
+        <h3> @userName</h3>
     </Authorized>
 </AuthorizeView>
+@code {
+    private string? userName;
 
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+      //  userName = authState.User.Identity?.Name ?? "Guest";
+        userName = authState.User.FindFirst("fullName")?.Value ?? "Guest";
+    }
+}

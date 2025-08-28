@@ -8,6 +8,7 @@ namespace SchoolControl.Shared
 {
     public class InfoCalificacionesDTO
     {
+       public int       estudianteID { get; set; }
        public int       asig_id { get; set; }
        public int       cur_id { get; set; }
        public string?    cur_descripcion { get; set; }

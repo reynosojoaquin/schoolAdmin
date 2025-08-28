@@ -21,6 +21,8 @@ build_property.SupportLocalizedComponentNames =
 build_property.GenerateRazorMetadataSourceChecksumAttributes = 
 build_property.MSBuildProjectDirectory = C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Client
 build_property._RazorSourceGeneratorDebug = 
+build_property.EffectiveAnalysisLevelStyle = 8.0
+build_property.EnableCodeStyleSeverity = 
 
 [C:/Users/reyno/OneDrive/Documentos/Programacion/Proyectos/schoolAdmin/SchoolControlApp/SchoolControl.Client/App.razor]
 build_metadata.AdditionalFiles.TargetPath = QXBwLnJhem9y
@@ -32,6 +34,14 @@ build_metadata.AdditionalFiles.CssScope =
 
 [C:/Users/reyno/OneDrive/Documentos/Programacion/Proyectos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Layout/RedirectToLogin.razor]
 build_metadata.AdditionalFiles.TargetPath = TGF5b3V0XFJlZGlyZWN0VG9Mb2dpbi5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/reyno/OneDrive/Documentos/Programacion/Proyectos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/AddDocente.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQWRkRG9jZW50ZS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/reyno/OneDrive/Documentos/Programacion/Proyectos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/AddEstudiante.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQWRkRXN0dWRpYW50ZS5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/reyno/OneDrive/Documentos/Programacion/Proyectos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/Calificaciones.razor]
@@ -50,6 +60,10 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQ3JlYXRlQ2l1ZGFkLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
+[C:/Users/reyno/OneDrive/Documentos/Programacion/Proyectos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/CreateEmpleado.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQ3JlYXRlRW1wbGVhZG8ucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
 [C:/Users/reyno/OneDrive/Documentos/Programacion/Proyectos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/CreateProvincia.razor]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQ3JlYXRlUHJvdmluY2lhLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
@@ -62,20 +76,60 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQ3Vyc29zLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
+[C:/Users/reyno/OneDrive/Documentos/Programacion/Proyectos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/DocenteInfo.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRG9jZW50ZUluZm8ucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/reyno/OneDrive/Documentos/Programacion/Proyectos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/DocentesHome.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRG9jZW50ZXNIb21lLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
 [C:/Users/reyno/OneDrive/Documentos/Programacion/Proyectos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/DocentesList.razor]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRG9jZW50ZXNMaXN0LnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/reyno/OneDrive/Documentos/Programacion/Proyectos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/EstudianteInfo.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRXN0dWRpYW50ZUluZm8ucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/reyno/OneDrive/Documentos/Programacion/Proyectos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/EstudiantesHome.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRXN0dWRpYW50ZXNIb21lLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/reyno/OneDrive/Documentos/Programacion/Proyectos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/Home.razor]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSG9tZS5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
+[C:/Users/reyno/OneDrive/Documentos/Programacion/Proyectos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/IndexCursos.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSW5kZXhDdXJzb3MucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
 [C:/Users/reyno/OneDrive/Documentos/Programacion/Proyectos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/ListaAsignaturas.razor]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcTGlzdGFBc2lnbmF0dXJhcy5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
+[C:/Users/reyno/OneDrive/Documentos/Programacion/Proyectos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/ListaEmpleados.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcTGlzdGFFbXBsZWFkb3MucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
 [C:/Users/reyno/OneDrive/Documentos/Programacion/Proyectos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/ListaEstudiantes.razor]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcTGlzdGFFc3R1ZGlhbnRlcy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/reyno/OneDrive/Documentos/Programacion/Proyectos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/ListaEstudiantesCurso.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcTGlzdGFFc3R1ZGlhbnRlc0N1cnNvLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/reyno/OneDrive/Documentos/Programacion/Proyectos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/ListaEstudiantesEdit.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcTGlzdGFFc3R1ZGlhbnRlc0VkaXQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/reyno/OneDrive/Documentos/Programacion/Proyectos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/ListaPermisos.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcTGlzdGFQZXJtaXNvcy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/reyno/OneDrive/Documentos/Programacion/Proyectos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/ListaUsuarios.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcTGlzdGFVc3Vhcmlvcy5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/reyno/OneDrive/Documentos/Programacion/Proyectos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/Localidaddes.razor]
@@ -84,6 +138,10 @@ build_metadata.AdditionalFiles.CssScope =
 
 [C:/Users/reyno/OneDrive/Documentos/Programacion/Proyectos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/Login.razor]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcTG9naW4ucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/reyno/OneDrive/Documentos/Programacion/Proyectos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/PermisosHome.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUGVybWlzb3NIb21lLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/reyno/OneDrive/Documentos/Programacion/Proyectos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/Provincia.razor]
@@ -96,6 +154,10 @@ build_metadata.AdditionalFiles.CssScope =
 
 [C:/Users/reyno/OneDrive/Documentos/Programacion/Proyectos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/Sector.razor]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcU2VjdG9yLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/reyno/OneDrive/Documentos/Programacion/Proyectos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/UsuariosHome.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVXN1YXJpb3NIb21lLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/reyno/OneDrive/Documentos/Programacion/Proyectos/schoolAdmin/SchoolControlApp/SchoolControl.Client/Pages/Weather.razor]

@@ -1,0 +1,148 @@
+﻿@page "/DocenteInfo"
+@using SchoolControl.Shared;
+@using SchoolControl.Client.Services;
+@using CurrieTechnologies.Razor.SweetAlert2;
+@using BlazorInputMask;
+@using System.Globalization;
+@inject HttpClient Http;
+@inject SweetAlertService Swal;
+@inject IDocentesServices DocenteServices;
+@inject ILugarNacimientoServices LugarNacimientoServices;
+@inject INacionalidadServices NacionalidadServices;
+
+@inject NavigationManager navegacion;
+
+<h3 class="mb-1"><i class="fas fa-graduation-cap"></i>Informacion del Estudiante</h3>
+<hr />
+<ul class="nav nav-tabs mb-3" id="studentTab" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="personal-tab" data-bs-toggle="tab" data-bs-target="#personal" type="button" role="tab">Datos Personales</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="academic-tab" data-bs-toggle="tab" data-bs-target="#academic" type="button" role="tab">Datos Académicos</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="clinic-tab" data-bs-toggle="tab" data-bs-target="#clinic" type="button" role="tab">Historia Clínica</button>
+    </li>
+</ul>
+
+<div class="tab-content border rounded p-3">
+    <!-- DATOS PERSONALES -->
+    <div class="tab-pane fade show active" id="personal" role="tabpanel">
+        <div class="row">
+            <!-- Columna de información -->
+            <div class="col-md-8">
+                <dl class="row">
+                    <dt class="col-sm-4">Nombres</dt>
+                    <dd class="col-sm-8">@DBDocente.Nombres.ToString()</dd>
+
+                    <dt class="col-sm-4">Apellidos</dt>
+                    <dd class="col-sm-8">@DBDocente.Apellido.ToString()</dd>
+
+                    <dt class="col-sm-4">Cédula</dt>
+                    <dd class="col-sm-8">@DBDocente?.Cedula.ToString()</dd>
+
+                    <dt class="col-sm-4">Fecha de Nacimiento</dt>
+                    <dd class="col-sm-8">@(DBDocente?.FechaNacimiento.ToString()) </dd>
+
+                    <dt class="col-sm-4">Sexo</dt>
+                    <dd class="col-sm-8">@(DBDocente?.Sexo.ToString())</dd>
+
+                    <dt class="col-sm-4">Estado Civil</dt>
+                    <dd class="col-sm-8">@(DBDocente?.EstadoCivil.ToString())</dd>
+
+                    <dt class="col-sm-4">Correo</dt>
+                    <dd class="col-sm-8">@(DBDocente?.Correo.ToString())</dd>
+
+                    <dt class="col-sm-4">Nacionalidad</dt>
+                    <dd class="col-sm-8">@DBDocente?.ObjNacionalidad.Nombre</dd>
+
+                    <dt class="col-sm-4">Lugar de Nacimiento</dt>
+                    <dd class="col-sm-8">@DBDocente?.ObjLugarNacimiento.Nombre</dd>
+                    <dt class="col-sm-4">Fecha de Ingreso</dt>
+                    <dd class="col-sm-8">@DBDocente?.FechaIngreso</dd>
+              
+                </dl>
+            </div>
+
+            <!-- Columna de imagen -->
+            <div class="col-md-3 text-center">
+                <img src="@DBDocente.Url" alt="Foto del Estudiante" class="img-thumbnail" width="150" />
+            </div>
+        </div>
+    </div>
+
+    <!-- DATOS ACADÉMICOS -->
+    <div class="tab-pane fade" id="academic" role="tabpanel">
+        <dl class="row">
+           
+        </dl>
+    </div>
+
+    <!-- HISTORIA CLÍNICA -->
+    <div class="tab-pane fade" id="clinic" role="tabpanel">
+        <dl class="row">
+           
+        </dl>
+    </div>
+</div>
+<button class="btn-primary mt-3" @onclick="()=> BackToIndex()">
+    <i class="fas fa-arrow-left"></i> Volver al Listado
+</button>
+@code {
+    [Parameter]
+    public EventCallback<string> OnValueSentBack { get; set; }
+    [Parameter]
+    public int id { get; set; } = 0;
+    public List<NacionalidadDTO> nacionalidadList { get; set; } = new();
+    public List<LugarNacimientoDTO> lugarNacimientoLst { get; set; } = new();
+    DocenteDTO DBDocente = new DocenteDTO
+        {
+            Nombres = "Carlos",
+            Apellido = "Pérez",
+            Cedula = "123456789",
+            FechaNacimiento = Convert.ToString(new DateTime(2005, 6, 10)),
+            Sexo = "Masculino",
+            EstadoCivil = "Soltero",
+            Correo = "carlos.perez@example.com",
+            Nacionalidad = 1,
+            LugarNacimiento = 1,
+            Licencia = "No",
+            Url = "https://via.placeholder.com/120",
+            Activo = true,
+         };
+    
+
+    protected override async Task OnInitializedAsync()
+    {
+       var   objDocente = await DocenteServices.GetDocenteByIdAsync(id);
+        DBDocente = new DocenteDTO
+        {
+            ID = objDocente?.ID ?? 0, 
+            Activo = objDocente?.Activo ?? false,
+            Apellido = objDocente?.Apellido ?? string.Empty,
+            Cedula = objDocente?.Cedula ?? string.Empty,
+            Correo = objDocente?.Correo ?? string.Empty,
+            EstadoCivil = objDocente?.EstadoCivil ?? string.Empty,
+            FechaNacimiento = objDocente?.FechaNacimiento ?? string.Empty,
+            Licencia = objDocente?.Licencia ?? string.Empty,
+            Sexo = objDocente?.Sexo ?? string.Empty,
+            Nacionalidad = objDocente?.Nacionalidad ?? 0,
+            LugarNacimiento = objDocente?.LugarNacimiento ?? 0,
+            Url = objDocente?.Url ?? string.Empty, 
+            FechaIngreso = objDocente?.FechaIngreso ?? string.Empty,
+            Nombres = objDocente?.Nombres ?? string.Empty,
+            ObjLugarNacimiento = objDocente?.ObjLugarNacimiento ?? new LugarNacimientoDTO(),
+            ObjNacionalidad = objDocente?.ObjNacionalidad ?? new NacionalidadDTO()
+        };
+    }
+    public void SendBackValue(string value)
+    {
+        OnValueSentBack.InvokeAsync(value);
+    }
+    private async Task BackToIndex()
+    {
+        SendBackValue("");
+    }
+}
+

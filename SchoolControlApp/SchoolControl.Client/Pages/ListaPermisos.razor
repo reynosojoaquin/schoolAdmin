@@ -1,0 +1,269 @@
+﻿@page  "/ListaPermisos"
+
+@using SchoolControl.Shared;
+@using SchoolControl.Client.Services;
+@using CurrieTechnologies.Razor.SweetAlert2;
+
+@inject SweetAlertService Swal;
+@inject IRolesService RolesServices;
+@inject IUserService UserService;
+@inject NavigationManager NavigationManager
+<div class="card mt-12">
+    <div class="card-header">
+        <h3 class="card-title">Roles</h3>
+    </div>
+    <div class="card-body">
+        <input type="text" @bind-value="searchTerm" @onkeypress="OnKeyPress" id="filterInput" class="form-control mb-2" placeholder="Filtrar Permisos...">
+
+        <table class="table table-striped  ">
+            <thead>
+            <th>Id</th>
+            <th>Descripcion</th>
+            <th>Acciones</th>
+            </thead>
+            <tbody>
+                @if (ListRoles == null)
+                {
+                    <tr>
+                        <td colspan="5" align="center">
+                            <img style="with:50px" src="https://media.tenor.com/2BLI5EO7yVAAAAAi/loading-image.gif" />
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var item in ListRoles)
+                    {
+                        <tr>
+                            <td>@item.Id</td>
+                            <td>@item.NombreRol</td>
+                            <td>
+                                <button class="btn btn-sm btn-info" @onclick="(()=> filtrarPermisos(item.Id))">
+                                    <i class="fas fa-edit"></i>&nbsp Editar
+                                </button>
+                                <button class="btn btn-sm btn-danger" @onclick="(()=> eliminar(item.Id))">
+                                    <i class="fas fa-trash-alt"></i>&nbspEliminar
+                                </button>
+                             </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+
+        </table>
+    </div>
+</div>
+
+<!--card for the permittion data -->
+ 
+<div class="card mt-12">
+    <div class="card-header">
+        <h3 class="card-title">Permisos </h3>
+    </div>
+    <div class="card-body">
+        <div class="container mt-2">
+        </div>
+        <div class="card mt-12">
+            <div class="card-header">
+                <h3 class="card-title"> <h3>Permisos para el rol</h3></h3>
+            </div>
+            <div class="card-body">
+                <ul>
+                    @foreach (var role in ListPermisosSistemaFiltered)
+                    {
+                        <li>
+                            <b>@role.rolName</b>
+                            <ul>
+                                @foreach (var permission in role.Permisos)
+                                {
+                                    <li>
+
+                                        <input type="checkbox" @bind="permission.Activo" @bind:after="() => TogglePermission(permission.Id)" />
+                                        @permission.Descripcion
+                                        <ul>
+                                            @foreach (var action in permission.Acciones)
+                                            {
+                                                <li>
+
+                                                    <input type="checkbox" @bind="action.Activa" @bind:after="() => ToggleAction(action.id.GetValueOrDefault())" />
+                                                    @action.Descripcion
+                                                </li>
+                                            }
+                                        </ul>
+                                    </li>
+                                }
+                            </ul>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+      
+    </div>
+   <div class="row">
+        <div class="col-2 text-center">
+            <button class="btn mb-2  btn-primary" @onclick="(()=> Guardar())">
+                <i class="fas fa-floppy-disk"></i>&nbspGuardar
+            </button>
+        </div>
+        <div class="col-9"></div>
+   </div>
+</div>
+
+
+
+@code {
+
+    [Parameter]
+    public int? user_id  { get; set; } =0;
+    public bool showFirstPage { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnValueSentBack { get; set; }
+
+    public string searchTerm = string.Empty;
+    List<RoleDto>? ListRoles = null;
+    List<PermisosSistemaDTO> ListPermisosSistema = new List<PermisosSistemaDTO>();
+    List<PermisosSistemaDTO> ListPermisosSistemaFiltered = new List<PermisosSistemaDTO>();
+    PermisosSistemaDTO selectedPermiso = new PermisosSistemaDTO();
+    private HashSet<int> SelectedPermissionIds { get; set; } = new();
+    private HashSet<int> SelectedActionIds { get; set; } = new();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        ListRoles = await RolesServices.GetRoles();
+        ListPermisosSistema = await UserService.getSystemPermission();
+    }
+
+    private async Task  FiltrarRoles()
+    {
+        // ListaCursos = await CursoServices.GetCountryFiltered(searchTerm);
+    }
+    private void filtrarPermisos(int permisoID)
+    {
+
+        ListPermisosSistemaFiltered = ListPermisosSistema.Where(r => r.id == permisoID).ToList();
+    }
+    private void TogglePermission(int permissionId)
+    {
+        if (SelectedPermissionIds.Contains(permissionId))
+        {
+            SelectedPermissionIds.Remove(permissionId);
+        }
+        else
+        {
+            SelectedPermissionIds.Add(permissionId);
+        }
+    }
+
+    private void ToggleAction(int actionId)
+    {
+        if (SelectedActionIds.Contains(actionId))
+        {
+            SelectedActionIds.Remove(actionId);
+        }
+        else
+        {
+            SelectedActionIds.Add(actionId);
+        }
+    }
+    private async Task OnKeyPress(KeyboardEventArgs e)
+    {
+        // Filtrar cuando se presione "Enter"
+        if (e.Key == "Enter")
+        {
+            await FiltrarRoles();
+        }
+    }
+    private async Task eliminar(int id)
+    {
+        // var resultado = await Swal.FireAsync(new SweetAlertOptions
+        //     {
+        //         Title = "Eliminar Asignatura",
+        //         Text = "Deseas eliminar el Asignatura",
+        //         Icon = SweetAlertIcon.Question,
+        //         ShowCancelButton = true
+        //     });
+
+        // if (resultado.IsConfirmed)
+        // {
+        //     var eliminado = await AsignaturaServices.Eliminar(id);
+        //     if (eliminado)
+        //         ListaAsignatura = ListaAsignatura.FindAll(e => e.id != id);
+        // }
+    }
+    private async Task Guardar()
+    {
+        if(ListPermisosSistemaFiltered.Count > 0)
+        {
+            var resultado = await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Title = "Actualizar Permisos",
+                    Text = "Deseas Actualizar los permisos",
+                    Icon = SweetAlertIcon.Question,
+                    ShowCancelButton = true
+                });
+
+            if (resultado.IsConfirmed)
+            {
+                try
+                {
+                    foreach (var permiso in ListPermisosSistemaFiltered)
+                    {
+                        RolesServices.updateSystemPermmisions(permiso);
+                    }
+                    await Swal.FireAsync(new SweetAlertOptions
+                        {
+                            Title = "actualizando permisos",
+                            Text = "Datos actualizados correctamente",
+                            Icon = SweetAlertIcon.Success,
+                            ShowCancelButton = false
+                        });
+                        ListPermisosSistemaFiltered.Clear();
+                }
+                catch (Exception er)
+                {
+                    await Swal.FireAsync(new SweetAlertOptions
+                        {
+                            Title = "actualizando permisos",
+                            Text = "Error actualizando los datos",
+                            Icon = SweetAlertIcon.Error,
+                            ShowCancelButton = false
+                        });
+                }
+
+            }
+        }
+    }
+    private async Task Modificar(int id)
+    {
+        showCreatePage(id);
+    }
+    public void showCreatePage(int value)
+    {
+        SendBackValue("true,p," + Convert.ToString(value));
+    }
+    public void SendBackValue(string value)
+    {
+        OnValueSentBack.InvokeAsync(value);
+    }
+    private void mostrarUsuarios()
+    {
+        string parametros = "";
+       // NavigationManager.NavigateTo($"/ListaEstudiantes/{asignatura_id}");
+    }
+
+
+}
+<style>
+     .col-id {
+        width: 100px; /* Ajusta este valor según el tamaño del contenido de la columna Id */
+        text-align: center;
+    }
+
+    .col-nombre {
+        width: 1px; /* Ajuste inicial para que tome el espacio restante */
+        white-space: nowrap; /* Evita el ajuste de línea en el contenido */
+    }
+</style>

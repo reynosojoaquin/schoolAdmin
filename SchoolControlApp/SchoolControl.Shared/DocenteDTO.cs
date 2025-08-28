@@ -39,10 +39,11 @@ namespace SchoolControl.Shared
 
         public string? Telefono { get; set; }
 
-        public DateOnly? FechaIngreso { get; set; }
+        public string? FechaIngreso { get; set; }
         [Required]
-        public DateOnly? FechaNacimiento { get; set;}
-
+        public string? FechaNacimiento { get; set;}
+        public virtual NacionalidadDTO ObjNacionalidad { get; set; } = new NacionalidadDTO();
+        public virtual LugarNacimientoDTO ObjLugarNacimiento { get; set; } = new LugarNacimientoDTO();
         public override string ToString()
         {
             return $"ID: {ID}, " +

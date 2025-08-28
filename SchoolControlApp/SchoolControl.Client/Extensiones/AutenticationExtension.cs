@@ -27,8 +27,16 @@ namespace SchoolControl.Client.Extensiones
                     new Claim(ClaimTypes.Name, sesionUsuario.userName),
                     new Claim(ClaimTypes.Email, sesionUsuario.Correo),
                     new Claim(ClaimTypes.Role, sesionUsuario.Rol),
+                    new Claim("fullName", sesionUsuario.fullName),
+                    new Claim("Id", sesionUsuario.Id.ToString())
                 }, "JwtAuth"));
-
+                foreach(var claim in sesionUsuario.CustomClaims)
+                {
+                   claimsPrincipal = new ClaimsPrincipal(new ClaimsIdentity(new List<Claim>
+                   {
+                       new Claim(claim.Key,claim.Value)
+                   },"JwtAuth"));
+                }
                 await _sessionStorageService.GuardarStorage("sesionUsuario", sesionUsuario);
             }
             else
@@ -44,22 +52,34 @@ namespace SchoolControl.Client.Extensiones
 
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
-            // Obtener el usuario de la sesión almacenada
+            // Obtener el usuario de la sesión almacenada 
             var sesionUsuario = await _sessionStorageService.ObtenerStorage<SesionDTO>("sesionUsuario");
 
             if (sesionUsuario == null)
             {
                 // Si no hay sesión, retornar un estado no autenticado
-                return new AuthenticationState(SysInformation);
+                return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
             }
 
-            // Crear Claims del usuario autenticado
-            var claimsPrincipal = new ClaimsPrincipal(new ClaimsIdentity(new List<Claim>
+            // Crear lista de claims del usuario autenticado
+            var claims = new List<Claim>
             {
-                new Claim(ClaimTypes.Name, sesionUsuario.userName),
-                new Claim(ClaimTypes.Email, sesionUsuario.Correo),
-                new Claim(ClaimTypes.Role, sesionUsuario.Rol),
-            }, "JwtAuth"));
+                            new Claim(ClaimTypes.Name, sesionUsuario.userName),
+                            new Claim(ClaimTypes.Email, sesionUsuario.Correo),
+                            new Claim(ClaimTypes.Role, sesionUsuario.Rol),
+                            new Claim("fullName", sesionUsuario.fullName),
+                            new Claim("Id", sesionUsuario.Id.ToString())
+            };
+
+            // Agregar claims personalizados
+            foreach (var claim in sesionUsuario.CustomClaims)
+            {
+                claims.Add(new Claim(claim.Key, claim.Value));
+            }
+
+            // Crear ClaimsPrincipal con todos los claims
+            var claimsIdentity = new ClaimsIdentity(claims, "JwtAuth");
+            var claimsPrincipal = new ClaimsPrincipal(claimsIdentity);
 
             return new AuthenticationState(claimsPrincipal);
         }

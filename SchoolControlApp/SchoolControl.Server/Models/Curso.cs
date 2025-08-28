@@ -9,5 +9,7 @@ public partial class Curso
 
     public string? Nombre { get; set; }
 
-    public int? Responsable { get; set; }
+    public int? Orden { get; set; }
+
+    public virtual ICollection<SeccionesCurso> SeccionesCursos { get; set; } = new List<SeccionesCurso>();
 }

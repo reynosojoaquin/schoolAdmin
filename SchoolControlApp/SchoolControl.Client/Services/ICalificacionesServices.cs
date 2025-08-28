@@ -10,6 +10,6 @@ namespace SchoolControl.Client.Services
         Task<int> Guardar(List<CalificacionesDTO>  calificaciones);
         Task<int> Editar(List<CalificacionesDTO> calificiones);
         Task<bool> Eliminar(int id);
-        Task<List<InfoCalificacionesDTO>> GetDatafromFuntionCalificaciones();
+        Task<List<InfoCalificacionesDTO>> GetDatafromFuntionCalificaciones(int curID, int estID, int asigID);
     }
 }
