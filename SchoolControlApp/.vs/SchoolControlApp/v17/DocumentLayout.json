@@ -3,16 +3,16 @@
   "WorkspaceRootPath": "C:\\Users\\reyno\\OneDrive\\Documentos\\Programacion\\Proyectos\\schoolAdmin\\SchoolControlApp\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{95E26420-2E19-4263-B3CE-9AF4CA9701B4}|SchoolControl.Client\\SchoolControl.Client.csproj|c:\\users\\reyno\\onedrive\\documentos\\programacion\\proyectos\\schooladmin\\schoolcontrolapp\\schoolcontrol.client\\pages\\estudianteinfo.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{95E26420-2E19-4263-B3CE-9AF4CA9701B4}|SchoolControl.Client\\SchoolControl.Client.csproj|solutionrelative:schoolcontrol.client\\pages\\estudianteinfo.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{95E26420-2E19-4263-B3CE-9AF4CA9701B4}|SchoolControl.Client\\SchoolControl.Client.csproj|c:\\users\\reyno\\onedrive\\documentos\\programacion\\proyectos\\schooladmin\\schoolcontrolapp\\schoolcontrol.client\\pages\\docenteinfo.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
       "RelativeMoniker": "D:0:0:{95E26420-2E19-4263-B3CE-9AF4CA9701B4}|SchoolControl.Client\\SchoolControl.Client.csproj|solutionrelative:schoolcontrol.client\\pages\\docenteinfo.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{467121E1-A682-41B2-A40F-CF9423F0E356}|SchoolControl.Server\\SchoolControl.Server.csproj|c:\\users\\reyno\\onedrive\\documentos\\programacion\\proyectos\\schooladmin\\schoolcontrolapp\\schoolcontrol.server\\controllers\\docentescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{467121E1-A682-41B2-A40F-CF9423F0E356}|SchoolControl.Server\\SchoolControl.Server.csproj|solutionrelative:schoolcontrol.server\\controllers\\docentescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{95E26420-2E19-4263-B3CE-9AF4CA9701B4}|SchoolControl.Client\\SchoolControl.Client.csproj|c:\\users\\reyno\\onedrive\\documentos\\programacion\\proyectos\\schooladmin\\schoolcontrolapp\\schoolcontrol.client\\pages\\estudianteinfo.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{95E26420-2E19-4263-B3CE-9AF4CA9701B4}|SchoolControl.Client\\SchoolControl.Client.csproj|solutionrelative:schoolcontrol.client\\pages\\estudianteinfo.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{95E26420-2E19-4263-B3CE-9AF4CA9701B4}|SchoolControl.Client\\SchoolControl.Client.csproj|c:\\users\\reyno\\onedrive\\documentos\\programacion\\proyectos\\schooladmin\\schoolcontrolapp\\schoolcontrol.client\\services\\docentesservices.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -62,17 +62,17 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 3,
+          "SelectedChildIndex": 0,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 0,
               "Title": "EstudianteInfo.razor",
               "DocumentMoniker": "C:\\Users\\reyno\\OneDrive\\Documentos\\Programacion\\Proyectos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Client\\Pages\\EstudianteInfo.razor",
               "RelativeDocumentMoniker": "SchoolControl.Client\\Pages\\EstudianteInfo.razor",
               "ToolTip": "C:\\Users\\reyno\\OneDrive\\Documentos\\Programacion\\Proyectos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Client\\Pages\\EstudianteInfo.razor",
               "RelativeToolTip": "SchoolControl.Client\\Pages\\EstudianteInfo.razor",
-              "ViewState": "AgIAAKMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAJYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
               "WhenOpened": "2025-08-30T17:29:44.324Z",
               "EditorCaption": ""
@@ -105,13 +105,13 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 1,
               "Title": "DocenteInfo.razor",
               "DocumentMoniker": "C:\\Users\\reyno\\OneDrive\\Documentos\\Programacion\\Proyectos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Client\\Pages\\DocenteInfo.razor",
               "RelativeDocumentMoniker": "SchoolControl.Client\\Pages\\DocenteInfo.razor",
               "ToolTip": "C:\\Users\\reyno\\OneDrive\\Documentos\\Programacion\\Proyectos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Client\\Pages\\DocenteInfo.razor",
               "RelativeToolTip": "SchoolControl.Client\\Pages\\DocenteInfo.razor",
-              "ViewState": "AgIAAAMAAAAAAAAAAAAcwBcAAAADAAAAAAAAAA==",
+              "ViewState": "AgIAAAMAAAAAAAAAAAAcwBMAAAAJAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
               "WhenOpened": "2025-08-28T20:53:51.907Z",
               "EditorCaption": ""
@@ -126,7 +126,8 @@
               "RelativeToolTip": "SchoolControl.Client\\Pages\\AddDocente.razor",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAASAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2025-08-28T20:52:48.923Z"
+              "WhenOpened": "2025-08-28T20:52:48.923Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -156,7 +157,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 2,
               "Title": "DocentesController.cs",
               "DocumentMoniker": "C:\\Users\\reyno\\OneDrive\\Documentos\\Programacion\\Proyectos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Server\\Controllers\\DocentesController.cs",
               "RelativeDocumentMoniker": "SchoolControl.Server\\Controllers\\DocentesController.cs",
@@ -175,9 +176,10 @@
               "RelativeDocumentMoniker": "SchoolControl.Client\\Layout\\NavMenu.razor",
               "ToolTip": "C:\\Users\\reyno\\OneDrive\\Documentos\\Programacion\\Proyectos\\schoolAdmin\\SchoolControlApp\\SchoolControl.Client\\Layout\\NavMenu.razor",
               "RelativeToolTip": "SchoolControl.Client\\Layout\\NavMenu.razor",
-              "ViewState": "AgIAAGwAAAAAAAAAAAAAAHkAAABRAAAAAAAAAA==",
+              "ViewState": "AgIAAEcAAAAAAAAAAAB+wHkAAABRAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2025-08-27T13:18:56.775Z"
+              "WhenOpened": "2025-08-27T13:18:56.775Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -202,7 +204,8 @@
               "RelativeToolTip": "SchoolControl.Client\\Pages\\ListaEstudiantes.razor",
               "ViewState": "AgIAACsBAAAAAAAAAAA0wEUBAAAFAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2025-05-22T17:01:53.092Z"
+              "WhenOpened": "2025-05-22T17:01:53.092Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -214,7 +217,8 @@
               "RelativeToolTip": "SchoolControl.Client\\Pages\\EstudiantesHome.razor",
               "ViewState": "AgIAAA8AAAAAAAAAAAAAACgAAAASAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2025-05-22T17:01:38.515Z"
+              "WhenOpened": "2025-05-22T17:01:38.515Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -226,7 +230,8 @@
               "RelativeToolTip": "SchoolControl.Client\\Pages\\AddEstudiante.razor",
               "ViewState": "AgIAAG8BAAAAAAAAAAAAAIQBAAB6AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2025-05-14T18:21:11.982Z"
+              "WhenOpened": "2025-05-14T18:21:11.982Z",
+              "EditorCaption": ""
             }
           ]
         }
