@@ -2384,8 +2384,8 @@ C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolCont
 C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Client\obj\Debug\net8.0\refint\SchoolControl.Client.dll
 C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Client\obj\Debug\net8.0\SchoolControl.Client.pdb
 C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Client\obj\Debug\net8.0\ref\SchoolControl.Client.dll
-C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Client\obj\Debug\net8.0\compressed\y6bp9sh98h-ybcnrcxx2k.gz
-C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Client\obj\Debug\net8.0\compressed\29vzdwkpr9-wby7qkfd7n.gz
-C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Client\obj\Debug\net8.0\compressed\9u6x2a3n4y-5rjvvuiohk.gz
-C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Client\obj\Debug\net8.0\compressed\l3ryk19zpr-m3abkfjoyk.gz
-C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Client\obj\Debug\net8.0\compressed\tcu6uhspoa-8ry610s8qr.gz
+C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Client\obj\Debug\net8.0\compressed\y6bp9sh98h-1jaczcx1b5.gz
+C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Client\obj\Debug\net8.0\compressed\29vzdwkpr9-2a5egptkri.gz
+C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Client\obj\Debug\net8.0\compressed\9u6x2a3n4y-85awgtc486.gz
+C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Client\obj\Debug\net8.0\compressed\l3ryk19zpr-rvalkai5yc.gz
+C:\Users\reyno\OneDrive\Documentos\Programacion\Proyectos\schoolAdmin\SchoolControlApp\SchoolControl.Client\obj\Debug\net8.0\compressed\tcu6uhspoa-fxt32g9s50.gz

@@ -7,8 +7,9 @@ namespace SchoolControl.Client.Services
         Task<List<DocenteDTO>> GetDocentesAsync();
         Task<DocenteDTO?> GetDocenteByIdAsync(int id);
         Task<bool> CreateDocenteAsync(DocenteDTO docente);
-        Task<bool> UpdateDocenteAsync(DocenteDTO docente);
+        Task<int> UpdateDocenteAsync(EditDocenteDTO docente);
         Task<bool> DeleteDocenteAsync(int id);
         Task<bool> RegistroMasivo(MultipartFormDataContent file);
+        Task<int>Guardar(DocenteDTO docente);
     }
 }

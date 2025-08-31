@@ -242,7 +242,7 @@ namespace SchoolControl.Server.Controllers
 
         [HttpPut]
         [Route("Editar/{id}")]
-        public async Task<IActionResult> Editar([FromBody]EstudiantesDTO estudiante, [FromRoute] int id)
+        public async Task<IActionResult> Editar([FromBody] EstudiantesDTO estudiante, [FromRoute] int id)
         {
             if (!ModelState.IsValid)
             {

@@ -157,14 +157,20 @@ namespace SchoolControl.Server.Controllers
 
         [HttpPut]
         [Route("Editar/{id}")]
-        public async Task<IActionResult> Editar(DocenteDTO Docente, int id)
+        public async Task<IActionResult> Editar([FromBody] EditDocenteDTO Docente, [FromRoute] int id)
         {
 
-            var responseApi = new ResponseApi<int>();
+           
+            if (!ModelState.IsValid)
+            {
+                // Devuelve detalles del error al cliente
+                return BadRequest(ModelState);
+            }
 
+            var responseApi = new ResponseApi<int>();
             try
             {
-                var DBDocente = await _dbContext.Docentes.FirstOrDefaultAsync(x => x.Id == id);
+                var DBDocente = await _dbContext.Docentes.FirstOrDefaultAsync(x => x.Id == Docente.Id);
 
                 if (DBDocente != null)
                 {
@@ -172,16 +178,16 @@ namespace SchoolControl.Server.Controllers
                     DBDocente.Telefono = Docente.Telefono;
                     DBDocente.Direccion = Docente.Direccion;
                     DBDocente.Licencia = Docente.Licencia;
-                    DBDocente.NacionalidadId = Docente.Nacionalidad;
-                    DBDocente.FechaNacimiento = DateOnly.FromDateTime(DateTime.ParseExact(Docente.FechaNacimiento, "yyyy-MM-dd", CultureInfo.InvariantCulture));
-                    DBDocente.LugarNacimientoId = Docente.LugarNacimiento;
-                    DBDocente.Apellidos = Docente.Apellido;
+                    DBDocente.NacionalidadId = Docente.NacionalidadId;
+                    DBDocente.FechaNacimiento = Docente.FechaNacimiento;
+                    DBDocente.LugarNacimientoId = Docente.LugarNacimientoId;
+                    DBDocente.Apellidos = Docente.Apellidos;
                     DBDocente.Cedula = Docente.Cedula;
                     DBDocente.Correo = Docente.Correo;
                     DBDocente.Activo = Docente.Activo;
                     DBDocente.EstadoCivil = Docente.EstadoCivil;
-                    DBDocente.FechaIngreso = DateOnly.FromDateTime(DateTime.ParseExact(Docente.FechaIngreso, "yyyy-MM-dd", CultureInfo.InvariantCulture)); 
-                    DBDocente.FechaNacimiento = DateOnly.FromDateTime(DateTime.ParseExact(Docente.FechaNacimiento, "yyyy-MM-dd", CultureInfo.InvariantCulture));
+                    DBDocente.FechaIngreso = Docente.FechaIngreso; 
+                    DBDocente.FechaNacimiento = Docente.FechaNacimiento;
                     DBDocente.Sexo = Docente.Sexo;
                     await _dbContext.SaveChangesAsync();
                     responseApi.correcto = true;

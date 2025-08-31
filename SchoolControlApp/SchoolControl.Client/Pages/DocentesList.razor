@@ -82,7 +82,7 @@
         <div class="col-md-2 text-start">
 
             <button class="btn btn-primary" @onclick="() => showCreatePage(0)">
-                <i class="fas fa-plus"></i> Añadir Nuevo
+                <i class="fas fa-plus"></i> Añadir
             </button>
         </div>
         <div class="col-md-10">
@@ -150,7 +150,7 @@
     }
     private async Task EditDocente(int id)
     {
-        // Implementar lógica para editar un docente
+        showCreatePage(id);
     }
     private async Task DeleteDocente(int id)
     {

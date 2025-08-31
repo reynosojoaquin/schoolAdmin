@@ -6,10 +6,9 @@
 @using System.Globalization;
 @inject HttpClient Http;
 @inject SweetAlertService Swal;
-@inject IEstudianteServices EstudianteServices;
+@inject IDocentesServices DocenteServices;
 @inject ILugarNacimientoServices LugarNacimientoServices;
 @inject INacionalidadServices NacionalidadServices;
-@inject IPadresServices PadresServices;
 @inject IHistoriaClinicaServices HistoriaClinicaServices;   
 @inject NavigationManager navegacion;
 
@@ -22,13 +21,13 @@
         <!-- Nav Tabs -->
         <ul class="nav nav-tabs" id="studentTab" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="estudiante-tab" data-bs-toggle="tab" data-bs-target="#estudiante" type="button" role="tab" aria-controls="estudiante" aria-selected="true">
-                    <i class="fas fa-user-graduate"></i> Estudiante
+                <button class="nav-link active" id="docente-tab" data-bs-toggle="tab" data-bs-target="#docente" type="button" role="tab" aria-controls="docente" aria-selected="true">
+                    <i class="fas fa-user-graduate"></i> Docente
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="tutor-tab" data-bs-toggle="tab" data-bs-target="#tutor" type="button" role="tab" aria-controls="tutor" aria-selected="false">
-                    <i class="fas fa-user-friends"></i> Padre o Tutor
+                <button class="nav-link" id="tutor-tab" data-bs-toggle="tab" data-bs-target="#academico" type="button" role="tab" aria-controls="acadecmico" aria-selected="false">
+                    <i class="fas fa-book"></i> Formacion academica
                 </button>
             </li>
             <li class="nav-item" role="presentation">
@@ -40,10 +39,10 @@
 
         <!-- Tab Content -->
         <div class="tab-content p-4 border border-top-0 shadow-sm" id="studentTabContent">
-            <!-- Estudiante -->
-            <div class="tab-pane fade show active" id="estudiante" role="tabpanel" aria-labelledby="estudiante-tab">
-                <h5><i class="fas fa-user-graduate text-primary"></i> Información del Estudiante</h5>
-                <EditForm Model="estudiante">
+            <!-- Docente -->
+            <div class="tab-pane fade show active" id="docente" role="tabpanel" aria-labelledby="docente-tab">
+                <h5><i class="fas fa-user-graduate text-primary"></i> Información del Docente</h5>
+                <EditForm Model="docente">
                     <DataAnnotationsValidator />
                     <div class="container mt-4 mb-4">
                         <div class="row">
@@ -52,7 +51,7 @@
                                     <!-- Nombres -->
                                     <div class="col-md-8">
                                         <label class="form-label">Nombres</label>
-                                        <InputText class="form-control" @bind-Value="estudiante.Nombres" />
+                                        <InputText class="form-control" @bind-Value="docente.Nombres" />
                                     </div>
                                 </div>
 
@@ -60,28 +59,28 @@
                                     <!-- Apellidos -->
                                     <div class="col-md-8">
                                         <label class="form-label">Apellidos</label>
-                                        <InputText class="form-control" @bind-Value="estudiante.Apellidos" />
+                                        <InputText class="form-control" @bind-Value="docente.Apellido" />
                                     </div>
                                 </div>
                                 <div class="row">
                                     <!-- Cédula -->
                                     <div class="col-md-8">
                                         <label class="form-label">Cédula</label>
-                                        <InputText class="form-control" @bind-Value="estudiante.Cedula" />
+                                        <InputText class="form-control" @bind-Value="docente.Cedula" />
                                     </div>
                                 </div>
                                 <div class="row">
                                     <!-- Correo -->
                                     <div class="col-md-8">
                                         <label class="form-label">Correo</label>
-                                        <InputText type="email" class="form-control" @bind-Value="estudiante.Correo" />
+                                        <InputText type="email" class="form-control" @bind-Value="docente.Correo" />
                                     </div>
                                 </div>
                                 <div class="row">
                                     <!-- Sexo -->
                                     <div class="col-md-8">
                                         <label class="form-label">Sexo</label>
-                                        <InputSelect class="form-select" @bind-Value="estudiante.Sexo">
+                                        <InputSelect class="form-select" @bind-Value="docente.Sexo">
                                             <option value="">Seleccione</option>
                                             <option value="M">Masculino</option>
                                             <option value="F">Femenino</option>
@@ -92,7 +91,7 @@
                                     <!-- Nacionalidad -->
                                     <div class="col-md-8">
                                         <label class="form-label">Nacionalidad</label>
-                                        <InputSelect class="form-select" @bind-Value="estudiante.NacionalidadId">
+                                        <InputSelect class="form-select" @bind-Value="docente.Nacionalidad">
                                             <option value="0">Seleccionar</option>
                                             @foreach (var item in nacionalidades)
                                             {
@@ -106,7 +105,7 @@
                                     <!-- Lugar de Nacimiento -->
                                     <div class="col-md-8">
                                         <label class="form-label">Lugar de Nacimiento</label>
-                                        <InputSelect class="form-select" @bind-Value="estudiante.LugarNacimientoId">
+                                        <InputSelect class="form-select" @bind-Value="docente.LugarNacimiento">
                                             <option value="0">Seleccionar</option>
                                             @foreach (var item in lugaresNacimiento)
                                             {
@@ -126,10 +125,10 @@
                                     </div>
                                 </div>
                                 <div class="row">
-                                    <!-- Sigerd ID -->
+                                    <!-- FECHA DE INGRESO -->
                                     <div class="col-md-8">
-                                        <label class="form-label">Sigerd ID</label>
-                                        <InputText class="form-control" @bind-Value="estudiante.SigerdId" />
+                                        <label class="form-label">Fecha de Ingreso</label>
+                                        <InputDate class="form-control" @bind-Value="fechaIngreso" />
                                     </div>
                                 </div>
                             </div>
@@ -150,102 +149,14 @@
 
                     </div>
                     <ValidationSummary />
-
-                    <div class="mb-3">
-                        <button type="button" class="btn btn-primary me-2" @onclick="HandleValidSubmit">
-                            <i class="nav-icon fas fa-save"></i> Guardar
-                        </button>
-                        <button type="button" class="btn btn-secondary" @onclick="HandleCancel">
-                            <i class="nav-icon fas fa-window-close"></i> Cancelar
-                        </button>
-                    </div>
-                </EditForm>
+               </EditForm>
             </div>
+            <!--FORMACION ACADEMICA-->
+            <div class="tab-pane fade" id="academico" role="tabpanel" aria-labelledby="academico-tab">
+                <h5><i class="fas fa-book"></i> Formacion academica</h5>
+               
 
-            <!-- Padre o Tutor -->
-            <div class="tab-pane fade" id="tutor" role="tabpanel" aria-labelledby="tutor-tab">
-                <h5><i class="fas fa-user-friends text-success"></i> Información del Padre o Tutor</h5>
-                <EditForm Model="@nuevoTutor" OnValidSubmit="addTutor">
-                    <DataAnnotationsValidator />
-                    <ValidationSummary />
-
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-4">
-                            <label for="nombre" class="form-label">Nombre</label>
-                            <InputText id="nombre" class="form-control" @bind-Value="nuevoTutor.Nombre" />
-                            <ValidationMessage For="@(() => nuevoTutor.Nombre)" />
-                        </div>
-                        <div class="col-md-4">
-                            <label for="apellido" class="form-label">Apellido</label>
-                            <InputText id="apellido" class="form-control" @bind-Value="nuevoTutor.Apellido" />
-                            <ValidationMessage For="@(() => nuevoTutor.Apellido)" />
-                        </div>
-                        <div class="col-md-4">
-                            <label for="telefono" class="form-label">Telefono</label>
-                            <InputMask Mask="(999) 999-9999" id="telefono" class="form-control" 
-                            placeholder="(___) ___-____" @bind-Value="nuevoTutor.Telefono" />
-                            <ValidationMessage For="@(() => nuevoTutor.Telefono)" />
-                        </div>
-                        <div class="col-md-4">
-                            <label for="parentesco" class="form-label">Parentesco</label>
-                            <InputSelect id="parentesco" class="form-select" @bind-Value="nuevoTutor.Parentesco">
-                                <option value="">Seleccione...</option>
-                                <option value="Padre">Padre</option>
-                                <option value="Madre">Madre</option>
-                                <option value="Tío(a)">Tío(a)</option>
-                                <option value="Hermano(a)">Hermano(a)</option>
-                                <option value="Otro">Otro</option>
-                            </InputSelect>
-                            <ValidationMessage For="@(() => nuevoTutor.Parentesco)" />
-                        </div>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-plus-circle"></i>
-                        Agregar
-                    </button>
-                </EditForm>
-
-                <hr />
-
-                <h4 class="mt-4">Tutores Registrados</h4>
-
-                @if (tutoresRegistrados.Count == 0)
-                {
-                    <div class="alert alert-info">No hay tutores registrados aún.</div>
-                }
-                else
-                {
-                    <table class="table table-bordered table-striped mt-3">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>#</th>
-                                <th>Nombre</th>
-                                <th>Apellido</th>
-                                <th>Parentesco</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var tutor in tutoresRegistrados)
-                            {
-                                <tr>
-                                    <td>@(tutoresRegistrados.IndexOf(tutor) + 1)</td>
-                                    <td>@tutor.Nombre</td>
-                                    <td>@tutor.Apellido</td>
-                                    <td>@tutor.Parentesco</td>
-                                    <td>
-                                        <button class="btn btn-sm btn-danger" @onclick="(()=> removeTutor(tutor.Id))">
-                                            <i class="fas fa-trash-alt"></i>&nbspEliminar
-                                        </button>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                }
             </div>
-
             <!-- Historia Médica -->
             <div class="tab-pane fade" id="medica" role="tabpanel" aria-labelledby="medica-tab">
                 <h5><i class="fas fa-notes-medical text-danger"></i> Historia Médica</h5>
@@ -326,8 +237,17 @@
                 </EditForm>
 
             </div>
+           
         </div>
-
+        <br />
+        <div class="mb-3">
+            <button type="button" class="btn btn-primary me-2" @onclick="HandleValidSubmit">
+                <i class="nav-icon fas fa-save"></i> Guardar
+            </button>
+            <button type="button" class="btn btn-secondary" @onclick="HandleCancel">
+                <i class="nav-icon fas fa-window-close"></i> Cancelar
+            </button>
+        </div>
 
 
     </div>
@@ -346,35 +266,28 @@
     List<NacionalidadDTO> nacionalidades = new List<NacionalidadDTO>();
     List<LugarNacimientoDTO> lugaresNacimiento = new List<LugarNacimientoDTO>();    
     DateTime  fechaNacimiento = DateTime.Now;
-    List<PadresDTO> tutoresRegistrados = new List<PadresDTO>();
+    DateTime fechaIngreso = DateTime.Now;
     List<HistoriaClinicaDTO> historiaClinica = new List<HistoriaClinicaDTO>();
-    EstudiantesDTO estudiante = new EstudiantesDTO
+    DocenteDTO docente = new DocenteDTO
     {
         Nombres = "",
-        Apellidos = "",
+        Apellido = "",
         Cedula = "",
         Correo = "",
         Sexo = "",
         Url = "",
-        NacionalidadId = 0,
-        LugarNacimientoId = 0,
+        Nacionalidad = 0,
+        LugarNacimiento = 0,
+        FechaIngreso = DateTime.Now.ToShortDateString(),
         FechaNacimiento = DateTime.Now.ToShortDateString(),
-        SigerdId = "",
-        Padres =  [],
-        HistoriasClinicas =[]
+        ObjLugarNacimiento = new(),
+        ObjNacionalidad    = new() 
 
     };
     private IBrowserFile selectedFile;
     private string ImagePreview;
     private bool IsUploading = false;
-    private PadresDTO nuevoTutor = new PadresDTO
-        {
-            Nombre = "",
-            Apellido = "",
-            Parentesco = "",
-            Telefono   = "",
 
-        };
     private HistoriaClinicaDTO nuevoHistorial = new HistoriaClinicaDTO();
 
     protected override async Task OnInitializedAsync()
@@ -384,45 +297,61 @@
 
         if (id != 0)
         {
-            estudiante = await EstudianteServices.Buscar(id);
+            docente = await DocenteServices.GetDocenteByIdAsync(id);
 
-            fechaNacimiento = DateTime.ParseExact(estudiante.FechaNacimiento, "yyyy-MM-dd", CultureInfo.InvariantCulture);
-            if (!string.IsNullOrEmpty(estudiante.Url))
+            fechaNacimiento = DateTime.TryParseExact(docente.FechaNacimiento,
+                           "yyyy-MM-dd",
+                           CultureInfo.InvariantCulture,
+                           DateTimeStyles.None,
+                           out var fechaNacTemp)
+                           ? fechaNacTemp
+                           : DateTime.Now;
+
+            fechaIngreso = DateTime.TryParseExact(docente.FechaIngreso,
+                "yyyy-MM-dd",
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.None,
+            out var fechaInTemp) 
+            ? fechaInTemp 
+            : DateTime.Now;
+
+
+            if (!string.IsNullOrEmpty(docente.Url))
             {
-                ImagePreview = estudiante.Url;
+                ImagePreview = docente.Url;
             }
-            foreach(HistoriaClinicaDTO historia in estudiante.HistoriasClinicas)
-            { 
-                historiaClinica.Add( new HistoriaClinicaDTO
-                {
-                    Descripcion = historia.Descripcion,
-                    EstudianteId = historia.EstudianteId,
-                    Id           = historia.Id,
-                    Tipo         = historia.Tipo
-                });
+            // foreach(HistoriaClinicaDTO historia in docente.objHistoriasClinicas)
+            // { 
+            //     historiaClinica.Add( new HistoriaClinicaDTO
+            //     {
+            //         Descripcion = historia.Descripcion,
+            //         DocenteId = historia.DocenteId,
+            //         Id           = historia.Id,
+            //         Tipo         = historia.Tipo
+            //     });
 
-            }
-            foreach (PadresDTO padre in estudiante.Padres)
-            {
-                tutoresRegistrados.Add(new PadresDTO
-                    {
-                        Nombre = padre.Nombre,
-                        Apellido = padre.Apellido,
-                        Parentesco = padre.Parentesco,
-                        Telefono = padre.Telefono,
-                        Id       = padre.Id,
-                        EstudianteId = padre.EstudianteId
-                    });
-            }
+            // }
+            // foreach (PadresDTO padre in docente.Padres)
+            // {
+            //     tutoresRegistrados.Add(new PadresDTO
+            //         {
+            //             Nombre = padre.Nombre,
+            //             Apellido = padre.Apellido,
+            //             Parentesco = padre.Parentesco,
+            //             Telefono = padre.Telefono,
+            //             Id       = padre.Id,
+            //             DocenteId = padre.DocenteId
+            //         });
+            // }
 
-            btnTexto = "Actualizar Estudiante";
-            titulo = "Editar Estudiante";
+            btnTexto = "Actualizar Docente";
+            titulo = "Editar Docente";
         }
         else
         {
-            estudiante.Nombres = "";
-            btnTexto = "Guardar Estudiante";
-            titulo = "Nuevo Estudiante";
+            docente.Nombres = "";
+            btnTexto = "Guardar Docente";
+            titulo = "Nuevo Docente";
         }
     }
 
@@ -446,11 +375,13 @@
         {
             try
             {
-                estudiante.FechaNacimiento = fechaNacimiento.ToShortDateString();
-                estudiante.Url = ImagePreview;
-                estudiante.Padres = tutoresRegistrados;
-                estudiante.HistoriasClinicas = historiaClinica;
-                id = await EstudianteServices.Guardar(estudiante);
+                docente.FechaNacimiento = fechaNacimiento.ToShortDateString();
+                docente.FechaIngreso = fechaIngreso.ToShortDateString();
+                docente.Url = ImagePreview;
+                // docente.Padres = tutoresRegistrados;
+                // docente.HistoriasClinicas = historiaClinica;
+
+                id = await DocenteServices.Guardar(docente);
                 HandleCancel();
             }
             catch(Exception ex)
@@ -463,14 +394,36 @@
         {
 
 
-            estudiante.FechaNacimiento = fechaNacimiento.ToShortDateString();
-            estudiante.Url = ImagePreview;
-            estudiante.Padres = tutoresRegistrados;
-            estudiante.HistoriasClinicas = historiaClinica;
-            estudiante.Url = ImagePreview;
+            docente.FechaNacimiento = fechaNacimiento.ToShortDateString();
+            docente.FechaIngreso = fechaIngreso.ToShortDateString();
+            docente.Url = ImagePreview;
+            // docente.Padres = tutoresRegistrados;
+            // docente.HistoriasClinicas = historiaClinica;
+
+            docente.Url = ImagePreview;
             try
             {
-                idDevuelto = await EstudianteServices.Editar(estudiante, estudiante.Id);
+                EditDocenteDTO editDo = new EditDocenteDTO
+                {
+                    Id = docente.ID,
+                    Nombres = docente.Nombres,
+                    Apellidos = docente.Apellido,
+                    Cedula = docente.Cedula,
+                    Correo = docente.Correo,
+                    Sexo = docente.Sexo,
+                    NacionalidadId = docente.Nacionalidad,
+                    LugarNacimientoId = docente.LugarNacimiento,
+                    FechaNacimiento = DateOnly.FromDateTime(fechaNacimiento),
+                    FechaIngreso =    DateOnly.FromDateTime(fechaIngreso),
+                    Url = docente.Url,
+                    Activo = docente.Activo,
+                    Direccion = docente.Direccion,
+                    EstadoCivil = docente.EstadoCivil,  
+                    Licencia    = docente.Licencia,
+                    Telefono    = docente.Telefono,
+                    Userid      = 0 
+                };
+                idDevuelto = await DocenteServices.UpdateDocenteAsync(editDo);
                 HandleCancel();
             }catch(Exception ex)
             {
@@ -523,51 +476,14 @@
             Console.WriteLine("Error al subir la imagen");
         }
     }
-    private async Task addTutor()
-    {
-        if (string.IsNullOrEmpty(nuevoTutor.Nombre) || string.IsNullOrEmpty(nuevoTutor.Apellido))
-        {
-            await Swal.FireAsync("Error", "Por favor complete todos los campos requeridos.", SweetAlertIcon.Error);
-            return;
-        }
-        // Aquí puedes agregar la lógica para guardar el nuevo tutor
-        // Por ejemplo, llamar a un servicio para guardar en la base de datos
-        // Limpiar el formulario después de agregar el tutor
-        tutoresRegistrados.Add(nuevoTutor);
-        nuevoTutor = new PadresDTO();
-        await Swal.FireAsync("Éxito", "Tutor agregado correctamente.", SweetAlertIcon.Success);
-    }
+  
     public async Task AgregarEntradaHistorial()
     {
         historiaClinica.Add(nuevoHistorial);
         nuevoHistorial = new HistoriaClinicaDTO();
         await Swal.FireAsync("Éxito", "Historial agregado correctamente.", SweetAlertIcon.Success);
     }
-    private async Task removeTutor(int id){
-        if (tutoresRegistrados.Count > 0)
-        {
-            try
-            {
-               // await PadresServices.Eliminar(id);
-                var tutor = tutoresRegistrados.FirstOrDefault();
-                if (tutor != null)
-                {
-
-                    tutoresRegistrados.Remove(tutor);
-                    await Swal.FireAsync("Éxito", "Tutor eliminado correctamente.", SweetAlertIcon.Success);
-                }
-            }
-            catch (Exception ex)
-            {
-                await Swal.FireAsync("Error", ex.Message, SweetAlertIcon.Error);
-            }
-       
-        }
-        else
-        {
-            await Swal.FireAsync("Error", "No hay tutores registrados para eliminar.", SweetAlertIcon.Error);
-        }
-    }
+   
     private async Task  eliminaHistorial(int id)
     {
         var result = await Swal.FireAsync(new SweetAlertOptions

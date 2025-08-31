@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SchoolControl.Shared")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b199ea13c893a769eda0a25a5310766123833311")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+af56b43597fc290f70c34dadd36d6783d22ed289")]
 [assembly: System.Reflection.AssemblyProductAttribute("SchoolControl.Shared")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SchoolControl.Shared")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

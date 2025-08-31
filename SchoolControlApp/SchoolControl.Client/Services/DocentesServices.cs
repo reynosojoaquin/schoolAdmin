@@ -25,7 +25,19 @@ namespace SchoolControl.Client.Services
                 throw new Exception(result.Mensaje);
             }
         }
-
+        public async Task<int> Guardar(DocenteDTO docente)
+        {
+            var result = await _httpClient.PostAsJsonAsync("api/Docentes", docente);
+            var response = await result.Content.ReadFromJsonAsync<ResponseApi<int>>();
+            if (response!.correcto)
+            {
+                return response.Valor;
+            }
+            else
+            {
+                throw new Exception(response.Mensaje);
+            }
+        }
         public async Task<DocenteDTO?> GetDocenteByIdAsync(int id)
         {
            
@@ -46,10 +58,20 @@ namespace SchoolControl.Client.Services
             return response.IsSuccessStatusCode;
         }
 
-        public async Task<bool> UpdateDocenteAsync(DocenteDTO docente)
+        public async Task<int> UpdateDocenteAsync(EditDocenteDTO docente)
         {
-            var response = await _httpClient.PutAsJsonAsync($"api/Docentes/{docente.ID}", docente);
-            return response.IsSuccessStatusCode;
+
+            var result = await _httpClient.PutAsJsonAsync($"api/Docentes/Editar/{docente.Id}", docente); 
+            var response = await result.Content.ReadFromJsonAsync<ResponseApi<int>>();
+            if (response!.correcto)
+            {
+                return response.Valor;
+            }
+            else
+            {
+                throw new Exception(response.Mensaje);
+            }
+                       
         }
 
         public async Task<bool> DeleteDocenteAsync(int id)
