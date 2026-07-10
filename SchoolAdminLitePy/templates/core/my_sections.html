@@ -17,6 +17,7 @@
         <th>Curso</th>
         <th>Seccion</th>
         <th>Ano escolar</th>
+        <th>Asistencia</th>
         <th>Asignaturas</th>
       </tr>
     </thead>
@@ -26,6 +27,7 @@
           <td>{{ section.course }}</td>
           <td><strong>{{ section.name }}</strong></td>
           <td>{{ section.school_year|default:"-" }}</td>
+          <td><a class="btn-secondary compact-link" href="{% url 'core:section_attendance' section.pk %}">Registrar</a></td>
           <td>
             {% for assignment in section.teaching_assignments.all %}
               {% if not is_teacher_access or assignment.teacher.user_id == request.user.id %}
@@ -37,7 +39,7 @@
           </td>
         </tr>
       {% empty %}
-        <tr><td colspan="4" class="empty">No tienes secciones asignadas.</td></tr>
+        <tr><td colspan="5" class="empty">No tienes secciones asignadas.</td></tr>
       {% endfor %}
     </tbody>
   </table>

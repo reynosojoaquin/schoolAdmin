@@ -42,6 +42,84 @@
                 {% else %}
                   <span class="status inactive">Inactivo</span>
                 {% endif %}
+              {% elif field_name == "status" %}
+                <span class="status active">{{ item.get_status_display|default:item.status }}</span>
+              {% elif field_name == "stock_status" %}
+                <span class="status {% if item.stock_status == 'Disponible' %}active{% else %}inactive{% endif %}">{{ item.stock_status }}</span>
+              {% elif field_name == "code" %}
+                <strong>{{ item.code }}</strong>
+              {% elif field_name == "number" %}
+                <strong>{{ item.number }}</strong>
+              {% elif field_name == "item" %}
+                {{ item.item|default:"-" }}
+              {% elif field_name == "borrower_name" %}
+                {{ item.borrower_name|default:"-" }}
+              {% elif field_name == "loan_date" %}
+                {{ item.loan_date|date:"d/m/Y"|default:"-" }}
+              {% elif field_name == "due_date" %}
+                {{ item.due_date|date:"d/m/Y"|default:"-" }}
+              {% elif field_name == "return_date" %}
+                {{ item.return_date|date:"d/m/Y"|default:"-" }}
+              {% elif field_name == "date" %}
+                {{ item.date|date:"d/m/Y"|default:"-" }}
+              {% elif field_name == "start_date" %}
+                {{ item.start_date|date:"d/m/Y"|default:"-" }}
+              {% elif field_name == "end_date" %}
+                {{ item.end_date|date:"d/m/Y"|default:"-" }}
+              {% elif field_name == "movement_type" %}
+                {{ item.get_movement_type_display|default:item.movement_type }}
+              {% elif field_name == "payment_method" %}
+                {{ item.get_payment_method_display|default:item.payment_method }}
+              {% elif field_name == "quantity" %}
+                {{ item.quantity }}
+              {% elif field_name == "quantity_available" %}
+                <strong>{{ item.quantity_available }}</strong>
+              {% elif field_name == "minimum_stock" %}
+                {{ item.minimum_stock }}
+              {% elif field_name == "unit" %}
+                {{ item.unit|default:"-" }}
+              {% elif field_name == "location" %}
+                {{ item.location|default:"-" }}
+              {% elif field_name == "delivered_to" %}
+                {{ item.delivered_to|default:"-" }}
+              {% elif field_name == "description" %}
+                {{ item.description|default:"-" }}
+              {% elif field_name == "vendor" %}
+                {{ item.vendor|default:"-" }}
+              {% elif field_name == "amount" %}
+                <strong>{{ item.amount }}</strong>
+              {% elif field_name == "bank_name" %}
+                {{ item.bank_name|default:"-" }}
+              {% elif field_name == "account_number" %}
+                <strong>{{ item.account_number }}</strong>
+              {% elif field_name == "account_type" %}
+                {{ item.account_type|default:"-" }}
+              {% elif field_name == "bank_account" %}
+                {{ item.bank_account|default:"-" }}
+              {% elif field_name == "period" %}
+                <strong>{{ item.period }}</strong>
+              {% elif field_name == "statement_balance" %}
+                {{ item.statement_balance }}
+              {% elif field_name == "book_balance" %}
+                {{ item.book_balance }}
+              {% elif field_name == "difference" %}
+                <strong>{{ item.difference }}</strong>
+              {% elif field_name == "reference" %}
+                {{ item.reference|default:"-" }}
+              {% elif field_name == "debit_account" %}
+                {{ item.debit_account|default:"-" }}
+              {% elif field_name == "credit_account" %}
+                {{ item.credit_account|default:"-" }}
+              {% elif field_name == "payee" %}
+                {{ item.payee|default:"-" }}
+              {% elif field_name == "concept" %}
+                {{ item.concept|default:"-" }}
+              {% elif field_name == "employee" %}
+                {{ item.employee|default:"-" }}
+              {% elif field_name == "area" %}
+                {{ item.area|default:"-" }}
+              {% elif field_name == "role" %}
+                {{ item.role|default:"-" }}
               {% elif field_name == "course" %}
                 {{ item.course|default:"-" }}
               {% elif field_name == "section" %}
@@ -54,11 +132,15 @@
                 {{ item.responsible|default:"-" }}
               {% elif field_name == "school_year" %}
                 {{ item.school_year|default:"-" }}
+              {% elif field_name == "weekly_hours" %}
+                {{ item.weekly_hours }}
               {% elif field_name == "students" %}
                 {% if title == "Cursos" %}
                   <a class="btn-secondary compact-link" href="{% url 'core:course_students' item.pk %}">Ver estudiantes</a>
                 {% elif title == "Secciones" %}
                   <a class="btn-secondary compact-link" href="{% url 'core:section_students' item.pk %}">Ver estudiantes</a>
+                  <a class="btn-secondary compact-link" href="{% url 'core:section_enrollment' item.pk %}">Inscripcion</a>
+                  <a class="btn-secondary compact-link" href="{% url 'core:section_attendance' item.pk %}">Asistencia</a>
                 {% endif %}
               {% elif field_name == "assignments" %}
                 {% if title == "Secciones" %}

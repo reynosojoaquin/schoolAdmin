@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Inscripcion - {{ section }} - SchoolAdmin Lite{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <div>
+    <p class="eyebrow">Seccion {{ section }}</p>
+    <h1>Inscripcion de estudiantes</h1>
+    <p>
+      Curso anterior:
+      {% if previous_course %}
+        {{ previous_course }}
+      {% else %}
+        Nuevo ingreso
+      {% endif %}
+      · Candidatos: {{ candidate_count }}
+    </p>
+  </div>
+  <a class="btn-secondary" href="{% url 'core:section_list' %}">Volver</a>
+</section>
+
+<form class="toolbar" method="get">
+  <input type="search" name="q" value="{{ query }}" placeholder="Buscar por nombre, cedula o SIGERD">
+  <button type="submit">Buscar</button>
+  {% if query %}
+    <a class="btn-secondary" href=".">Limpiar</a>
+  {% endif %}
+</form>
+
+<form method="post">
+  {% csrf_token %}
+  <section class="table-panel">
+    <table>
+      <thead>
+        <tr>
+          <th></th>
+          <th>Estudiante</th>
+          <th>Cedula</th>
+          <th>SIGERD</th>
+          <th>Origen</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for student in candidates %}
+          <tr>
+            <td><input type="checkbox" name="students" value="{{ student.pk }}"></td>
+            <td><strong>{{ student.last_name }}, {{ student.first_name }}</strong></td>
+            <td>{{ student.document_id|default:"-" }}</td>
+            <td>{{ student.sigerd_id|default:"-" }}</td>
+            <td>
+              {% if student.new_admission %}
+                <span class="status active">Nuevo ingreso</span>
+              {% elif student.promoted %}
+                <span class="status active">Promovido</span>
+              {% else %}
+                <span class="status inactive">Disponible</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="5" class="empty">No hay candidatos disponibles para esta seccion.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  {% if candidates %}
+    <div class="form-actions">
+      <button type="submit">Inscribir seleccionados</button>
+    </div>
+  {% endif %}
+</form>
+{% endblock %}

@@ -5,7 +5,7 @@ from typing import Any
 from django.db import transaction
 from openpyxl import load_workbook
 
-from .models import Course, Enrollment, Section, Student
+from .models import Student
 
 
 EXPECTED_HEADERS = {
@@ -261,6 +261,7 @@ def commit_student_import(preview_rows: list[dict], school_year: str, update_exi
                 student.gender = data["gender"]
                 student.sigerd_id = data["sigerd_id"]
                 student.birth_date = data["birth_date"]
+                student.new_admission = True
                 student.active = True
                 student.save()
                 result.updated += 1
@@ -275,32 +276,10 @@ def commit_student_import(preview_rows: list[dict], school_year: str, update_exi
                 gender=data["gender"],
                 sigerd_id=data["sigerd_id"],
                 birth_date=data["birth_date"],
+                new_admission=True,
                 active=True,
             )
             result.created += 1
-
-        if data["course"]:
-            course, course_created = Course.objects.get_or_create(name=data["course"], defaults={"active": True})
-            if course_created:
-                result.courses_created += 1
-            section = None
-            if data["section"]:
-                section, _ = Section.objects.get_or_create(
-                    course=course,
-                    name=data["section"],
-                    school_year=school_year,
-                    defaults={"active": True},
-                )
-            _, enrollment_created = Enrollment.objects.get_or_create(
-                student=student,
-                course=course,
-                school_year=school_year,
-                defaults={"active": True, "section": section},
-            )
-            if enrollment_created:
-                result.enrollments_created += 1
-            elif section:
-                Enrollment.objects.filter(student=student, course=course, school_year=school_year).update(section=section)
 
     return result
 

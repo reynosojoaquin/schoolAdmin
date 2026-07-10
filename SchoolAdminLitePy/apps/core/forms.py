@@ -4,7 +4,26 @@ from django import forms
 from django.contrib.auth.models import Group, Permission, User
 from django.db.models import Q
 
-from .models import AdministrativeEmployee, Course, Section, Student, Subject, Teacher, TeachingAssignment
+from .models import (
+    AdministrativeEmployee,
+    BankAccount,
+    BankReconciliation,
+    Cheque,
+    ConsumableItem,
+    ConsumableMovement,
+    Course,
+    EquipmentCategory,
+    EquipmentItem,
+    EquipmentLoan,
+    Expense,
+    JournalEntry,
+    Section,
+    StaffAssignment,
+    Student,
+    Subject,
+    Teacher,
+    TeachingAssignment,
+)
 
 
 ACCESS_PERMISSION_CODES = [
@@ -40,12 +59,14 @@ class PersonFormMixin:
             field.widget.attrs.setdefault("class", "form-control")
         if "active" in self.fields:
             self.fields["active"].widget.attrs["class"] = "form-check-input"
+        if "photo_url" in self.fields:
+            self.fields["photo_url"].widget.attrs["accept"] = "image/*"
 
 
 class StudentForm(PersonFormMixin, forms.ModelForm):
     class Meta:
         model = Student
-        fields = PersonFormMixin.common_fields + ["sigerd_id", "phone", "sector"]
+        fields = PersonFormMixin.common_fields + ["sigerd_id", "phone", "promoted", "new_admission", "sector"]
         widgets = {
             "birth_date": forms.DateInput(attrs={"type": "date"}),
         }
@@ -89,6 +110,193 @@ class AcademicFormMixin:
             self.fields["active"].widget.attrs["class"] = "form-check-input"
 
 
+class AdministrationFormMixin:
+    def apply_widgets(self):
+        for field in self.fields.values():
+            field.widget.attrs.setdefault("class", "form-control")
+        for field_name in ("active",):
+            if field_name in self.fields:
+                self.fields[field_name].widget.attrs["class"] = "form-check-input"
+
+
+class EquipmentCategoryForm(AdministrationFormMixin, forms.ModelForm):
+    class Meta:
+        model = EquipmentCategory
+        fields = ["name", "description", "active"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.apply_widgets()
+
+
+class EquipmentItemForm(AdministrationFormMixin, forms.ModelForm):
+    class Meta:
+        model = EquipmentItem
+        fields = [
+            "code",
+            "name",
+            "category",
+            "brand",
+            "model",
+            "serial_number",
+            "location",
+            "acquisition_date",
+            "status",
+            "notes",
+        ]
+        widgets = {
+            "acquisition_date": forms.DateInput(attrs={"type": "date"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["category"].queryset = EquipmentCategory.objects.filter(active=True)
+        self.apply_widgets()
+
+
+class EquipmentLoanForm(AdministrationFormMixin, forms.ModelForm):
+    class Meta:
+        model = EquipmentLoan
+        fields = ["item", "borrowed_by", "borrower_name", "loan_date", "due_date", "return_date", "status", "notes"]
+        widgets = {
+            "loan_date": forms.DateInput(attrs={"type": "date"}),
+            "due_date": forms.DateInput(attrs={"type": "date"}),
+            "return_date": forms.DateInput(attrs={"type": "date"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["item"].queryset = EquipmentItem.objects.exclude(status=EquipmentItem.STATUS_RETIRED)
+        self.fields["borrowed_by"].queryset = AdministrativeEmployee.objects.filter(active=True)
+        self.apply_widgets()
+
+
+class ConsumableItemForm(AdministrationFormMixin, forms.ModelForm):
+    class Meta:
+        model = ConsumableItem
+        fields = ["name", "category", "unit", "quantity_available", "minimum_stock", "active", "notes"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.apply_widgets()
+
+
+class ConsumableMovementForm(AdministrationFormMixin, forms.ModelForm):
+    class Meta:
+        model = ConsumableMovement
+        fields = ["item", "movement_type", "quantity", "date", "delivered_to", "notes"]
+        widgets = {
+            "date": forms.DateInput(attrs={"type": "date"}),
+        }
+        help_texts = {
+            "quantity": "En ajustes puedes usar valores positivos o negativos.",
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["item"].queryset = ConsumableItem.objects.filter(active=True)
+        self.apply_widgets()
+
+
+class ExpenseForm(AdministrationFormMixin, forms.ModelForm):
+    class Meta:
+        model = Expense
+        fields = ["date", "category", "description", "vendor", "amount", "payment_method", "cheque_number", "notes"]
+        widgets = {
+            "date": forms.DateInput(attrs={"type": "date"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.apply_widgets()
+
+
+class ChequeForm(AdministrationFormMixin, forms.ModelForm):
+    class Meta:
+        model = Cheque
+        fields = ["number", "date", "payee", "concept", "amount", "status", "notes"]
+        widgets = {
+            "date": forms.DateInput(attrs={"type": "date"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.apply_widgets()
+
+
+class BankAccountForm(AdministrationFormMixin, forms.ModelForm):
+    class Meta:
+        model = BankAccount
+        fields = ["name", "bank_name", "account_number", "account_type", "active", "notes"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.apply_widgets()
+
+
+class BankReconciliationForm(AdministrationFormMixin, forms.ModelForm):
+    class Meta:
+        model = BankReconciliation
+        fields = [
+            "bank_account",
+            "period",
+            "statement_balance",
+            "book_balance",
+            "deposits_in_transit",
+            "outstanding_checks",
+            "bank_charges",
+            "adjustments",
+            "status",
+            "notes",
+        ]
+        help_texts = {
+            "period": "Ejemplo: 2025-09.",
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["bank_account"].queryset = BankAccount.objects.filter(active=True)
+        self.apply_widgets()
+
+
+class JournalEntryForm(AdministrationFormMixin, forms.ModelForm):
+    class Meta:
+        model = JournalEntry
+        fields = [
+            "date",
+            "reference",
+            "description",
+            "debit_account",
+            "credit_account",
+            "amount",
+            "related_expense",
+            "related_cheque",
+            "notes",
+        ]
+        widgets = {
+            "date": forms.DateInput(attrs={"type": "date"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.apply_widgets()
+
+
+class StaffAssignmentForm(AdministrationFormMixin, forms.ModelForm):
+    class Meta:
+        model = StaffAssignment
+        fields = ["employee", "area", "role", "start_date", "end_date", "active", "notes"]
+        widgets = {
+            "start_date": forms.DateInput(attrs={"type": "date"}),
+            "end_date": forms.DateInput(attrs={"type": "date"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["employee"].queryset = AdministrativeEmployee.objects.filter(active=True)
+        self.apply_widgets()
+
+
 class CourseForm(AcademicFormMixin, forms.ModelForm):
     class Meta:
         model = Course
@@ -124,7 +332,7 @@ class SectionForm(AcademicFormMixin, forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        course_queryset = Course.objects.filter(active=True, sections__isnull=False).distinct()
+        course_queryset = Course.objects.filter(active=True)
         if self.instance and self.instance.pk:
             course_queryset = (course_queryset | Course.objects.filter(pk=self.instance.course_id)).distinct()
         self.fields["course"].queryset = course_queryset
@@ -135,18 +343,24 @@ class SectionForm(AcademicFormMixin, forms.ModelForm):
 class SubjectForm(AcademicFormMixin, forms.ModelForm):
     class Meta:
         model = Subject
-        fields = ["course", "name", "responsible"]
+        fields = ["section", "name", "weekly_hours", "responsible"]
         labels = {
+            "section": "Seccion",
+            "weekly_hours": "Horas semanales",
             "responsible": "Docente responsable de la asignatura",
         }
         help_texts = {
-            "course": "La asignatura queda disponible para las secciones de este curso.",
-            "responsible": "Docente responsable general de esta asignatura en el curso.",
+            "section": "La asignatura queda disponible solo para esta seccion.",
+            "weekly_hours": "Cantidad de horas de esta asignatura en la seccion.",
+            "responsible": "Docente responsable general de esta asignatura en la seccion.",
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["course"].queryset = Course.objects.filter(active=True)
+        section_queryset = Section.objects.filter(active=True).select_related("course", "responsible")
+        if self.instance and self.instance.pk:
+            section_queryset = (section_queryset | Section.objects.filter(pk=self.instance.section_id)).distinct()
+        self.fields["section"].queryset = section_queryset
         self.fields["responsible"].queryset = Teacher.objects.filter(active=True)
         self.apply_widgets()
 
@@ -162,7 +376,7 @@ class TeachingAssignmentForm(AcademicFormMixin, forms.ModelForm):
         }
         help_texts = {
             "section": "Grupo especifico donde se impartira la asignatura.",
-            "subject": "Debe pertenecer al mismo curso de la seccion seleccionada.",
+            "subject": "Debe pertenecer a la misma seccion seleccionada.",
             "teacher": "Este docente queda asignado a la asignatura en esa seccion.",
         }
 
@@ -174,20 +388,20 @@ class TeachingAssignmentForm(AcademicFormMixin, forms.ModelForm):
         self.apply_widgets()
 
     def get_subject_queryset(self):
-        queryset = Subject.objects.select_related("course", "responsible").filter(course__sections__isnull=False).distinct()
+        queryset = Subject.objects.select_related("section", "section__course", "responsible")
         section_id = self.data.get("section") or self.initial.get("section")
         if not section_id and self.instance and self.instance.pk:
             section_id = self.instance.section_id
 
         if section_id:
             try:
-                section = Section.objects.only("course_id").get(pk=section_id)
+                section = Section.objects.only("id").get(pk=section_id)
             except (Section.DoesNotExist, ValueError, TypeError):
                 return queryset.none()
-            return queryset.filter(course_id=section.course_id)
+            return queryset.filter(section_id=section.id)
 
         if self.instance and self.instance.pk:
-            return queryset.filter(Q(course_id=self.instance.section.course_id) | Q(pk=self.instance.subject_id))
+            return queryset.filter(Q(section_id=self.instance.section_id) | Q(pk=self.instance.subject_id))
 
         return queryset
 
@@ -195,9 +409,9 @@ class TeachingAssignmentForm(AcademicFormMixin, forms.ModelForm):
         cleaned_data = super().clean()
         section = cleaned_data.get("section")
         subject = cleaned_data.get("subject")
-        if section and subject and section.course_id != subject.course_id:
+        if section and subject and subject.section_id != section.id:
             raise forms.ValidationError(
-                "La asignatura seleccionada pertenece a otro curso. Selecciona una asignatura del mismo curso de la seccion."
+                "La asignatura seleccionada pertenece a otra seccion. Selecciona una asignatura de la misma seccion."
             )
         return cleaned_data
 

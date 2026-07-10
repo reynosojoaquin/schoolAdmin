@@ -10,12 +10,25 @@
   </div>
 </section>
 
-<form class="form-panel" method="post">
+<form class="form-panel" method="post" enctype="multipart/form-data">
   {% csrf_token %}
 
   {% if form.non_field_errors %}
     <div class="form-errors">{{ form.non_field_errors }}</div>
   {% endif %}
+
+  <div class="person-photo-preview" data-photo-preview>
+    {% if object.photo_display_url %}
+      <img data-photo-preview-img src="{{ object.photo_display_url }}" alt="Foto de {{ object }}">
+    {% else %}
+      <span class="person-avatar placeholder" data-photo-preview-placeholder>{{ object.initials|default:"?" }}</span>
+      <img data-photo-preview-img src="" alt="Vista previa de la foto" hidden>
+    {% endif %}
+    <div>
+      <strong>{% if object %}{{ object }}{% else %}Nueva foto{% endif %}</strong>
+      <small>Vista previa antes de guardar.</small>
+    </div>
+  </div>
 
   <div class="form-grid">
     {% for field in form %}
@@ -37,4 +50,41 @@
     <a class="btn-secondary" href="{% url cancel_url_name %}">Cancelar</a>
   </div>
 </form>
+
+<script>
+  (function () {
+    const input = document.querySelector('input[type="file"][name="photo_url"]');
+    const preview = document.querySelector("[data-photo-preview]");
+
+    if (!input || !preview) {
+      return;
+    }
+
+    const image = preview.querySelector("[data-photo-preview-img]");
+    const placeholder = preview.querySelector("[data-photo-preview-placeholder]");
+
+    input.addEventListener("change", function () {
+      const file = input.files && input.files[0];
+
+      if (!file) {
+        return;
+      }
+
+      if (!file.type.startsWith("image/")) {
+        input.value = "";
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.addEventListener("load", function () {
+        image.src = reader.result;
+        image.hidden = false;
+        if (placeholder) {
+          placeholder.hidden = true;
+        }
+      });
+      reader.readAsDataURL(file);
+    });
+  })();
+</script>
 {% endblock %}

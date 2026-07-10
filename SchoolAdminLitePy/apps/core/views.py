@@ -1,3 +1,4 @@
+from datetime import date
 from decimal import Decimal, InvalidOperation
 
 from django import forms
@@ -5,6 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import Group, User
+from django.db import transaction
 from django.db.models import Avg, Count
 from django.db.models.deletion import ProtectedError
 from django.db.models import Q
@@ -21,10 +23,21 @@ from openpyxl.utils import get_column_letter
 
 from .forms import (
     AdministrativeEmployeeForm,
+    BankAccountForm,
+    BankReconciliationForm,
+    ChequeForm,
+    ConsumableItemForm,
+    ConsumableMovementForm,
     CourseForm,
+    EquipmentCategoryForm,
+    EquipmentItemForm,
+    EquipmentLoanForm,
+    ExpenseForm,
     GradeImportForm,
+    JournalEntryForm,
     RoleForm,
     SectionForm,
+    StaffAssignmentForm,
     StudentForm,
     StudentImportForm,
     SubjectForm,
@@ -35,12 +48,24 @@ from .forms import (
 from .importers import commit_student_import, read_student_rows_from_excel
 from .models import (
     AdministrativeEmployee,
+    Attendance,
+    BankAccount,
+    BankReconciliation,
+    Cheque,
     Competency,
+    ConsumableItem,
+    ConsumableMovement,
     Course,
+    EquipmentCategory,
+    EquipmentItem,
+    EquipmentLoan,
     Enrollment,
+    Expense,
     Grade,
     GradeCompletion,
+    JournalEntry,
     Section,
+    StaffAssignment,
     Student,
     Subject,
     SubjectCompetency,
@@ -80,6 +105,12 @@ def can_manage(user):
 
 def can_manage_people(user):
     return user.is_authenticated and (user.is_superuser or user.has_perm(MANAGE_PEOPLE))
+
+
+def can_manage_administration(user):
+    return user.is_authenticated and (
+        user.is_superuser or user.has_perm(MANAGE_PEOPLE) or user.has_perm(MANAGE_USERS)
+    )
 
 
 def can_manage_academic(user):
@@ -128,6 +159,8 @@ def visible_grades_for_user(user):
         "enrollment__student",
         "enrollment__course",
         "enrollment__section",
+        "subject__section",
+        "subject__section__course",
         "subject",
     ).distinct()
 
@@ -140,6 +173,11 @@ class ManagementAccessMixin(LoginRequiredMixin, UserPassesTestMixin):
 class PeopleAccessMixin(LoginRequiredMixin, UserPassesTestMixin):
     def test_func(self):
         return can_manage_people(self.request.user)
+
+
+class AdministrationAccessMixin(LoginRequiredMixin, UserPassesTestMixin):
+    def test_func(self):
+        return can_manage_administration(self.request.user)
 
 
 class AcademicSetupAccessMixin(LoginRequiredMixin, UserPassesTestMixin):
@@ -309,6 +347,57 @@ class AcademicDeleteView(AcademicSetupAccessMixin, DeleteView):
         return redirect(self.success_url)
 
 
+class AdministrationListView(AdministrationAccessMixin, ListView):
+    template_name = "core/academic_list.html"
+    paginate_by = 20
+    search_placeholder = "Buscar..."
+    create_url_name = ""
+    edit_url_name = ""
+    section_label = "Administracion"
+    columns = []
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        query = self.request.GET.get("q", "").strip()
+        if query:
+            queryset = self.apply_search(queryset, query)
+        return queryset
+
+    def apply_search(self, queryset, query):
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["query"] = self.request.GET.get("q", "").strip()
+        context["title"] = self.title
+        context["section_label"] = self.section_label
+        context["create_url_name"] = self.create_url_name
+        context["edit_url_name"] = self.edit_url_name
+        context["search_placeholder"] = self.search_placeholder
+        context["columns"] = self.columns
+        return context
+
+
+class AdministrationCreateView(AdministrationAccessMixin, CreateView):
+    template_name = "core/academic_form.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["title"] = self.title
+        context["cancel_url_name"] = self.cancel_url_name
+        return context
+
+
+class AdministrationUpdateView(AdministrationAccessMixin, UpdateView):
+    template_name = "core/academic_form.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["title"] = self.title
+        context["cancel_url_name"] = self.cancel_url_name
+        return context
+
+
 class StudentListView(PersonListView):
     model = Student
     title = "Estudiantes"
@@ -446,7 +535,7 @@ class CourseDeleteView(AcademicDeleteView):
     def get_related_summary(self):
         return [
             ("Secciones", self.object.sections.count()),
-            ("Asignaturas", self.object.subjects.count()),
+            ("Asignaturas", Subject.objects.filter(section__course=self.object).count()),
             ("Inscripciones", self.object.enrollments.count()),
         ]
 
@@ -570,6 +659,201 @@ class SectionStudentsView(AcademicSetupAccessMixin, ListView):
         return context
 
 
+def course_number(course):
+    digits = "".join(ch for ch in course.name if ch.isdigit())
+    return int(digits) if digits else None
+
+
+def previous_course_for_section(section):
+    number = course_number(section.course)
+    if not number or number <= 1:
+        return None
+    return Course.objects.filter(name=str(number - 1)).first()
+
+
+class SectionEnrollmentView(AcademicSetupAccessMixin, View):
+    template_name = "core/section_enrollment.html"
+
+    def get_section(self):
+        return get_object_or_404(Section.objects.select_related("course"), pk=self.kwargs["pk"])
+
+    def get_candidates(self, section):
+        already_enrolled = Enrollment.objects.filter(
+            school_year=section.school_year,
+            active=True,
+        ).values("student_id")
+        filters = Q(new_admission=True)
+        previous_course = previous_course_for_section(section)
+        if previous_course:
+            filters |= Q(
+                promoted=True,
+                enrollments__course=previous_course,
+                enrollments__active=True,
+            )
+
+        queryset = (
+            Student.objects.filter(active=True)
+            .filter(filters)
+            .exclude(pk__in=already_enrolled)
+            .distinct()
+            .order_by("last_name", "first_name", "id")
+        )
+        query = self.request.GET.get("q", "").strip()
+        if query:
+            queryset = queryset.filter(
+                Q(first_name__icontains=query)
+                | Q(last_name__icontains=query)
+                | Q(document_id__icontains=query)
+                | Q(sigerd_id__icontains=query)
+            )
+        return queryset
+
+    def render_page(self, request, section):
+        candidates = self.get_candidates(section)
+        return render(
+            request,
+            self.template_name,
+            {
+                "section": section,
+                "previous_course": previous_course_for_section(section),
+                "query": request.GET.get("q", "").strip(),
+                "candidates": candidates[:200],
+                "candidate_count": candidates.count(),
+            },
+        )
+
+    def get(self, request, *args, **kwargs):
+        return self.render_page(request, self.get_section())
+
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        section = self.get_section()
+        student_ids = request.POST.getlist("students")
+        if not student_ids:
+            messages.error(request, "Selecciona al menos un estudiante para inscribir.")
+            return self.render_page(request, section)
+
+        candidate_ids = set(str(pk) for pk in self.get_candidates(section).values_list("pk", flat=True))
+        selected_ids = [student_id for student_id in student_ids if student_id in candidate_ids]
+        students = Student.objects.filter(pk__in=selected_ids, active=True)
+        enrolled_count = 0
+        for student in students:
+            enrollment, created = Enrollment.objects.get_or_create(
+                student=student,
+                course=section.course,
+                school_year=section.school_year,
+                defaults={"section": section, "active": True},
+            )
+            if not created and enrollment.section_id != section.id:
+                enrollment.section = section
+                enrollment.active = True
+                enrollment.save(update_fields=["section", "active"])
+            elif not created and not enrollment.active:
+                enrollment.active = True
+                enrollment.save(update_fields=["active"])
+
+            student.promoted = False
+            student.new_admission = False
+            student.save(update_fields=["promoted", "new_admission"])
+            enrolled_count += 1
+
+        messages.success(request, f"Se inscribieron {enrolled_count} estudiantes en {section}.")
+        return redirect("core:section_students", pk=section.pk)
+
+
+class SectionAttendanceView(AcademicAccessMixin, View):
+    template_name = "core/section_attendance.html"
+
+    def get_section(self):
+        section_queryset = Section.objects.select_related("course")
+        if not can_view_all_academic(self.request.user):
+            section_ids = visible_assignments_for_user(self.request.user).values("section_id")
+            section_queryset = section_queryset.filter(pk__in=section_ids)
+        return get_object_or_404(section_queryset, pk=self.kwargs["pk"])
+
+    def get_attendance_date(self):
+        raw_date = self.request.GET.get("date") or self.request.POST.get("date")
+        if raw_date:
+            try:
+                return date.fromisoformat(raw_date)
+            except ValueError:
+                return date.today()
+        return date.today()
+
+    def get_enrollments(self, section):
+        return (
+            Enrollment.objects.filter(section=section, active=True)
+            .select_related("student")
+            .order_by("student__last_name", "student__first_name", "student__id")
+        )
+
+    def build_rows(self, section, attendance_date):
+        enrollments = self.get_enrollments(section)
+        attendance_by_enrollment = {
+            attendance.enrollment_id: attendance
+            for attendance in Attendance.objects.filter(enrollment__in=enrollments, date=attendance_date)
+        }
+        rows = []
+        for enrollment in enrollments:
+            attendance = attendance_by_enrollment.get(enrollment.id)
+            rows.append(
+                {
+                    "enrollment": enrollment,
+                    "attendance": attendance,
+                    "status": attendance.status if attendance else Attendance.PRESENT,
+                    "note": attendance.note if attendance else "",
+                }
+            )
+        return rows
+
+    def render_page(self, request, section, attendance_date):
+        rows = self.build_rows(section, attendance_date)
+        status_counts = {choice: 0 for choice, _ in Attendance.STATUS_CHOICES}
+        for row in rows:
+            status_counts[row["status"]] = status_counts.get(row["status"], 0) + 1
+        return render(
+            request,
+            self.template_name,
+            {
+                "section": section,
+                "attendance_date": attendance_date,
+                "rows": rows,
+                "status_choices": Attendance.STATUS_CHOICES,
+                "status_counts": status_counts,
+            },
+        )
+
+    def get(self, request, *args, **kwargs):
+        section = self.get_section()
+        return self.render_page(request, section, self.get_attendance_date())
+
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        section = self.get_section()
+        attendance_date = self.get_attendance_date()
+        enrollments = self.get_enrollments(section)
+        saved_count = 0
+
+        for enrollment in enrollments:
+            status = request.POST.get(f"status_{enrollment.id}", Attendance.PRESENT)
+            if status not in dict(Attendance.STATUS_CHOICES):
+                status = Attendance.PRESENT
+            note = request.POST.get(f"note_{enrollment.id}", "").strip()[:160]
+            Attendance.objects.update_or_create(
+                enrollment=enrollment,
+                date=attendance_date,
+                defaults={
+                    "status": status,
+                    "note": note,
+                    "recorded_by": request.user,
+                },
+            )
+            saved_count += 1
+
+        messages.success(request, f"Asistencia guardada para {saved_count} estudiantes.")
+        return redirect(f"{request.path}?date={attendance_date.isoformat()}")
+
+
 class SectionTeachingAssignmentsView(AcademicSetupAccessMixin, ListView):
     template_name = "core/section_assignments.html"
     paginate_by = 30
@@ -604,10 +888,11 @@ class SubjectListView(AcademicListView):
     title = "Asignaturas"
     create_url_name = "core:subject_create"
     edit_url_name = "core:subject_update"
-    search_placeholder = "Buscar por asignatura, curso o responsable"
+    search_placeholder = "Buscar por asignatura, seccion, curso o responsable"
     columns = [
         ("name", "Asignatura"),
-        ("course", "Curso"),
+        ("section", "Seccion"),
+        ("weekly_hours", "Horas"),
         ("responsible", "Responsable"),
     ]
     row_actions = [
@@ -617,8 +902,7 @@ class SubjectListView(AcademicListView):
 
     def get_queryset(self):
         queryset = (
-            Subject.objects.select_related("course", "responsible")
-            .filter(course__sections__isnull=False)
+            Subject.objects.select_related("section", "section__course", "responsible")
             .distinct()
         )
         query = self.request.GET.get("q", "").strip()
@@ -629,7 +913,9 @@ class SubjectListView(AcademicListView):
     def apply_search(self, queryset, query):
         return queryset.filter(
             Q(name__icontains=query)
-            | Q(course__name__icontains=query)
+            | Q(section__name__icontains=query)
+            | Q(section__course__name__icontains=query)
+            | Q(section__school_year__icontains=query)
             | Q(responsible__first_name__icontains=query)
             | Q(responsible__last_name__icontains=query)
         )
@@ -687,6 +973,7 @@ class TeachingAssignmentListView(AcademicListView):
             "section",
             "section__course",
             "subject",
+            "subject__section",
             "teacher",
         )
         query = self.request.GET.get("q", "").strip()
@@ -1647,6 +1934,450 @@ class GradeStatsView(AcademicAccessMixin, View):
             )[:50],
         }
         return render(request, self.template_name, context)
+
+
+class EquipmentCategoryListView(AdministrationListView):
+    model = EquipmentCategory
+    title = "Categorias de equipos"
+    create_url_name = "core:equipment_category_create"
+    edit_url_name = "core:equipment_category_update"
+    search_placeholder = "Buscar categoria"
+    columns = [("name", "Categoria"), ("active", "Estado")]
+
+    def apply_search(self, queryset, query):
+        return queryset.filter(Q(name__icontains=query) | Q(description__icontains=query))
+
+
+class EquipmentCategoryCreateView(AdministrationCreateView):
+    model = EquipmentCategory
+    form_class = EquipmentCategoryForm
+    title = "Nueva categoria de equipo"
+    success_url = reverse_lazy("core:equipment_category_list")
+    cancel_url_name = "core:equipment_category_list"
+
+
+class EquipmentCategoryUpdateView(AdministrationUpdateView):
+    model = EquipmentCategory
+    form_class = EquipmentCategoryForm
+    title = "Editar categoria de equipo"
+    success_url = reverse_lazy("core:equipment_category_list")
+    cancel_url_name = "core:equipment_category_list"
+
+
+class EquipmentItemListView(AdministrationListView):
+    model = EquipmentItem
+    title = "Inventario de equipos"
+    create_url_name = "core:equipment_item_create"
+    edit_url_name = "core:equipment_item_update"
+    search_placeholder = "Buscar por codigo, equipo, marca o ubicacion"
+    columns = [
+        ("code", "Codigo"),
+        ("name", "Equipo"),
+        ("category", "Categoria"),
+        ("status", "Estado"),
+        ("location", "Ubicacion"),
+    ]
+
+    def get_queryset(self):
+        queryset = EquipmentItem.objects.select_related("category")
+        query = self.request.GET.get("q", "").strip()
+        if query:
+            queryset = self.apply_search(queryset, query)
+        return queryset
+
+    def apply_search(self, queryset, query):
+        return queryset.filter(
+            Q(code__icontains=query)
+            | Q(name__icontains=query)
+            | Q(brand__icontains=query)
+            | Q(model__icontains=query)
+            | Q(serial_number__icontains=query)
+            | Q(location__icontains=query)
+            | Q(category__name__icontains=query)
+        )
+
+
+class EquipmentItemCreateView(AdministrationCreateView):
+    model = EquipmentItem
+    form_class = EquipmentItemForm
+    title = "Nuevo equipo"
+    success_url = reverse_lazy("core:equipment_item_list")
+    cancel_url_name = "core:equipment_item_list"
+
+
+class EquipmentItemUpdateView(AdministrationUpdateView):
+    model = EquipmentItem
+    form_class = EquipmentItemForm
+    title = "Editar equipo"
+    success_url = reverse_lazy("core:equipment_item_list")
+    cancel_url_name = "core:equipment_item_list"
+
+
+class EquipmentLoanListView(AdministrationListView):
+    model = EquipmentLoan
+    title = "Prestamos de equipos"
+    create_url_name = "core:equipment_loan_create"
+    edit_url_name = "core:equipment_loan_update"
+    search_placeholder = "Buscar por equipo o persona"
+    columns = [
+        ("item", "Equipo"),
+        ("borrower_name", "Recibido por"),
+        ("loan_date", "Prestamo"),
+        ("due_date", "Esperado"),
+        ("status", "Estado"),
+    ]
+
+    def get_queryset(self):
+        queryset = EquipmentLoan.objects.select_related("item", "borrowed_by")
+        query = self.request.GET.get("q", "").strip()
+        if query:
+            queryset = self.apply_search(queryset, query)
+        return queryset
+
+    def apply_search(self, queryset, query):
+        return queryset.filter(
+            Q(item__name__icontains=query)
+            | Q(item__code__icontains=query)
+            | Q(borrower_name__icontains=query)
+            | Q(borrowed_by__first_name__icontains=query)
+            | Q(borrowed_by__last_name__icontains=query)
+        )
+
+
+class EquipmentLoanCreateView(AdministrationCreateView):
+    model = EquipmentLoan
+    form_class = EquipmentLoanForm
+    title = "Nuevo prestamo de equipo"
+    success_url = reverse_lazy("core:equipment_loan_list")
+    cancel_url_name = "core:equipment_loan_list"
+
+
+class EquipmentLoanUpdateView(AdministrationUpdateView):
+    model = EquipmentLoan
+    form_class = EquipmentLoanForm
+    title = "Editar prestamo de equipo"
+    success_url = reverse_lazy("core:equipment_loan_list")
+    cancel_url_name = "core:equipment_loan_list"
+
+
+class ConsumableItemListView(AdministrationListView):
+    model = ConsumableItem
+    title = "Material gastable"
+    create_url_name = "core:consumable_item_create"
+    edit_url_name = "core:consumable_item_update"
+    search_placeholder = "Buscar material"
+    columns = [
+        ("name", "Material"),
+        ("category", "Categoria"),
+        ("quantity_available", "Existencia"),
+        ("unit", "Unidad"),
+        ("stock_status", "Estado"),
+    ]
+
+    def apply_search(self, queryset, query):
+        return queryset.filter(Q(name__icontains=query) | Q(category__icontains=query))
+
+
+class ConsumableItemCreateView(AdministrationCreateView):
+    model = ConsumableItem
+    form_class = ConsumableItemForm
+    title = "Nuevo material gastable"
+    success_url = reverse_lazy("core:consumable_item_list")
+    cancel_url_name = "core:consumable_item_list"
+
+
+class ConsumableItemUpdateView(AdministrationUpdateView):
+    model = ConsumableItem
+    form_class = ConsumableItemForm
+    title = "Editar material gastable"
+    success_url = reverse_lazy("core:consumable_item_list")
+    cancel_url_name = "core:consumable_item_list"
+
+
+class ConsumableMovementListView(AdministrationListView):
+    model = ConsumableMovement
+    title = "Movimientos de material"
+    create_url_name = "core:consumable_movement_create"
+    edit_url_name = "core:consumable_movement_update"
+    search_placeholder = "Buscar por material o destino"
+    columns = [
+        ("date", "Fecha"),
+        ("item", "Material"),
+        ("movement_type", "Tipo"),
+        ("quantity", "Cantidad"),
+        ("delivered_to", "Destino"),
+    ]
+
+    def get_queryset(self):
+        queryset = ConsumableMovement.objects.select_related("item")
+        query = self.request.GET.get("q", "").strip()
+        if query:
+            queryset = self.apply_search(queryset, query)
+        return queryset
+
+    def apply_search(self, queryset, query):
+        return queryset.filter(Q(item__name__icontains=query) | Q(delivered_to__icontains=query) | Q(notes__icontains=query))
+
+
+class ConsumableMovementCreateView(AdministrationCreateView):
+    model = ConsumableMovement
+    form_class = ConsumableMovementForm
+    title = "Nuevo movimiento de material"
+    success_url = reverse_lazy("core:consumable_movement_list")
+    cancel_url_name = "core:consumable_movement_list"
+
+
+class ConsumableMovementUpdateView(AdministrationUpdateView):
+    model = ConsumableMovement
+    form_class = ConsumableMovementForm
+    title = "Editar movimiento de material"
+    success_url = reverse_lazy("core:consumable_movement_list")
+    cancel_url_name = "core:consumable_movement_list"
+
+
+class ExpenseListView(AdministrationListView):
+    model = Expense
+    title = "Gastos"
+    create_url_name = "core:expense_create"
+    edit_url_name = "core:expense_update"
+    search_placeholder = "Buscar gasto, proveedor o categoria"
+    columns = [
+        ("date", "Fecha"),
+        ("category", "Categoria"),
+        ("description", "Descripcion"),
+        ("vendor", "Proveedor"),
+        ("amount", "Monto"),
+        ("payment_method", "Pago"),
+    ]
+
+    def apply_search(self, queryset, query):
+        return queryset.filter(
+            Q(category__icontains=query)
+            | Q(description__icontains=query)
+            | Q(vendor__icontains=query)
+            | Q(cheque_number__icontains=query)
+        )
+
+
+class ExpenseCreateView(AdministrationCreateView):
+    model = Expense
+    form_class = ExpenseForm
+    title = "Nuevo gasto"
+    success_url = reverse_lazy("core:expense_list")
+    cancel_url_name = "core:expense_list"
+
+
+class ExpenseUpdateView(AdministrationUpdateView):
+    model = Expense
+    form_class = ExpenseForm
+    title = "Editar gasto"
+    success_url = reverse_lazy("core:expense_list")
+    cancel_url_name = "core:expense_list"
+
+
+class ChequeListView(AdministrationListView):
+    model = Cheque
+    title = "Cheques"
+    create_url_name = "core:cheque_create"
+    edit_url_name = "core:cheque_update"
+    search_placeholder = "Buscar cheque, beneficiario o concepto"
+    columns = [
+        ("number", "Numero"),
+        ("date", "Fecha"),
+        ("payee", "Beneficiario"),
+        ("concept", "Concepto"),
+        ("amount", "Monto"),
+        ("status", "Estado"),
+    ]
+
+    def apply_search(self, queryset, query):
+        return queryset.filter(Q(number__icontains=query) | Q(payee__icontains=query) | Q(concept__icontains=query))
+
+
+class ChequeCreateView(AdministrationCreateView):
+    model = Cheque
+    form_class = ChequeForm
+    title = "Nuevo cheque"
+    success_url = reverse_lazy("core:cheque_list")
+    cancel_url_name = "core:cheque_list"
+
+
+class ChequeUpdateView(AdministrationUpdateView):
+    model = Cheque
+    form_class = ChequeForm
+    title = "Editar cheque"
+    success_url = reverse_lazy("core:cheque_list")
+    cancel_url_name = "core:cheque_list"
+
+
+class BankAccountListView(AdministrationListView):
+    model = BankAccount
+    title = "Cuentas bancarias"
+    create_url_name = "core:bank_account_create"
+    edit_url_name = "core:bank_account_update"
+    search_placeholder = "Buscar banco o cuenta"
+    columns = [
+        ("name", "Cuenta"),
+        ("bank_name", "Banco"),
+        ("account_number", "Numero"),
+        ("account_type", "Tipo"),
+        ("active", "Estado"),
+    ]
+
+    def apply_search(self, queryset, query):
+        return queryset.filter(
+            Q(name__icontains=query) | Q(bank_name__icontains=query) | Q(account_number__icontains=query)
+        )
+
+
+class BankAccountCreateView(AdministrationCreateView):
+    model = BankAccount
+    form_class = BankAccountForm
+    title = "Nueva cuenta bancaria"
+    success_url = reverse_lazy("core:bank_account_list")
+    cancel_url_name = "core:bank_account_list"
+
+
+class BankAccountUpdateView(AdministrationUpdateView):
+    model = BankAccount
+    form_class = BankAccountForm
+    title = "Editar cuenta bancaria"
+    success_url = reverse_lazy("core:bank_account_list")
+    cancel_url_name = "core:bank_account_list"
+
+
+class BankReconciliationListView(AdministrationListView):
+    model = BankReconciliation
+    title = "Conciliacion bancaria"
+    create_url_name = "core:bank_reconciliation_create"
+    edit_url_name = "core:bank_reconciliation_update"
+    search_placeholder = "Buscar cuenta o periodo"
+    columns = [
+        ("period", "Periodo"),
+        ("bank_account", "Cuenta"),
+        ("statement_balance", "Saldo banco"),
+        ("book_balance", "Saldo libro"),
+        ("difference", "Diferencia"),
+        ("status", "Estado"),
+    ]
+
+    def get_queryset(self):
+        queryset = BankReconciliation.objects.select_related("bank_account")
+        query = self.request.GET.get("q", "").strip()
+        if query:
+            queryset = self.apply_search(queryset, query)
+        return queryset
+
+    def apply_search(self, queryset, query):
+        return queryset.filter(
+            Q(period__icontains=query)
+            | Q(bank_account__name__icontains=query)
+            | Q(bank_account__bank_name__icontains=query)
+            | Q(bank_account__account_number__icontains=query)
+        )
+
+
+class BankReconciliationCreateView(AdministrationCreateView):
+    model = BankReconciliation
+    form_class = BankReconciliationForm
+    title = "Nueva conciliacion bancaria"
+    success_url = reverse_lazy("core:bank_reconciliation_list")
+    cancel_url_name = "core:bank_reconciliation_list"
+
+
+class BankReconciliationUpdateView(AdministrationUpdateView):
+    model = BankReconciliation
+    form_class = BankReconciliationForm
+    title = "Editar conciliacion bancaria"
+    success_url = reverse_lazy("core:bank_reconciliation_list")
+    cancel_url_name = "core:bank_reconciliation_list"
+
+
+class JournalEntryListView(AdministrationListView):
+    model = JournalEntry
+    title = "Diario"
+    create_url_name = "core:journal_entry_create"
+    edit_url_name = "core:journal_entry_update"
+    search_placeholder = "Buscar asiento, referencia o cuenta"
+    columns = [
+        ("date", "Fecha"),
+        ("reference", "Referencia"),
+        ("description", "Descripcion"),
+        ("debit_account", "Debito"),
+        ("credit_account", "Credito"),
+        ("amount", "Monto"),
+    ]
+
+    def apply_search(self, queryset, query):
+        return queryset.filter(
+            Q(reference__icontains=query)
+            | Q(description__icontains=query)
+            | Q(debit_account__icontains=query)
+            | Q(credit_account__icontains=query)
+        )
+
+
+class JournalEntryCreateView(AdministrationCreateView):
+    model = JournalEntry
+    form_class = JournalEntryForm
+    title = "Nuevo asiento de diario"
+    success_url = reverse_lazy("core:journal_entry_list")
+    cancel_url_name = "core:journal_entry_list"
+
+
+class JournalEntryUpdateView(AdministrationUpdateView):
+    model = JournalEntry
+    form_class = JournalEntryForm
+    title = "Editar asiento de diario"
+    success_url = reverse_lazy("core:journal_entry_list")
+    cancel_url_name = "core:journal_entry_list"
+
+
+class StaffAssignmentListView(AdministrationListView):
+    model = StaffAssignment
+    title = "Asignaciones de personal"
+    create_url_name = "core:staff_assignment_create"
+    edit_url_name = "core:staff_assignment_update"
+    search_placeholder = "Buscar empleado, area o funcion"
+    columns = [
+        ("employee", "Empleado"),
+        ("area", "Area"),
+        ("role", "Funcion"),
+        ("start_date", "Desde"),
+        ("end_date", "Hasta"),
+        ("active", "Estado"),
+    ]
+
+    def get_queryset(self):
+        queryset = StaffAssignment.objects.select_related("employee")
+        query = self.request.GET.get("q", "").strip()
+        if query:
+            queryset = self.apply_search(queryset, query)
+        return queryset
+
+    def apply_search(self, queryset, query):
+        return queryset.filter(
+            Q(employee__first_name__icontains=query)
+            | Q(employee__last_name__icontains=query)
+            | Q(area__icontains=query)
+            | Q(role__icontains=query)
+        )
+
+
+class StaffAssignmentCreateView(AdministrationCreateView):
+    model = StaffAssignment
+    form_class = StaffAssignmentForm
+    title = "Nueva asignacion de personal"
+    success_url = reverse_lazy("core:staff_assignment_list")
+    cancel_url_name = "core:staff_assignment_list"
+
+
+class StaffAssignmentUpdateView(AdministrationUpdateView):
+    model = StaffAssignment
+    form_class = StaffAssignmentForm
+    title = "Editar asignacion de personal"
+    success_url = reverse_lazy("core:staff_assignment_list")
+    cancel_url_name = "core:staff_assignment_list"
 
 
 class TeacherListView(PersonListView):

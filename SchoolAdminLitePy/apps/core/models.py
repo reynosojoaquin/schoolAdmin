@@ -94,7 +94,7 @@ class PersonBase(TimeStampedModel):
     active = models.BooleanField("activo", default=True)
     email = models.EmailField("correo", blank=True)
     gender = models.CharField("sexo", max_length=20, blank=True)
-    photo_url = models.CharField("url de foto", max_length=300, blank=True)
+    photo_url = models.FileField("foto", upload_to="people/photos/", blank=True)
     nationality = models.ForeignKey(
         Nationality,
         on_delete=models.SET_NULL,
@@ -120,6 +120,21 @@ class PersonBase(TimeStampedModel):
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}".strip()
+
+    @property
+    def initials(self):
+        first = self.first_name[:1] if self.first_name else ""
+        last = self.last_name[:1] if self.last_name else ""
+        return f"{first}{last}".upper() or "?"
+
+    @property
+    def photo_display_url(self):
+        if not self.photo_url:
+            return ""
+        value = str(self.photo_url)
+        if value.startswith(("http://", "https://", "/")):
+            return value
+        return self.photo_url.url
 
 
 class AddressType(TimeStampedModel):
@@ -247,13 +262,14 @@ class Section(TimeStampedModel):
 
 
 class Subject(TimeStampedModel):
-    course = models.ForeignKey(
-        Course,
+    section = models.ForeignKey(
+        Section,
         on_delete=models.PROTECT,
         related_name="subjects",
-        verbose_name="curso",
+        verbose_name="seccion",
     )
     name = models.CharField("nombre", max_length=120)
+    weekly_hours = models.PositiveSmallIntegerField("horas semanales", default=0)
     responsible = models.ForeignKey(
         "Teacher",
         on_delete=models.SET_NULL,
@@ -264,13 +280,13 @@ class Subject(TimeStampedModel):
     )
 
     class Meta:
-        ordering = ["course__name", "name"]
-        unique_together = [("course", "name")]
+        ordering = ["section__course__name", "section__name", "name"]
+        unique_together = [("section", "name")]
         verbose_name = "asignatura"
         verbose_name_plural = "asignaturas"
 
     def __str__(self):
-        return f"{self.name} - {self.course}"
+        return f"{self.name} - {self.section}"
 
     @property
     def active_assignments_count(self):
@@ -308,13 +324,15 @@ class TeachingAssignment(TimeStampedModel):
         return f"{self.section} - {self.subject.name} - {self.teacher}"
 
     def clean(self):
-        if self.section_id and self.subject_id and self.section.course_id != self.subject.course_id:
-            raise ValidationError("La asignatura debe pertenecer al mismo curso de la seccion.")
+        if self.section_id and self.subject_id and self.subject.section_id != self.section_id:
+            raise ValidationError("La asignatura debe pertenecer a la misma seccion.")
 
 
 class Student(PersonBase):
     sigerd_id = models.CharField("codigo SIGERD", max_length=40, blank=True)
     phone = models.CharField("telefono", max_length=30, blank=True)
+    promoted = models.BooleanField("promovido", default=False)
+    new_admission = models.BooleanField("nuevo ingreso", default=False)
     sector = models.ForeignKey(
         Sector,
         on_delete=models.SET_NULL,
@@ -403,6 +421,346 @@ class AdministrativeEmployee(PersonBase):
         ordering = ["last_name", "first_name"]
         verbose_name = "empleado administrativo"
         verbose_name_plural = "empleados administrativos"
+
+
+class EquipmentCategory(TimeStampedModel):
+    name = models.CharField("nombre", max_length=120, unique=True)
+    description = models.TextField("descripcion", blank=True)
+    active = models.BooleanField("activo", default=True)
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name = "categoria de equipo"
+        verbose_name_plural = "categorias de equipos"
+
+    def __str__(self):
+        return self.name
+
+
+class EquipmentItem(TimeStampedModel):
+    STATUS_AVAILABLE = "available"
+    STATUS_LOANED = "loaned"
+    STATUS_MAINTENANCE = "maintenance"
+    STATUS_RETIRED = "retired"
+    STATUS_CHOICES = [
+        (STATUS_AVAILABLE, "Disponible"),
+        (STATUS_LOANED, "Prestado"),
+        (STATUS_MAINTENANCE, "Mantenimiento"),
+        (STATUS_RETIRED, "Retirado"),
+    ]
+
+    code = models.CharField("codigo", max_length=60, unique=True)
+    name = models.CharField("nombre", max_length=160)
+    category = models.ForeignKey(
+        EquipmentCategory,
+        on_delete=models.PROTECT,
+        related_name="items",
+        verbose_name="categoria",
+    )
+    brand = models.CharField("marca", max_length=120, blank=True)
+    model = models.CharField("modelo", max_length=120, blank=True)
+    serial_number = models.CharField("numero de serie", max_length=120, blank=True)
+    location = models.CharField("ubicacion", max_length=160, blank=True)
+    acquisition_date = models.DateField("fecha de adquisicion", null=True, blank=True)
+    status = models.CharField("estado", max_length=20, choices=STATUS_CHOICES, default=STATUS_AVAILABLE)
+    notes = models.TextField("notas", blank=True)
+
+    class Meta:
+        ordering = ["name", "code"]
+        verbose_name = "equipo"
+        verbose_name_plural = "equipos"
+
+    def __str__(self):
+        return f"{self.name} ({self.code})"
+
+
+class EquipmentLoan(TimeStampedModel):
+    STATUS_ACTIVE = "active"
+    STATUS_RETURNED = "returned"
+    STATUS_OVERDUE = "overdue"
+    STATUS_CHOICES = [
+        (STATUS_ACTIVE, "Activo"),
+        (STATUS_RETURNED, "Devuelto"),
+        (STATUS_OVERDUE, "Vencido"),
+    ]
+
+    item = models.ForeignKey(EquipmentItem, on_delete=models.PROTECT, related_name="loans", verbose_name="equipo")
+    borrowed_by = models.ForeignKey(
+        AdministrativeEmployee,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="equipment_loans",
+        verbose_name="empleado responsable",
+    )
+    borrower_name = models.CharField("recibido por", max_length=160)
+    loan_date = models.DateField("fecha de prestamo")
+    due_date = models.DateField("fecha de devolucion esperada", null=True, blank=True)
+    return_date = models.DateField("fecha de devolucion", null=True, blank=True)
+    status = models.CharField("estado", max_length=20, choices=STATUS_CHOICES, default=STATUS_ACTIVE)
+    notes = models.TextField("notas", blank=True)
+
+    class Meta:
+        ordering = ["-loan_date", "item__name"]
+        verbose_name = "prestamo de equipo"
+        verbose_name_plural = "prestamos de equipos"
+
+    def __str__(self):
+        return f"{self.item} - {self.borrower_name}"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        new_status = EquipmentItem.STATUS_LOANED
+        if self.status == self.STATUS_RETURNED or self.return_date:
+            new_status = EquipmentItem.STATUS_AVAILABLE
+        if self.item.status != new_status:
+            self.item.status = new_status
+            self.item.save(update_fields=["status", "updated_at"])
+
+
+class ConsumableItem(TimeStampedModel):
+    name = models.CharField("nombre", max_length=160, unique=True)
+    category = models.CharField("categoria", max_length=120, blank=True)
+    unit = models.CharField("unidad", max_length=40, default="unidad")
+    quantity_available = models.DecimalField("existencia", max_digits=10, decimal_places=2, default=0)
+    minimum_stock = models.DecimalField("minimo", max_digits=10, decimal_places=2, default=0)
+    active = models.BooleanField("activo", default=True)
+    notes = models.TextField("notas", blank=True)
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name = "material gastable"
+        verbose_name_plural = "materiales gastables"
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def stock_status(self):
+        if self.quantity_available <= 0:
+            return "Agotado"
+        if self.minimum_stock and self.quantity_available <= self.minimum_stock:
+            return "Bajo"
+        return "Disponible"
+
+
+class ConsumableMovement(TimeStampedModel):
+    TYPE_IN = "in"
+    TYPE_OUT = "out"
+    TYPE_ADJUSTMENT = "adjustment"
+    TYPE_CHOICES = [
+        (TYPE_IN, "Entrada"),
+        (TYPE_OUT, "Salida"),
+        (TYPE_ADJUSTMENT, "Ajuste"),
+    ]
+
+    item = models.ForeignKey(ConsumableItem, on_delete=models.PROTECT, related_name="movements", verbose_name="material")
+    movement_type = models.CharField("tipo", max_length=20, choices=TYPE_CHOICES)
+    quantity = models.DecimalField("cantidad", max_digits=10, decimal_places=2)
+    date = models.DateField("fecha")
+    delivered_to = models.CharField("entregado a", max_length=160, blank=True)
+    notes = models.TextField("notas", blank=True)
+
+    class Meta:
+        ordering = ["-date", "-id"]
+        verbose_name = "movimiento de material gastable"
+        verbose_name_plural = "movimientos de material gastable"
+
+    def __str__(self):
+        return f"{self.get_movement_type_display()} {self.quantity} {self.item}"
+
+    def quantity_delta(self):
+        if self.movement_type == self.TYPE_OUT:
+            return -self.quantity
+        return self.quantity
+
+    def save(self, *args, **kwargs):
+        old_delta = 0
+        if self.pk:
+            old = ConsumableMovement.objects.select_related("item").get(pk=self.pk)
+            old_delta = old.quantity_delta()
+        super().save(*args, **kwargs)
+        delta = self.quantity_delta() - old_delta
+        if delta:
+            self.item.quantity_available += delta
+            self.item.save(update_fields=["quantity_available", "updated_at"])
+
+
+class Expense(TimeStampedModel):
+    PAYMENT_CASH = "cash"
+    PAYMENT_TRANSFER = "transfer"
+    PAYMENT_CHEQUE = "cheque"
+    PAYMENT_CHOICES = [
+        (PAYMENT_CASH, "Efectivo"),
+        (PAYMENT_TRANSFER, "Transferencia"),
+        (PAYMENT_CHEQUE, "Cheque"),
+    ]
+
+    date = models.DateField("fecha")
+    category = models.CharField("categoria", max_length=120)
+    description = models.CharField("descripcion", max_length=240)
+    vendor = models.CharField("proveedor", max_length=160, blank=True)
+    amount = models.DecimalField("monto", max_digits=12, decimal_places=2)
+    payment_method = models.CharField("forma de pago", max_length=20, choices=PAYMENT_CHOICES, default=PAYMENT_CASH)
+    cheque_number = models.CharField("numero de cheque", max_length=60, blank=True)
+    notes = models.TextField("notas", blank=True)
+
+    class Meta:
+        ordering = ["-date", "-id"]
+        verbose_name = "gasto"
+        verbose_name_plural = "gastos"
+
+    def __str__(self):
+        return f"{self.date} - {self.description}"
+
+
+class Cheque(TimeStampedModel):
+    STATUS_PENDING = "pending"
+    STATUS_DELIVERED = "delivered"
+    STATUS_CLEARED = "cleared"
+    STATUS_VOID = "void"
+    STATUS_CHOICES = [
+        (STATUS_PENDING, "Pendiente"),
+        (STATUS_DELIVERED, "Entregado"),
+        (STATUS_CLEARED, "Cobrado"),
+        (STATUS_VOID, "Anulado"),
+    ]
+
+    number = models.CharField("numero", max_length=60, unique=True)
+    date = models.DateField("fecha")
+    payee = models.CharField("beneficiario", max_length=180)
+    concept = models.CharField("concepto", max_length=240)
+    amount = models.DecimalField("monto", max_digits=12, decimal_places=2)
+    status = models.CharField("estado", max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    notes = models.TextField("notas", blank=True)
+
+    class Meta:
+        ordering = ["-date", "number"]
+        verbose_name = "cheque"
+        verbose_name_plural = "cheques"
+
+    def __str__(self):
+        return f"Cheque {self.number} - {self.payee}"
+
+
+class BankAccount(TimeStampedModel):
+    name = models.CharField("nombre", max_length=160)
+    bank_name = models.CharField("banco", max_length=160)
+    account_number = models.CharField("numero de cuenta", max_length=80, unique=True)
+    account_type = models.CharField("tipo de cuenta", max_length=80, blank=True)
+    active = models.BooleanField("activa", default=True)
+    notes = models.TextField("notas", blank=True)
+
+    class Meta:
+        ordering = ["bank_name", "name"]
+        verbose_name = "cuenta bancaria"
+        verbose_name_plural = "cuentas bancarias"
+
+    def __str__(self):
+        return f"{self.bank_name} - {self.name}"
+
+
+class BankReconciliation(TimeStampedModel):
+    STATUS_OPEN = "open"
+    STATUS_CLOSED = "closed"
+    STATUS_CHOICES = [
+        (STATUS_OPEN, "Abierta"),
+        (STATUS_CLOSED, "Cerrada"),
+    ]
+
+    bank_account = models.ForeignKey(
+        BankAccount,
+        on_delete=models.PROTECT,
+        related_name="reconciliations",
+        verbose_name="cuenta bancaria",
+    )
+    period = models.CharField("periodo", max_length=20, help_text="Ejemplo: 2025-09")
+    statement_balance = models.DecimalField("saldo banco", max_digits=12, decimal_places=2, default=0)
+    book_balance = models.DecimalField("saldo libro", max_digits=12, decimal_places=2, default=0)
+    deposits_in_transit = models.DecimalField("depositos en transito", max_digits=12, decimal_places=2, default=0)
+    outstanding_checks = models.DecimalField("cheques pendientes", max_digits=12, decimal_places=2, default=0)
+    bank_charges = models.DecimalField("cargos bancarios", max_digits=12, decimal_places=2, default=0)
+    adjustments = models.DecimalField("ajustes", max_digits=12, decimal_places=2, default=0)
+    status = models.CharField("estado", max_length=20, choices=STATUS_CHOICES, default=STATUS_OPEN)
+    notes = models.TextField("notas", blank=True)
+
+    class Meta:
+        ordering = ["-period", "bank_account__bank_name"]
+        unique_together = [("bank_account", "period")]
+        verbose_name = "conciliacion bancaria"
+        verbose_name_plural = "conciliaciones bancarias"
+
+    def __str__(self):
+        return f"{self.bank_account} - {self.period}"
+
+    @property
+    def adjusted_bank_balance(self):
+        return self.statement_balance + self.deposits_in_transit - self.outstanding_checks
+
+    @property
+    def adjusted_book_balance(self):
+        return self.book_balance - self.bank_charges + self.adjustments
+
+    @property
+    def difference(self):
+        return self.adjusted_bank_balance - self.adjusted_book_balance
+
+
+class JournalEntry(TimeStampedModel):
+    date = models.DateField("fecha")
+    reference = models.CharField("referencia", max_length=80, blank=True)
+    description = models.CharField("descripcion", max_length=240)
+    debit_account = models.CharField("cuenta debito", max_length=160)
+    credit_account = models.CharField("cuenta credito", max_length=160)
+    amount = models.DecimalField("monto", max_digits=12, decimal_places=2)
+    related_expense = models.ForeignKey(
+        Expense,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="journal_entries",
+        verbose_name="gasto relacionado",
+    )
+    related_cheque = models.ForeignKey(
+        Cheque,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="journal_entries",
+        verbose_name="cheque relacionado",
+    )
+    notes = models.TextField("notas", blank=True)
+
+    class Meta:
+        ordering = ["-date", "-id"]
+        verbose_name = "asiento de diario"
+        verbose_name_plural = "asientos de diario"
+
+    def __str__(self):
+        return f"{self.date} - {self.description}"
+
+
+class StaffAssignment(TimeStampedModel):
+    employee = models.ForeignKey(
+        AdministrativeEmployee,
+        on_delete=models.CASCADE,
+        related_name="staff_assignments",
+        verbose_name="empleado",
+    )
+    area = models.CharField("area", max_length=140)
+    role = models.CharField("funcion", max_length=160)
+    start_date = models.DateField("desde")
+    end_date = models.DateField("hasta", null=True, blank=True)
+    active = models.BooleanField("activo", default=True)
+    notes = models.TextField("notas", blank=True)
+
+    class Meta:
+        ordering = ["employee__last_name", "employee__first_name", "area"]
+        verbose_name = "asignacion de personal"
+        verbose_name_plural = "asignaciones de personal"
+
+    def __str__(self):
+        return f"{self.employee} - {self.area}"
 
 
 class Address(TimeStampedModel):
@@ -544,9 +902,7 @@ class Enrollment(TimeStampedModel):
     )
     section = models.ForeignKey(
         Section,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
+        on_delete=models.PROTECT,
         related_name="enrollments",
         verbose_name="seccion",
     )
@@ -560,8 +916,51 @@ class Enrollment(TimeStampedModel):
         verbose_name_plural = "inscripciones"
 
     def __str__(self):
-        section = f" {self.section.name}" if self.section else ""
-        return f"{self.student} - {self.course}{section} ({self.school_year})"
+        return f"{self.student} - {self.section} ({self.school_year})"
+
+    def clean(self):
+        if self.section_id and self.course_id and self.section.course_id != self.course_id:
+            raise ValidationError("La seccion debe pertenecer al curso seleccionado.")
+
+
+class Attendance(TimeStampedModel):
+    PRESENT = "present"
+    ABSENT = "absent"
+    LATE = "late"
+    EXCUSED = "excused"
+    STATUS_CHOICES = [
+        (PRESENT, "Presente"),
+        (ABSENT, "Ausente"),
+        (LATE, "Tarde"),
+        (EXCUSED, "Excusa"),
+    ]
+
+    enrollment = models.ForeignKey(
+        Enrollment,
+        on_delete=models.CASCADE,
+        related_name="attendances",
+        verbose_name="inscripcion",
+    )
+    date = models.DateField("fecha")
+    status = models.CharField("estado", max_length=12, choices=STATUS_CHOICES, default=PRESENT)
+    note = models.CharField("nota", max_length=160, blank=True)
+    recorded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="recorded_attendances",
+        verbose_name="registrado por",
+    )
+
+    class Meta:
+        ordering = ["-date", "enrollment__student__last_name", "enrollment__student__first_name"]
+        unique_together = [("enrollment", "date")]
+        verbose_name = "asistencia"
+        verbose_name_plural = "asistencias"
+
+    def __str__(self):
+        return f"{self.enrollment.student} - {self.date} - {self.get_status_display()}"
 
 
 class Grade(TimeStampedModel):

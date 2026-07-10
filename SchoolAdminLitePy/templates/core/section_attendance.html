@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Asistencia - {{ section }} - SchoolAdmin Lite{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <div>
+    <p class="eyebrow">Registro de asistencia</p>
+    <h1>{{ section }}</h1>
+    <p>{{ rows|length }} estudiantes · {{ attendance_date|date:"d/m/Y" }}</p>
+  </div>
+  <a class="btn-secondary" href="{% url 'core:my_sections' %}">Volver</a>
+</section>
+
+<form class="toolbar" method="get">
+  <input type="date" name="date" value="{{ attendance_date|date:'Y-m-d' }}">
+  <button type="submit">Ver fecha</button>
+</form>
+
+<section class="metrics compact attendance-summary">
+  <article><span>{{ status_counts.present }}</span><p>Presentes</p></article>
+  <article><span>{{ status_counts.absent }}</span><p>Ausentes</p></article>
+  <article><span>{{ status_counts.late }}</span><p>Tardes</p></article>
+  <article><span>{{ status_counts.excused }}</span><p>Excusas</p></article>
+</section>
+
+<form method="post">
+  {% csrf_token %}
+  <input type="hidden" name="date" value="{{ attendance_date|date:'Y-m-d' }}">
+
+  <section class="attendance-list">
+    {% for row in rows %}
+      <article class="attendance-item">
+        <div class="attendance-student">
+          <strong>{{ row.enrollment.student.last_name }}, {{ row.enrollment.student.first_name }}</strong>
+          <span>{{ row.enrollment.student.document_id|default:"Sin cedula" }}</span>
+        </div>
+        <div class="attendance-options" role="radiogroup" aria-label="Asistencia de {{ row.enrollment.student }}">
+          {% for value, label in status_choices %}
+            <label class="attendance-option status-{{ value }}">
+              <input type="radio" name="status_{{ row.enrollment.id }}" value="{{ value }}" {% if row.status == value %}checked{% endif %}>
+              <span>{{ label }}</span>
+            </label>
+          {% endfor %}
+        </div>
+        <input class="attendance-note" type="text" name="note_{{ row.enrollment.id }}" value="{{ row.note }}" placeholder="Nota opcional">
+      </article>
+    {% empty %}
+      <section class="table-panel">
+        <p class="empty">No hay estudiantes inscritos en esta seccion.</p>
+      </section>
+    {% endfor %}
+  </section>
+
+  {% if rows %}
+    <div class="attendance-savebar">
+      <button type="submit">Guardar asistencia</button>
+    </div>
+  {% endif %}
+</form>
+{% endblock %}

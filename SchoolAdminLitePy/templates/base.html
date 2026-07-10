@@ -148,6 +148,21 @@
               {% endif %}
             {% endif %}
 
+            {% if can_manage_administration %}
+              <p class="nav-header">ADMINISTRATIVO</p>
+              <a class="nav-link {% if 'equipment_item' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:equipment_item_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-staff"></use></svg><span>Inventario equipos</span></a>
+              <a class="nav-link {% if 'equipment_loan' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:equipment_loan_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-teaching"></use></svg><span>Prestamos equipos</span></a>
+              <a class="nav-link {% if 'consumable_item' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:consumable_item_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-courses"></use></svg><span>Material gastable</span></a>
+              <a class="nav-link {% if 'consumable_movement' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:consumable_movement_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-import"></use></svg><span>Movimientos material</span></a>
+              <a class="nav-link {% if 'expense' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:expense_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-grades"></use></svg><span>Gastos</span></a>
+              <a class="nav-link {% if 'cheque' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:cheque_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-admin"></use></svg><span>Cheques</span></a>
+              <a class="nav-link {% if 'bank_account' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:bank_account_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-admin"></use></svg><span>Cuentas bancarias</span></a>
+              <a class="nav-link {% if 'bank_reconciliation' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:bank_reconciliation_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-grades"></use></svg><span>Conciliacion bancaria</span></a>
+              <a class="nav-link {% if 'journal_entry' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:journal_entry_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-subjects"></use></svg><span>Diario</span></a>
+              <a class="nav-link {% if 'staff_assignment' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:staff_assignment_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-staff"></use></svg><span>Asignacion personal</span></a>
+              <a class="nav-link {% if 'equipment_category' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:equipment_category_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-sections"></use></svg><span>Categorias equipos</span></a>
+            {% endif %}
+
             {% if can_manage_system %}
               <p class="nav-header">SISTEMA</p>
               <a class="nav-link {% if 'user_access' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:user_access_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-users-roles"></use></svg><span>Usuarios y roles</span></a>

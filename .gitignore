@@ -332,6 +332,12 @@ paket-files/
 __pycache__/
 *.pyc
 
+# SchoolAdminLitePy local Python/Django artifacts
+/SchoolAdminLitePy/.venv/
+/SchoolAdminLitePy/.codex_pydeps/
+/SchoolAdminLitePy/.env
+/SchoolAdminLitePy/db.sqlite3
+
 # Cake - Uncomment if you are using it
 # tools/**
 # !tools/packages.config

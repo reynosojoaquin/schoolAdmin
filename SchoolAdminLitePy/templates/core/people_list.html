@@ -39,7 +39,14 @@
       {% for person in object_list %}
         <tr>
           <td>
-            <strong>{{ person.last_name }}, {{ person.first_name }}</strong>
+            <div class="person-cell">
+              {% if person.photo_display_url %}
+                <img class="person-avatar" src="{{ person.photo_display_url }}" alt="Foto de {{ person }}">
+              {% else %}
+                <span class="person-avatar placeholder">{{ person.initials }}</span>
+              {% endif %}
+              <strong>{{ person.last_name }}, {{ person.first_name }}</strong>
+            </div>
           </td>
           <td>{{ person.document_id|default:"-" }}</td>
           <td>{{ person.email|default:"-" }}</td>

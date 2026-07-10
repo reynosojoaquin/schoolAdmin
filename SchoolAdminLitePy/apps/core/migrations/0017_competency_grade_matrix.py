@@ -64,60 +64,13 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.RunSQL(
-                    sql="""
-                    DO $$
-                    DECLARE
-                        constraint_name text;
-                    BEGIN
-                        FOR constraint_name IN
-                            SELECT con.conname
-                            FROM pg_constraint con
-                            JOIN pg_class rel ON rel.oid = con.conrelid
-                            JOIN pg_namespace nsp ON nsp.oid = rel.relnamespace
-                            WHERE rel.relname = 'core_grade'
-                              AND nsp.nspname = current_schema()
-                              AND con.contype = 'u'
-                              AND ARRAY(
-                                  SELECT att.attname
-                                  FROM unnest(con.conkey) AS key(attnum)
-                                  JOIN pg_attribute att ON att.attrelid = rel.oid AND att.attnum = key.attnum
-                                  ORDER BY key.attnum
-                              ) = ARRAY['enrollment_id', 'subject_id']
-                        LOOP
-                            EXECUTE format('ALTER TABLE %I.%I DROP CONSTRAINT IF EXISTS %I', current_schema(), 'core_grade', constraint_name);
-                        END LOOP;
-                    END $$;
-                    DROP INDEX IF EXISTS core_grade_enrollment_subject_competency_uniq;
-                    """,
-                    reverse_sql=migrations.RunSQL.noop,
-                ),
-            ],
-            state_operations=[
-                migrations.AlterUniqueTogether(
-                    name="grade",
-                    unique_together=set(),
-                ),
-            ],
+        migrations.AlterUniqueTogether(
+            name="grade",
+            unique_together=set(),
         ),
         migrations.RunPython(seed_subject_competencies, migrations.RunPython.noop),
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.RunSQL(
-                    sql="""
-                    CREATE UNIQUE INDEX IF NOT EXISTS core_grade_enrollment_subject_competency_uniq
-                    ON core_grade (enrollment_id, subject_id, subject_competency_id);
-                    """,
-                    reverse_sql="DROP INDEX IF EXISTS core_grade_enrollment_subject_competency_uniq;",
-                ),
-            ],
-            state_operations=[
-                migrations.AlterUniqueTogether(
-                    name="grade",
-                    unique_together={("enrollment", "subject", "subject_competency")},
-                ),
-            ],
+        migrations.AlterUniqueTogether(
+            name="grade",
+            unique_together={("enrollment", "subject", "subject_competency")},
         ),
     ]
