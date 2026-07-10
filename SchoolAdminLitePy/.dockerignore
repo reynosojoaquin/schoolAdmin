@@ -1,0 +1,16 @@
+.venv
+.codex_pydeps
+.codex_checkdeps
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+.env
+.git
+.gitignore
+.docker-config
+db.sqlite3
+staticfiles
+media
+*.log

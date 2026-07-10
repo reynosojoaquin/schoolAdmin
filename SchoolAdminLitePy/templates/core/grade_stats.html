@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Estadisticas de calificaciones - SchoolAdmin Lite{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <div>
+    <p class="eyebrow">Calificaciones</p>
+    <h1>Estadisticas academicas</h1>
+  </div>
+</section>
+
+<section class="metrics compact">
+  <article><span>{{ grade_count }}</span><p>Registros de calificacion</p></article>
+  <article><span>{{ period_1_avg|floatformat:0|default:"-" }}</span><p>Promedio P1</p></article>
+  <article><span>{{ period_2_avg|floatformat:0|default:"-" }}</span><p>Promedio P2</p></article>
+  <article><span>{{ period_3_avg|floatformat:0|default:"-" }}</span><p>Promedio P3</p></article>
+  <article><span>{{ period_4_avg|floatformat:0|default:"-" }}</span><p>Promedio P4</p></article>
+</section>
+
+<section class="stats-grid">
+  <article class="table-panel">
+    <h2>Por curso</h2>
+    <table>
+      <thead><tr><th>Curso</th><th>Registros</th><th>Promedio P1</th></tr></thead>
+      <tbody>
+        {% for row in by_course %}
+          <tr><td>{{ row.enrollment__course__name }}</td><td>{{ row.total }}</td><td>{{ row.p1|floatformat:0|default:"-" }}</td></tr>
+        {% empty %}
+          <tr><td colspan="3" class="empty">Sin datos.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </article>
+
+  <article class="table-panel">
+    <h2>Por seccion</h2>
+    <table>
+      <thead><tr><th>Seccion</th><th>Registros</th><th>Promedio P1</th></tr></thead>
+      <tbody>
+        {% for row in by_section %}
+          <tr><td>{{ row.enrollment__section__course__name }}{{ row.enrollment__section__name }}</td><td>{{ row.total }}</td><td>{{ row.p1|floatformat:0|default:"-" }}</td></tr>
+        {% empty %}
+          <tr><td colspan="3" class="empty">Sin datos.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </article>
+
+  <article class="table-panel">
+    <h2>Por asignatura</h2>
+    <table>
+      <thead><tr><th>Asignatura</th><th>Registros</th><th>Promedio P1</th></tr></thead>
+      <tbody>
+        {% for row in by_subject %}
+          <tr><td>{{ row.subject__name }}</td><td>{{ row.total }}</td><td>{{ row.p1|floatformat:0|default:"-" }}</td></tr>
+        {% empty %}
+          <tr><td colspan="3" class="empty">Sin datos.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </article>
+
+  <article class="table-panel">
+    <h2>Por estudiante</h2>
+    <table>
+      <thead><tr><th>Estudiante</th><th>Registros</th><th>Promedio P1</th></tr></thead>
+      <tbody>
+        {% for row in by_student %}
+          <tr>
+            <td>{{ row.enrollment__student__last_name }} {{ row.enrollment__student__first_name }}<br><small>{{ row.enrollment__student__document_id|default:"-" }}</small></td>
+            <td>{{ row.total }}</td>
+            <td>{{ row.p1|floatformat:0|default:"-" }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="3" class="empty">Sin datos.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </article>
+</section>
+{% endblock %}

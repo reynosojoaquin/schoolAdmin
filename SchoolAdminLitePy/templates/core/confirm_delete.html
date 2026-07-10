@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - SchoolAdmin Lite{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <div>
+    <p class="eyebrow">Gestion academica</p>
+    <h1>{{ title }}</h1>
+  </div>
+</section>
+
+<section class="form-panel delete-panel">
+  <h2>Confirmar eliminacion</h2>
+  <p>Esta accion eliminara el registro:</p>
+  <p class="delete-target"><strong>{{ object }}</strong></p>
+
+  {% if related_summary %}
+    <div class="delete-summary">
+      <p>Informacion relacionada encontrada:</p>
+      <ul>
+        {% for label, count in related_summary %}
+          <li>{{ label }}: <strong>{{ count }}</strong></li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="form-actions">
+      <button class="danger-button" type="submit">Eliminar</button>
+      <a class="btn-secondary" href="{% url cancel_url_name %}">Cancelar</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

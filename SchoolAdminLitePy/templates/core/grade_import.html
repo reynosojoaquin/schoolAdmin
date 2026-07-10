@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}Importar calificaciones - SchoolAdmin Lite{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <div>
+    <p class="eyebrow">Calificaciones</p>
+    <h1>Importar desde Excel</h1>
+    <p>Cargue la plantilla con las 4 competencias, sus periodos P1, P2, P3 y P4, y los valores del completivo.</p>
+  </div>
+</section>
+
+<section class="notice">
+  <p>Para evitar errores, descargue la plantilla desde el libro de calificaciones de la asignatura. El sistema cargara los valores ya colocados en competencias y completivo. No cambie la columna oculta <code>inscripcion_id</code> ni los encabezados.</p>
+</section>
+
+<form class="form-panel" method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
+  {% for field in form.hidden_fields %}
+    {{ field }}
+  {% endfor %}
+  {% if selected_assignment %}
+    <div class="selected-assignment">
+      <span>Asignatura seleccionada</span>
+      <strong>{{ selected_assignment.section }} - {{ selected_assignment.subject.name }}</strong>
+      <small>Docente: {{ selected_assignment.teacher }}</small>
+    </div>
+  {% endif %}
+  <div class="form-grid">
+    {% for field in form.visible_fields %}
+      <div class="field">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% for error in field.errors %}<small class="error">{{ error }}</small>{% endfor %}
+      </div>
+    {% endfor %}
+  </div>
+  <div class="form-actions">
+    <button type="submit" name="action" value="preview">Importar plantilla</button>
+  </div>
+</form>
+
+{% if preview %}
+  <section class="result-panel">
+    <h2>Vista previa</h2>
+    <p>Revisa los registros antes de guardarlos en la base de datos.</p>
+    <div class="metrics compact">
+      <article><span>{{ preview.total }}</span><p>Leidos</p></article>
+      <article><span>{{ preview.valid }}</span><p>Validos</p></article>
+      <article><span>{{ preview.skipped }}</span><p>Omitidos</p></article>
+    </div>
+
+    {% if preview.errors %}
+      <h3>Observaciones</h3>
+      <ul class="compact-list">
+        {% for error in preview.errors %}
+          <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    {% if preview.rows %}
+      <div class="table-panel preview-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Fila</th>
+              <th>Estudiante</th>
+              <th>Competencias</th>
+              <th>Completivo</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in preview.rows %}
+              <tr>
+                <td>{{ row.row_number }}</td>
+                <td><strong>{{ row.student }}</strong></td>
+                <td>{{ row.competencies|length }} competencias leidas</td>
+                <td>
+                  {% if row.completion_summary %}
+                    <div class="inline-values">
+                      {% for item in row.completion_summary %}
+                        <span><strong>{{ item.label }}:</strong> {{ item.value }}</span>
+                      {% endfor %}
+                    </div>
+                  {% elif row.completion %}
+                    Sin valores colocados
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="form-actions">
+        <form method="post">
+          {% csrf_token %}
+          <button type="submit" name="action" value="confirm">Confirmar registro</button>
+        </form>
+        <form method="post">
+          {% csrf_token %}
+          <button class="secondary-button" type="submit" name="action" value="cancel">Cancelar</button>
+        </form>
+      </div>
+    {% endif %}
+  </section>
+{% endif %}
+
+{% if result %}
+  <section class="result-panel">
+    <h2>Resultado</h2>
+    <p>Registros actualizados: <strong>{{ result.updated }}</strong></p>
+    <p>Completivos cargados: <strong>{{ result.completion_updated }}</strong></p>
+    <p>Filas omitidas: <strong>{{ result.skipped }}</strong></p>
+    {% if selected_assignment %}
+      <div class="form-actions">
+        <a class="btn-secondary" href="{% url 'core:gradebook' selected_assignment.pk %}">Volver al detalle</a>
+      </div>
+    {% endif %}
+    {% if result.errors %}
+      <ul class="compact-list">
+        {% for error in result.errors %}
+          <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </section>
+{% endif %}
+{% endblock %}

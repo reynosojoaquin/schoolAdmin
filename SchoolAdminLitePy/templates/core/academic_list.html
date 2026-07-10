@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - SchoolAdmin Lite{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <div>
+    <p class="eyebrow">{{ section_label }}</p>
+    <h1>{{ title }}</h1>
+  </div>
+  <div class="header-actions">
+    <a class="btn" href="{% url create_url_name %}">Nuevo</a>
+  </div>
+</section>
+
+<form class="toolbar" method="get">
+  <input type="search" name="q" value="{{ query }}" placeholder="{{ search_placeholder }}">
+  <button type="submit">Buscar</button>
+  {% if query %}
+    <a class="btn-secondary" href=".">Limpiar</a>
+  {% endif %}
+</form>
+
+<section class="table-panel">
+  <table>
+    <thead>
+      <tr>
+        {% for field_name, label in columns %}
+          <th>{{ label }}</th>
+        {% endfor %}
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in object_list %}
+        <tr>
+          {% for field_name, label in columns %}
+            <td>
+              {% if field_name == "active" %}
+                {% if item.active %}
+                  <span class="status active">Activo</span>
+                {% else %}
+                  <span class="status inactive">Inactivo</span>
+                {% endif %}
+              {% elif field_name == "course" %}
+                {{ item.course|default:"-" }}
+              {% elif field_name == "section" %}
+                {{ item.section|default:"-" }}
+              {% elif field_name == "subject" %}
+                {{ item.subject|default:"-" }}
+              {% elif field_name == "teacher" %}
+                {{ item.teacher|default:"-" }}
+              {% elif field_name == "responsible" %}
+                {{ item.responsible|default:"-" }}
+              {% elif field_name == "school_year" %}
+                {{ item.school_year|default:"-" }}
+              {% elif field_name == "students" %}
+                {% if title == "Cursos" %}
+                  <a class="btn-secondary compact-link" href="{% url 'core:course_students' item.pk %}">Ver estudiantes</a>
+                {% elif title == "Secciones" %}
+                  <a class="btn-secondary compact-link" href="{% url 'core:section_students' item.pk %}">Ver estudiantes</a>
+                {% endif %}
+              {% elif field_name == "assignments" %}
+                {% if title == "Secciones" %}
+                  <a class="btn-secondary compact-link" href="{% url 'core:section_assignments' item.pk %}">Ver docencia</a>
+                {% endif %}
+              {% elif field_name == "name" %}
+                <strong>{{ item.name }}</strong>
+              {% else %}
+                {{ item }}
+              {% endif %}
+            </td>
+          {% endfor %}
+          <td class="actions">
+            {% if row_actions %}
+              {% for label, url_name in row_actions %}
+                <a class="{% if label == 'Eliminar' %}danger-link{% endif %}" href="{% url url_name item.pk %}">{{ label }}</a>
+              {% endfor %}
+            {% else %}
+              <a href="{% url edit_url_name item.pk %}">Editar</a>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="{{ columns|length|add:1 }}" class="empty">No hay registros para mostrar.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% if is_paginated %}
+  <nav class="pagination">
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}">Anterior</a>
+    {% endif %}
+    <span>Pagina {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}">Siguiente</a>
+    {% endif %}
+  </nav>
+{% endif %}
+{% endblock %}

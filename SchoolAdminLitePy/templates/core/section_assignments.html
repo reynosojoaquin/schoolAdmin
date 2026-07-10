@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - SchoolAdmin Lite{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <div>
+    <p class="eyebrow">Docencia por seccion</p>
+    <h1>{{ title }}</h1>
+    <p>
+      Curso {{ section.course }}{% if section.school_year %} · Ano escolar {{ section.school_year }}{% endif %}
+      {% if section.responsible %} · Docente guia: {{ section.responsible }}{% endif %}
+    </p>
+  </div>
+  <div class="header-actions">
+    <a class="btn" href="{% url 'core:teaching_assignment_create' %}">Nueva asignacion</a>
+    <a class="btn-secondary" href="{% url 'core:section_list' %}">Volver</a>
+  </div>
+</section>
+
+<form class="toolbar" method="get">
+  <input type="search" name="q" value="{{ query }}" placeholder="Buscar asignatura o docente">
+  <button type="submit">Buscar</button>
+  {% if query %}
+    <a class="btn-secondary" href=".">Limpiar</a>
+  {% endif %}
+</form>
+
+<section class="table-panel">
+  <table>
+    <thead>
+      <tr>
+        <th>Asignatura</th>
+        <th>Docente</th>
+        <th>Estado</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for assignment in object_list %}
+        <tr>
+          <td><strong>{{ assignment.subject.name }}</strong></td>
+          <td>{{ assignment.teacher|default:"-" }}</td>
+          <td>
+            {% if assignment.active %}
+              <span class="status active">Activa</span>
+            {% else %}
+              <span class="status inactive">Inactiva</span>
+            {% endif %}
+          </td>
+          <td class="actions">
+            <a href="{% url 'core:teaching_assignment_update' assignment.pk %}">Editar</a>
+          </td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="4" class="empty">Esta seccion todavia no tiene asignaturas con docentes asignados.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% if is_paginated %}
+  <nav class="pagination">
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}">Anterior</a>
+    {% endif %}
+    <span>Pagina {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}">Siguiente</a>
+    {% endif %}
+  </nav>
+{% endif %}
+{% endblock %}

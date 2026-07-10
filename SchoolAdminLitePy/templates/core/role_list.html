@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Roles - SchoolAdmin Lite{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <div>
+    <p class="eyebrow">Sistema</p>
+    <h1>Roles</h1>
+    <p>Active o quite funcionalidades segun el perfil que necesite.</p>
+  </div>
+  <div class="header-actions">
+    <a class="btn" href="{% url 'core:role_create' %}">Nuevo rol</a>
+  </div>
+</section>
+
+<form class="toolbar" method="get">
+  <input type="search" name="q" value="{{ query }}" placeholder="Buscar rol">
+  <button type="submit">Buscar</button>
+  {% if query %}<a class="btn-secondary" href=".">Limpiar</a>{% endif %}
+</form>
+
+<section class="table-panel">
+  <table>
+    <thead>
+      <tr>
+        <th>Rol</th>
+        <th>Funcionalidades</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for role in object_list %}
+        <tr>
+          <td><strong>{{ role.name }}</strong></td>
+          <td>
+            {% for permission in role.permissions.all %}
+              {% if permission.content_type.app_label == "core" %}
+                <span class="permission-pill">{{ permission.name }}</span>
+              {% endif %}
+            {% empty %}
+              -
+            {% endfor %}
+          </td>
+          <td class="actions"><a href="{% url 'core:role_update' role.pk %}">Editar</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="3" class="empty">No hay roles para mostrar.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

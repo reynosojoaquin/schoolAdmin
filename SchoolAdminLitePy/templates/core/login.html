@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Entrar - SchoolAdmin Lite{% endblock %}
+
+{% block content %}
+<section class="login-box">
+  <div class="login-visual" style="background-image: url('{% static 'img/photo1.png' %}');"></div>
+
+  <div class="login-panel">
+    <div class="login-card login-form">
+      <div class="login-card-header">
+        <h1>Iniciar sesion</h1>
+      </div>
+      <div class="login-card-body">
+        {% if form.non_field_errors %}
+          <div class="form-errors">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <form method="post">
+          {% csrf_token %}
+
+          <div class="login-field">
+            <label for="id_username">Usuario</label>
+            <input type="text" name="username" value="{{ form.username.value|default:'' }}" autofocus autocapitalize="none" autocomplete="username" maxlength="150" required id="id_username" class="form-control">
+          </div>
+          {% for error in form.username.errors %}
+            <small class="error">{{ error }}</small>
+          {% endfor %}
+
+          <div class="login-field">
+            <label for="id_password">Contrasena</label>
+            <input type="password" name="password" autocomplete="current-password" required id="id_password" class="form-control">
+          </div>
+          {% for error in form.password.errors %}
+            <small class="error">{{ error }}</small>
+          {% endfor %}
+
+          <button class="login-button" type="submit">Entrar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

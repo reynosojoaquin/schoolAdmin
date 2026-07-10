@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Importar estudiantes - SchoolAdmin Lite{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <div>
+    <p class="eyebrow">Carga masiva</p>
+    <h1>Importar estudiantes desde Excel</h1>
+  </div>
+  <a class="btn-secondary" href="{% url 'core:student_list' %}">Volver</a>
+</section>
+
+<section class="notice">
+  <strong>Formato esperado:</strong>
+  hoja <code>Estudiantes</code> con columnas
+  <code>nombres</code>, <code>apellidos</code>, <code>cedula</code>,
+  <code>sexo</code>, <code>sigerd</code>, <code>nacimiento</code> y <code>curso</code>.
+  El valor de <code>curso</code> puede venir como <code>2A</code>; se guardara como curso <code>2</code> y seccion <code>A</code>.
+</section>
+
+<form class="form-panel" method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  {% if form.non_field_errors %}
+    <div class="form-errors">{{ form.non_field_errors }}</div>
+  {% endif %}
+
+  <div class="form-grid">
+    {% for field in form %}
+      <div class="field {% if field.field.widget.input_type == 'checkbox' %}field-checkbox{% endif %}">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}
+          <small>{{ field.help_text }}</small>
+        {% endif %}
+        {% for error in field.errors %}
+          <small class="error">{{ error }}</small>
+        {% endfor %}
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" name="action" value="preview">Leer archivo</button>
+  </div>
+</form>
+
+{% if preview %}
+  <section class="result-panel">
+    <h2>Vista previa</h2>
+    <p>Revisa los registros antes de guardarlos en la base de datos.</p>
+    <div class="metrics compact">
+      <article><span>{{ preview.total }}</span><p>Leidos</p></article>
+      <article><span>{{ preview.to_create }}</span><p>Por crear</p></article>
+      <article><span>{{ preview.to_update }}</span><p>Por actualizar</p></article>
+      <article><span>{{ preview.to_skip }}</span><p>Omitidos</p></article>
+    </div>
+
+    {% if preview.errors %}
+      <h3>Observaciones</h3>
+      <ul class="error-list">
+        {% for error in preview.errors %}
+          <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    <div class="table-panel preview-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Fila</th>
+            <th>Nombres</th>
+            <th>Apellidos</th>
+            <th>Cedula</th>
+            <th>Sexo</th>
+            <th>SIGERD</th>
+            <th>Nacimiento</th>
+            <th>Curso</th>
+            <th>Seccion</th>
+            <th>Accion</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in preview.rows %}
+            <tr>
+              <td>{{ row.row_number }}</td>
+              <td>{{ row.first_name }}</td>
+              <td>{{ row.last_name }}</td>
+              <td>{{ row.document_id|default:"-" }}</td>
+              <td>{{ row.gender|default:"-" }}</td>
+              <td>{{ row.sigerd_id|default:"-" }}</td>
+              <td>{{ row.birth_date|default:"-" }}</td>
+              <td>{{ row.course|default:"-" }}</td>
+              <td>{{ row.section|default:"-" }}</td>
+              <td>
+                <span class="status {{ row.status }}">{{ row.message }}</span>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if preview.rows %}
+      <div class="form-actions">
+        <form method="post">
+          {% csrf_token %}
+          <button type="submit" name="action" value="confirm">Confirmar registro</button>
+        </form>
+        <form method="post">
+          {% csrf_token %}
+          <button class="secondary-button" type="submit" name="action" value="cancel">Cancelar</button>
+        </form>
+      </div>
+    {% endif %}
+  </section>
+{% endif %}
+
+{% if result %}
+  <section class="result-panel">
+    <h2>Resultado de la carga</h2>
+    <div class="metrics compact">
+      <article><span>{{ result.created }}</span><p>Creados</p></article>
+      <article><span>{{ result.updated }}</span><p>Actualizados</p></article>
+      <article><span>{{ result.skipped }}</span><p>Omitidos</p></article>
+      <article><span>{{ result.courses_created }}</span><p>Cursos creados</p></article>
+      <article><span>{{ result.enrollments_created }}</span><p>Inscripciones</p></article>
+    </div>
+    {% if result.errors %}
+      <h3>Observaciones</h3>
+      <ul class="error-list">
+        {% for error in result.errors %}
+          <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </section>
+{% endif %}
+{% endblock %}

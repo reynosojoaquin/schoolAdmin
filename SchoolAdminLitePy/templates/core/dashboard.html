@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Panel - SchoolAdmin Lite{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <div>
+    <p class="eyebrow">Gestion escolar</p>
+    <h1>{% if teacher_mode %}Panel docente{% else %}Panel principal{% endif %}</h1>
+    <p>{% if teacher_mode %}Acceso a tus secciones, asignaturas y calificaciones.{% else %}Base ligera para administrar estudiantes, cursos, asignaturas y calificaciones.{% endif %}</p>
+  </div>
+</section>
+
+<section class="metrics">
+  {% if teacher_mode %}
+  <article>
+    <span>{{ section_count }}</span>
+    <p>Secciones asignadas</p>
+    <a href="{% url 'core:my_sections' %}">Ver</a>
+  </article>
+  <article>
+    <span>{{ assignment_count }}</span>
+    <p>Asignaturas asignadas</p>
+    <a href="{% url 'core:my_sections' %}">Gestionar notas</a>
+  </article>
+  <article>
+    <span>{{ grade_count }}</span>
+    <p>Calificaciones registradas</p>
+    <a href="{% url 'core:grade_stats' %}">Estadisticas</a>
+  </article>
+  {% else %}
+  <article>
+    <span>{{ student_count }}</span>
+    <p>Estudiantes activos</p>
+    {% if can_manage_people %}<a href="{% url 'core:student_list' %}">Gestionar</a>{% endif %}
+  </article>
+  <article>
+    <span>{{ teacher_count }}</span>
+    <p>Docentes activos</p>
+    {% if can_manage_people %}<a href="{% url 'core:teacher_list' %}">Gestionar</a>{% endif %}
+  </article>
+  <article>
+    <span>{{ employee_count }}</span>
+    <p>Personal activo</p>
+    {% if can_manage_people %}<a href="{% url 'core:employee_list' %}">Gestionar</a>{% endif %}
+  </article>
+  <article>
+    <span>{{ course_count }}</span>
+    <p>Cursos activos</p>
+    {% if can_manage_academic %}<a href="{% url 'core:course_list' %}">Gestionar</a>{% endif %}
+  </article>
+  <article>
+    <span>{{ section_count }}</span>
+    <p>Secciones activas</p>
+    {% if can_manage_academic %}<a href="{% url 'core:section_list' %}">Gestionar</a>{% endif %}
+  </article>
+  <article>
+    <span>{{ subject_count }}</span>
+    <p>Asignaturas</p>
+    {% if can_manage_academic %}<a href="{% url 'core:subject_list' %}">Gestionar</a>{% endif %}
+  </article>
+  <article>
+    <span>{{ assignment_count }}</span>
+    <p>Asignaciones docentes</p>
+    {% if can_manage_academic %}<a href="{% url 'core:teaching_assignment_list' %}">Gestionar</a>{% endif %}
+  </article>
+  <article>
+    <span>{{ enrollment_count }}</span>
+    <p>Inscripciones activas</p>
+  </article>
+  <article>
+    <span>{{ grade_count }}</span>
+    <p>Calificaciones</p>
+    {% if can_view_grade_stats %}<a href="{% url 'core:grade_stats' %}">Estadisticas</a>{% endif %}
+  </article>
+  {% endif %}
+</section>
+{% endblock %}

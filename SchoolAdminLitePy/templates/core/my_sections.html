@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Mis secciones - SchoolAdmin Lite{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <div>
+    <p class="eyebrow">Calificaciones</p>
+    <h1>{{ title }}</h1>
+  </div>
+</section>
+
+<section class="table-panel">
+  <table>
+    <thead>
+      <tr>
+        <th>Curso</th>
+        <th>Seccion</th>
+        <th>Ano escolar</th>
+        <th>Asignaturas</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for section in object_list %}
+        <tr>
+          <td>{{ section.course }}</td>
+          <td><strong>{{ section.name }}</strong></td>
+          <td>{{ section.school_year|default:"-" }}</td>
+          <td>
+            {% for assignment in section.teaching_assignments.all %}
+              {% if not is_teacher_access or assignment.teacher.user_id == request.user.id %}
+                <a class="btn-secondary compact-link" href="{% url 'core:gradebook' assignment.pk %}">{{ assignment.subject.name }}</a>
+              {% endif %}
+            {% empty %}
+              -
+            {% endfor %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="4" class="empty">No tienes secciones asignadas.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

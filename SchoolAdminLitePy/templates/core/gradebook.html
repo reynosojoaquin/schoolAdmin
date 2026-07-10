@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}Calificaciones - SchoolAdmin Lite{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <div>
+    <p class="eyebrow">{{ assignment.section }}</p>
+    <h1>{{ assignment.subject.name }}</h1>
+    <p>Docente: {{ assignment.teacher }}</p>
+  </div>
+  <div class="header-actions">
+    <a class="btn-secondary" href="{% url 'core:grade_template' assignment.pk %}">Descargar plantilla</a>
+    <a class="btn-secondary" href="{% url 'core:grade_import' %}?assignment={{ assignment.pk }}">Cargar plantilla</a>
+    <a class="btn-secondary" href="{% url 'core:my_sections' %}">Volver</a>
+  </div>
+</section>
+
+<section class="grade-tabs">
+  <input class="grade-tab-input" type="radio" name="grade-tab" id="grade-tab-competencias" checked>
+  <input class="grade-tab-input" type="radio" name="grade-tab" id="grade-tab-final">
+  <input class="grade-tab-input" type="radio" name="grade-tab" id="grade-tab-completiva">
+
+  <div class="grade-tab-list" role="tablist" aria-label="Vistas de calificaciones">
+    <label for="grade-tab-competencias">Competencias</label>
+    <label for="grade-tab-final">Calificacion final</label>
+    <label for="grade-tab-completiva">Evaluacion completiva</label>
+  </div>
+
+  <div class="grade-tab-panels">
+  <article class="grade-tab-card grade-tab-panel grade-panel-competencias">
+    <div class="grade-tab-title">
+      <span>01</span>
+      <div>
+        <h2>Competencias</h2>
+        <p>Resultados por competencia y periodo.</p>
+      </div>
+    </div>
+    <div class="gradebook-panel">
+      <table>
+        <thead>
+          <tr>
+            <th rowspan="2">No.</th>
+            <th rowspan="2">Estudiante</th>
+            {% for subject_competency in subject_competencies %}
+              <th colspan="5">Competencia {{ forloop.counter }}</th>
+            {% endfor %}
+          </tr>
+          <tr>
+            {% for subject_competency in subject_competencies %}
+              <th>P1</th>
+              <th>P2</th>
+              <th>P3</th>
+              <th>P4</th>
+              <th>Prom.</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+            <tr>
+              <td>{{ row.order_number }}</td>
+              <td><strong>{{ row.enrollment.student }}</strong></td>
+              {% for competency_cell in row.competency_cells %}
+                <td>{{ competency_cell.grade.period_1|floatformat:0|default:"-" }}</td>
+                <td>{{ competency_cell.grade.period_2|floatformat:0|default:"-" }}</td>
+                <td>{{ competency_cell.grade.period_3|floatformat:0|default:"-" }}</td>
+                <td>{{ competency_cell.grade.period_4|floatformat:0|default:"-" }}</td>
+                <td><strong>{{ competency_cell.average|floatformat:0|default:"-" }}</strong></td>
+              {% endfor %}
+            </tr>
+          {% empty %}
+            <tr><td colspan="22" class="empty">No hay estudiantes activos en esta seccion.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+
+  <article class="grade-tab-card grade-tab-panel grade-panel-final">
+    <div class="grade-tab-title">
+      <span>02</span>
+      <div>
+        <h2>Calificacion final</h2>
+        <p>PC1 a PC4 son promedios por periodo; la nota final promedia esos PC.</p>
+      </div>
+    </div>
+    <div class="gradebook-panel">
+      <table>
+        <thead>
+          <tr>
+            <th>No.</th>
+            <th>Estudiante</th>
+            <th>PC1</th>
+            <th>PC2</th>
+            <th>PC3</th>
+            <th>PC4</th>
+            <th>Final</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+            <tr>
+              <td>{{ row.order_number }}</td>
+              <td><strong>{{ row.enrollment.student }}</strong></td>
+              {% for period_average in row.period_averages %}
+                <td>{{ period_average|floatformat:2|default:"-" }}</td>
+              {% endfor %}
+              <td><strong>{{ row.average|floatformat:0|default:"-" }}</strong></td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="7" class="empty">No hay estudiantes activos en esta seccion.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+
+  <article class="grade-tab-card grade-tab-panel grade-panel-completiva">
+    <div class="grade-tab-title">
+      <span>03</span>
+      <div>
+        <h2>Evaluacion completiva</h2>
+        <p>Estado calculado segun la calificacion final.</p>
+      </div>
+    </div>
+    <div class="gradebook-panel">
+      <table>
+        <thead>
+          <tr>
+            <th rowspan="2">No.</th>
+            <th rowspan="2">Estudiante</th>
+            <th colspan="4">Calificacion completiva</th>
+            <th colspan="4">Calificacion extraordinaria</th>
+            <th colspan="2">Evaluacion especial</th>
+            <th colspan="2">Situacion final</th>
+          </tr>
+          <tr>
+            <th>50% CF</th>
+            <th>CEF</th>
+            <th>50% CEF</th>
+            <th>CCF</th>
+            <th>30% CCF</th>
+            <th>CEEX</th>
+            <th>70% CEEX</th>
+            <th>CEXF</th>
+            <th>CF</th>
+            <th>CE</th>
+            <th>A</th>
+            <th>R</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+            <tr>
+              <td>{{ row.order_number }}</td>
+              <td><strong>{{ row.enrollment.student }}</strong></td>
+              <td>{{ row.completion.cf_50|floatformat:0|default:"-" }}</td>
+              <td>{{ row.completion.cef|floatformat:0|default:"-" }}</td>
+              <td>{{ row.completion.cef_50|floatformat:0|default:"-" }}</td>
+              <td>{{ row.completion.ccf|floatformat:0|default:"-" }}</td>
+              <td>{{ row.completion.ccf_30|floatformat:0|default:"-" }}</td>
+              <td>{{ row.completion.ceex|floatformat:0|default:"-" }}</td>
+              <td>{{ row.completion.ceex_70|floatformat:0|default:"-" }}</td>
+              <td>{{ row.completion.cexf|floatformat:0|default:"-" }}</td>
+              <td>{{ row.completion.special_cf|floatformat:0|default:"-" }}</td>
+              <td>{{ row.completion.special_ce|floatformat:0|default:"-" }}</td>
+              <td>{{ row.completion.approved|default:"-" }}</td>
+              <td>{{ row.completion.reproved|default:"-" }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="14" class="empty">No hay estudiantes activos en esta seccion.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+  </div>
+</section>
+{% endblock %}

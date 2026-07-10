@@ -1,0 +1,196 @@
+{% load static %}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}SchoolAdmin Lite{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body class="{% if request.user.is_authenticated %}admin-layout sidebar-mini{% else %}login-page{% endif %}">
+  <svg aria-hidden="true" class="icon-sprite" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="icon-dashboard" viewBox="0 0 24 24">
+      <path d="M3 13a9 9 0 1 1 18 0" />
+      <path d="M12 13l4-4" />
+      <path d="M8 21h8" />
+      <path d="M12 17v4" />
+    </symbol>
+    <symbol id="icon-students" viewBox="0 0 24 24">
+      <path d="M22 10L12 5 2 10l10 5 10-5Z" />
+      <path d="M6 12v4c3 2 9 2 12 0v-4" />
+      <path d="M20 11v5" />
+    </symbol>
+    <symbol id="icon-teachers" viewBox="0 0 24 24">
+      <path d="M4 5h16v10H4z" />
+      <path d="M8 21h8" />
+      <path d="M12 15v6" />
+      <path d="M8 9h5" />
+      <path d="M8 12h8" />
+    </symbol>
+    <symbol id="icon-staff" viewBox="0 0 24 24">
+      <path d="M10 6h4l1 3H9l1-3Z" />
+      <path d="M4 9h16v10H4z" />
+      <path d="M4 13h16" />
+      <path d="M10 13v2h4v-2" />
+    </symbol>
+    <symbol id="icon-courses" viewBox="0 0 24 24">
+      <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5v-16Z" />
+      <path d="M8 7h8" />
+      <path d="M8 11h6" />
+    </symbol>
+    <symbol id="icon-sections" viewBox="0 0 24 24">
+      <path d="M4 4h7v7H4z" />
+      <path d="M13 4h7v7h-7z" />
+      <path d="M4 13h7v7H4z" />
+      <path d="M13 13h7v7h-7z" />
+    </symbol>
+    <symbol id="icon-subjects" viewBox="0 0 24 24">
+      <path d="M6 4h12a2 2 0 0 1 2 2v14H8a4 4 0 0 1-4-4V6a2 2 0 0 1 2-2Z" />
+      <path d="M8 8h8" />
+      <path d="M8 12h6" />
+      <path d="M8 20V4" />
+    </symbol>
+    <symbol id="icon-teaching" viewBox="0 0 24 24">
+      <path d="M9 4h6l1 3H8l1-3Z" />
+      <path d="M6 7h12v13H6z" />
+      <path d="M9 12h6" />
+      <path d="M9 16h4" />
+    </symbol>
+    <symbol id="icon-my-sections" viewBox="0 0 24 24">
+      <path d="M6 4h12v16l-6-3-6 3V4Z" />
+      <path d="M9 8h6" />
+      <path d="M9 11h6" />
+    </symbol>
+    <symbol id="icon-grades" viewBox="0 0 24 24">
+      <path d="M4 19h16" />
+      <path d="M7 16V9" />
+      <path d="M12 16V5" />
+      <path d="M17 16v-4" />
+    </symbol>
+    <symbol id="icon-import" viewBox="0 0 24 24">
+      <path d="M12 3v12" />
+      <path d="M7 8l5-5 5 5" />
+      <path d="M5 15v4h14v-4" />
+    </symbol>
+    <symbol id="icon-users-roles" viewBox="0 0 24 24">
+      <path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6l7-3Z" />
+      <path d="M9 12l2 2 4-5" />
+    </symbol>
+    <symbol id="icon-roles" viewBox="0 0 24 24">
+      <path d="M15 7a4 4 0 1 0-3 3.87L6 17v3h3l6.13-6A4 4 0 0 0 15 7Z" />
+      <path d="M15 7h.01" />
+    </symbol>
+    <symbol id="icon-admin" viewBox="0 0 24 24">
+      <path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z" />
+      <path d="M3 12h3" />
+      <path d="M18 12h3" />
+      <path d="M12 3v3" />
+      <path d="M12 18v3" />
+      <path d="M5.6 5.6l2.1 2.1" />
+      <path d="M16.3 16.3l2.1 2.1" />
+      <path d="M18.4 5.6l-2.1 2.1" />
+      <path d="M7.7 16.3l-2.1 2.1" />
+    </symbol>
+  </svg>
+  {% if request.user.is_authenticated %}
+    <div class="wrapper">
+      <nav class="main-header navbar">
+        <div class="navbar-left">
+          <a class="nav-link menu-toggle" href="#" aria-label="Menu">Menu</a>
+          <a class="nav-link" href="{% url 'core:dashboard' %}">Home</a>
+          <a class="nav-link" href="{% url 'core:student_list' %}">Estudiantes</a>
+        </div>
+        <div class="navbar-right">
+          <span class="nav-user">{{ request.user.get_username }}</span>
+          <form method="post" action="{% url 'core:logout' %}">
+            {% csrf_token %}
+            <button class="logout-button" type="submit">Salir</button>
+          </form>
+        </div>
+      </nav>
+
+      <aside class="main-sidebar sidebar-dark-primary">
+        <a href="{% url 'core:dashboard' %}" class="brand-link">
+          <span class="brand-image">SC</span>
+          <span class="brand-text">SchoolAdmin Lite</span>
+        </a>
+
+        <div class="sidebar">
+          <div class="user-panel">
+            <div class="user-avatar">{{ request.user.get_username|first|upper }}</div>
+            <div class="info">
+              <a href="#">{{ request.user.get_username }}</a>
+              <span>Usuario activo</span>
+            </div>
+          </div>
+
+          <nav class="sidebar-nav">
+            <p class="nav-header">GESTION ESCOLAR</p>
+            <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'core:dashboard' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-dashboard"></use></svg><span>Panel</span></a>
+            {% if can_manage_people %}
+              <a class="nav-link {% if 'student' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:student_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-students"></use></svg><span>Estudiantes</span></a>
+              <a class="nav-link {% if 'teacher' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:teacher_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-teachers"></use></svg><span>Docentes</span></a>
+              <a class="nav-link {% if 'employee' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:employee_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-staff"></use></svg><span>Personal</span></a>
+            {% endif %}
+
+            <p class="nav-header">ACADEMICO</p>
+            {% if can_manage_academic %}
+              <a class="nav-link {% if 'course' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:course_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-courses"></use></svg><span>Cursos</span></a>
+              <a class="nav-link {% if 'section' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:section_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-sections"></use></svg><span>Secciones</span></a>
+              <a class="nav-link {% if 'subject' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:subject_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-subjects"></use></svg><span>Asignaturas</span></a>
+              <a class="nav-link {% if 'teaching_assignment' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:teaching_assignment_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-teaching"></use></svg><span>Docencia</span></a>
+            {% endif %}
+            {% if can_view_academic %}
+              <a class="nav-link {% if request.resolver_match.url_name == 'my_sections' %}active{% endif %}" href="{% url 'core:my_sections' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-my-sections"></use></svg><span>Mis secciones</span></a>
+              <a class="nav-link {% if 'grade' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:grade_stats' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-grades"></use></svg><span>Calificaciones</span></a>
+              {% if can_import_grades %}
+                <a class="nav-link {% if request.resolver_match.url_name == 'grade_import' %}active{% endif %}" href="{% url 'core:grade_import' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-import"></use></svg><span>Importar notas</span></a>
+              {% endif %}
+            {% endif %}
+
+            {% if can_manage_system %}
+              <p class="nav-header">SISTEMA</p>
+              <a class="nav-link {% if 'user_access' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:user_access_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-users-roles"></use></svg><span>Usuarios y roles</span></a>
+              <a class="nav-link {% if 'role' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:role_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-roles"></use></svg><span>Roles</span></a>
+              <a class="nav-link" href="{% url 'admin:index' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-admin"></use></svg><span>Administracion</span></a>
+            {% endif %}
+          </nav>
+        </div>
+      </aside>
+
+      <main class="content-wrapper">
+        <section class="content-header">
+          <div>
+            <span>Home</span>
+            <strong>Dashboard</strong>
+          </div>
+        </section>
+        <section class="content">
+  {% else %}
+    <main class="login-wrapper">
+  {% endif %}
+
+  {% if messages %}
+    <div class="messages">
+      {% for message in messages %}
+        <div class="message {{ message.tags }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% block content %}{% endblock %}
+
+  {% if request.user.is_authenticated %}
+        </section>
+      </main>
+
+      <footer class="main-footer">
+        <strong>SchoolAdmin Lite</strong>
+        <span>Gestion escolar</span>
+      </footer>
+    </div>
+  {% else %}
+    </main>
+  {% endif %}
+</body>
+</html>

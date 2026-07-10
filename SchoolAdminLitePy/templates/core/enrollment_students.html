@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - SchoolAdmin Lite{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <div>
+    <p class="eyebrow">{{ group_label }}</p>
+    <h1>{{ title }}</h1>
+    <p>{{ group_value }}</p>
+  </div>
+  <a class="btn-secondary" href="{% url back_url_name %}">Volver</a>
+</section>
+
+<form class="toolbar" method="get">
+  <input type="search" name="q" value="{{ query }}" placeholder="Buscar estudiante">
+  <button type="submit">Buscar</button>
+  {% if query %}
+    <a class="btn-secondary" href=".">Limpiar</a>
+  {% endif %}
+</form>
+
+<section class="table-panel">
+  <table>
+    <thead>
+      <tr>
+        <th>Estudiante</th>
+        <th>Cedula</th>
+        <th>Curso</th>
+        <th>Seccion</th>
+        <th>Ano escolar</th>
+        <th>Estado</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for enrollment in object_list %}
+        <tr>
+          <td><strong>{{ enrollment.student.last_name }}, {{ enrollment.student.first_name }}</strong></td>
+          <td>{{ enrollment.student.document_id|default:"-" }}</td>
+          <td>{{ enrollment.course|default:"-" }}</td>
+          <td>{{ enrollment.section|default:"-" }}</td>
+          <td>{{ enrollment.school_year }}</td>
+          <td>
+            {% if enrollment.active %}
+              <span class="status active">Activo</span>
+            {% else %}
+              <span class="status inactive">Inactivo</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="6" class="empty">No hay estudiantes inscritos en este grupo.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% if is_paginated %}
+  <nav class="pagination">
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}">Anterior</a>
+    {% endif %}
+    <span>Pagina {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}">Siguiente</a>
+    {% endif %}
+  </nav>
+{% endif %}
+{% endblock %}

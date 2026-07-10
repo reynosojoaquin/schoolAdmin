@@ -1,0 +1,50 @@
+from django.contrib.auth import views as auth_views
+from django.urls import path
+
+from . import views
+
+app_name = "core"
+
+urlpatterns = [
+    path("", views.dashboard, name="dashboard"),
+    path("estudiantes/", views.StudentListView.as_view(), name="student_list"),
+    path("estudiantes/nuevo/", views.StudentCreateView.as_view(), name="student_create"),
+    path("estudiantes/importar/", views.StudentImportView.as_view(), name="student_import"),
+    path("estudiantes/<int:pk>/editar/", views.StudentUpdateView.as_view(), name="student_update"),
+    path("cursos/", views.CourseListView.as_view(), name="course_list"),
+    path("cursos/nuevo/", views.CourseCreateView.as_view(), name="course_create"),
+    path("cursos/<int:pk>/estudiantes/", views.CourseStudentsView.as_view(), name="course_students"),
+    path("cursos/<int:pk>/editar/", views.CourseUpdateView.as_view(), name="course_update"),
+    path("cursos/<int:pk>/eliminar/", views.CourseDeleteView.as_view(), name="course_delete"),
+    path("secciones/", views.SectionListView.as_view(), name="section_list"),
+    path("secciones/nuevo/", views.SectionCreateView.as_view(), name="section_create"),
+    path("secciones/<int:pk>/estudiantes/", views.SectionStudentsView.as_view(), name="section_students"),
+    path("secciones/<int:pk>/docencia/", views.SectionTeachingAssignmentsView.as_view(), name="section_assignments"),
+    path("secciones/<int:pk>/editar/", views.SectionUpdateView.as_view(), name="section_update"),
+    path("secciones/<int:pk>/eliminar/", views.SectionDeleteView.as_view(), name="section_delete"),
+    path("asignaturas/", views.SubjectListView.as_view(), name="subject_list"),
+    path("asignaturas/nueva/", views.SubjectCreateView.as_view(), name="subject_create"),
+    path("asignaturas/<int:pk>/editar/", views.SubjectUpdateView.as_view(), name="subject_update"),
+    path("asignaturas/<int:pk>/eliminar/", views.SubjectDeleteView.as_view(), name="subject_delete"),
+    path("docencia/", views.TeachingAssignmentListView.as_view(), name="teaching_assignment_list"),
+    path("docencia/nueva/", views.TeachingAssignmentCreateView.as_view(), name="teaching_assignment_create"),
+    path("docencia/<int:pk>/editar/", views.TeachingAssignmentUpdateView.as_view(), name="teaching_assignment_update"),
+    path("mis-secciones/", views.MySectionsView.as_view(), name="my_sections"),
+    path("calificaciones/<int:assignment_id>/", views.GradeBookView.as_view(), name="gradebook"),
+    path("calificaciones/importar/", views.GradeImportView.as_view(), name="grade_import"),
+    path("calificaciones/plantilla/<int:assignment_id>/", views.GradeTemplateDownloadView.as_view(), name="grade_template"),
+    path("calificaciones/estadisticas/", views.GradeStatsView.as_view(), name="grade_stats"),
+    path("usuarios/", views.UserAccessListView.as_view(), name="user_access_list"),
+    path("usuarios/<int:pk>/acceso/", views.UserAccessUpdateView.as_view(), name="user_access_update"),
+    path("roles/", views.RoleListView.as_view(), name="role_list"),
+    path("roles/nuevo/", views.RoleCreateView.as_view(), name="role_create"),
+    path("roles/<int:pk>/editar/", views.RoleUpdateView.as_view(), name="role_update"),
+    path("docentes/", views.TeacherListView.as_view(), name="teacher_list"),
+    path("docentes/nuevo/", views.TeacherCreateView.as_view(), name="teacher_create"),
+    path("docentes/<int:pk>/editar/", views.TeacherUpdateView.as_view(), name="teacher_update"),
+    path("personal/", views.AdministrativeEmployeeListView.as_view(), name="employee_list"),
+    path("personal/nuevo/", views.AdministrativeEmployeeCreateView.as_view(), name="employee_create"),
+    path("personal/<int:pk>/editar/", views.AdministrativeEmployeeUpdateView.as_view(), name="employee_update"),
+    path("login/", auth_views.LoginView.as_view(template_name="core/login.html"), name="login"),
+    path("logout/", auth_views.LogoutView.as_view(), name="logout"),
+]
