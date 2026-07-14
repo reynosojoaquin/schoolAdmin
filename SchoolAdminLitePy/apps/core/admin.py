@@ -30,6 +30,8 @@ from .models import (
     Expense,
     Grade,
     GradeCompletion,
+    GuidanceCase,
+    GuidanceFollowUp,
     JournalEntry,
     Nationality,
     Phone,
@@ -302,6 +304,33 @@ class AttendanceAdmin(admin.ModelAdmin):
     search_fields = ["enrollment__student__first_name", "enrollment__student__last_name", "enrollment__student__document_id"]
     list_display = ["date", "enrollment", "status", "recorded_by"]
     list_filter = ["date", "status", "enrollment__section", "enrollment__course"]
+
+
+@admin.register(GuidanceCase)
+class GuidanceCaseAdmin(admin.ModelAdmin):
+    search_fields = [
+        "case_number",
+        "student__first_name",
+        "student__last_name",
+        "student__document_id",
+        "reported_by",
+        "summary",
+    ]
+    list_display = ["case_number", "student", "case_type", "priority", "opened_at", "assigned_to", "status", "confidential"]
+    list_filter = ["case_type", "priority", "status", "confidential", "opened_at"]
+
+
+@admin.register(GuidanceFollowUp)
+class GuidanceFollowUpAdmin(admin.ModelAdmin):
+    search_fields = [
+        "guidance_case__case_number",
+        "guidance_case__student__first_name",
+        "guidance_case__student__last_name",
+        "participants",
+        "notes",
+    ]
+    list_display = ["date", "guidance_case", "intervention_type", "attended_by", "next_date"]
+    list_filter = ["intervention_type", "date", "next_date"]
 
 
 @admin.register(Grade)

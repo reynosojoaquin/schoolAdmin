@@ -963,6 +963,119 @@ class Attendance(TimeStampedModel):
         return f"{self.enrollment.student} - {self.date} - {self.get_status_display()}"
 
 
+class GuidanceCase(TimeStampedModel):
+    TYPE_INCIDENT = "incident"
+    TYPE_SUPPORT = "support"
+    TYPE_REFERRAL = "referral"
+    TYPE_FAMILY = "family"
+    TYPE_CHOICES = [
+        (TYPE_INCIDENT, "Incidencia"),
+        (TYPE_SUPPORT, "Caso de apoyo"),
+        (TYPE_REFERRAL, "Referimiento"),
+        (TYPE_FAMILY, "Situacion familiar"),
+    ]
+
+    PRIORITY_LOW = "low"
+    PRIORITY_MEDIUM = "medium"
+    PRIORITY_HIGH = "high"
+    PRIORITY_URGENT = "urgent"
+    PRIORITY_CHOICES = [
+        (PRIORITY_LOW, "Baja"),
+        (PRIORITY_MEDIUM, "Media"),
+        (PRIORITY_HIGH, "Alta"),
+        (PRIORITY_URGENT, "Urgente"),
+    ]
+
+    STATUS_OPEN = "open"
+    STATUS_IN_PROGRESS = "in_progress"
+    STATUS_REFERRED = "referred"
+    STATUS_CLOSED = "closed"
+    STATUS_CHOICES = [
+        (STATUS_OPEN, "Abierto"),
+        (STATUS_IN_PROGRESS, "En seguimiento"),
+        (STATUS_REFERRED, "Referido"),
+        (STATUS_CLOSED, "Cerrado"),
+    ]
+
+    case_number = models.CharField("numero de caso", max_length=40, unique=True)
+    student = models.ForeignKey(Student, on_delete=models.PROTECT, related_name="guidance_cases", verbose_name="estudiante")
+    case_type = models.CharField("tipo", max_length=20, choices=TYPE_CHOICES, default=TYPE_INCIDENT)
+    priority = models.CharField("prioridad", max_length=20, choices=PRIORITY_CHOICES, default=PRIORITY_MEDIUM)
+    status = models.CharField("estado", max_length=20, choices=STATUS_CHOICES, default=STATUS_OPEN)
+    opened_at = models.DateField("fecha de apertura")
+    reported_by = models.CharField("reportado por", max_length=160, blank=True)
+    referred_by_teacher = models.ForeignKey(
+        Teacher,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="referred_guidance_cases",
+        verbose_name="docente que refiere",
+    )
+    assigned_to = models.ForeignKey(
+        AdministrativeEmployee,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="assigned_guidance_cases",
+        verbose_name="orientador o psicologo responsable",
+    )
+    summary = models.TextField("descripcion del caso")
+    initial_actions = models.TextField("acciones iniciales", blank=True)
+    confidential = models.BooleanField("confidencial", default=True)
+    closed_at = models.DateField("fecha de cierre", null=True, blank=True)
+    closing_notes = models.TextField("notas de cierre", blank=True)
+
+    class Meta:
+        ordering = ["-opened_at", "-id"]
+        verbose_name = "caso de orientacion"
+        verbose_name_plural = "casos de orientacion"
+
+    def __str__(self):
+        return f"{self.case_number} - {self.student}"
+
+
+class GuidanceFollowUp(TimeStampedModel):
+    TYPE_INTERVIEW = "interview"
+    TYPE_CALL = "call"
+    TYPE_MEETING = "meeting"
+    TYPE_HOME_VISIT = "home_visit"
+    TYPE_REFERRAL = "referral"
+    TYPE_OBSERVATION = "observation"
+    TYPE_CHOICES = [
+        (TYPE_INTERVIEW, "Entrevista"),
+        (TYPE_CALL, "Llamada"),
+        (TYPE_MEETING, "Reunion"),
+        (TYPE_HOME_VISIT, "Visita domiciliaria"),
+        (TYPE_REFERRAL, "Referimiento"),
+        (TYPE_OBSERVATION, "Observacion"),
+    ]
+
+    guidance_case = models.ForeignKey(GuidanceCase, on_delete=models.CASCADE, related_name="followups", verbose_name="caso")
+    date = models.DateField("fecha")
+    intervention_type = models.CharField("tipo de seguimiento", max_length=20, choices=TYPE_CHOICES)
+    attended_by = models.ForeignKey(
+        AdministrativeEmployee,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="guidance_followups",
+        verbose_name="atendido por",
+    )
+    participants = models.CharField("participantes", max_length=240, blank=True)
+    notes = models.TextField("notas")
+    next_steps = models.TextField("proximos pasos", blank=True)
+    next_date = models.DateField("proxima fecha", null=True, blank=True)
+
+    class Meta:
+        ordering = ["-date", "-id"]
+        verbose_name = "seguimiento de orientacion"
+        verbose_name_plural = "seguimientos de orientacion"
+
+    def __str__(self):
+        return f"{self.guidance_case} - {self.date}"
+
+
 class Grade(TimeStampedModel):
     enrollment = models.ForeignKey(
         Enrollment,

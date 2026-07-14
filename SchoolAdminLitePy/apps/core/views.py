@@ -34,7 +34,10 @@ from .forms import (
     EquipmentLoanForm,
     ExpenseForm,
     GradeImportForm,
+    GuidanceCaseForm,
+    GuidanceFollowUpForm,
     JournalEntryForm,
+    RegistryReportForm,
     RoleForm,
     SectionForm,
     StaffAssignmentForm,
@@ -63,6 +66,8 @@ from .models import (
     Expense,
     Grade,
     GradeCompletion,
+    GuidanceCase,
+    GuidanceFollowUp,
     JournalEntry,
     Section,
     StaffAssignment,
@@ -72,6 +77,7 @@ from .models import (
     Teacher,
     TeachingAssignment,
 )
+from .report_pdfs import build_final_act_pdf, build_periodic_report_pdf, build_rcf_report_pdf
 
 
 ADMIN_ROLE = "Administrador"
@@ -110,6 +116,12 @@ def can_manage_people(user):
 def can_manage_administration(user):
     return user.is_authenticated and (
         user.is_superuser or user.has_perm(MANAGE_PEOPLE) or user.has_perm(MANAGE_USERS)
+    )
+
+
+def can_manage_guidance(user):
+    return user.is_authenticated and (
+        user.is_superuser or user.has_perm(MANAGE_PEOPLE) or user.has_perm(VIEW_ALL_ACADEMIC)
     )
 
 
@@ -178,6 +190,11 @@ class PeopleAccessMixin(LoginRequiredMixin, UserPassesTestMixin):
 class AdministrationAccessMixin(LoginRequiredMixin, UserPassesTestMixin):
     def test_func(self):
         return can_manage_administration(self.request.user)
+
+
+class GuidanceAccessMixin(LoginRequiredMixin, UserPassesTestMixin):
+    def test_func(self):
+        return can_manage_guidance(self.request.user)
 
 
 class AcademicSetupAccessMixin(LoginRequiredMixin, UserPassesTestMixin):
@@ -389,6 +406,59 @@ class AdministrationCreateView(AdministrationAccessMixin, CreateView):
 
 
 class AdministrationUpdateView(AdministrationAccessMixin, UpdateView):
+    template_name = "core/academic_form.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["title"] = self.title
+        context["cancel_url_name"] = self.cancel_url_name
+        return context
+
+
+class GuidanceListView(GuidanceAccessMixin, ListView):
+    template_name = "core/academic_list.html"
+    paginate_by = 20
+    search_placeholder = "Buscar..."
+    create_url_name = ""
+    edit_url_name = ""
+    section_label = "Orientacion y psicologia"
+    columns = []
+    row_actions = []
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        query = self.request.GET.get("q", "").strip()
+        if query:
+            queryset = self.apply_search(queryset, query)
+        return queryset
+
+    def apply_search(self, queryset, query):
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["query"] = self.request.GET.get("q", "").strip()
+        context["title"] = self.title
+        context["section_label"] = self.section_label
+        context["create_url_name"] = self.create_url_name
+        context["edit_url_name"] = self.edit_url_name
+        context["search_placeholder"] = self.search_placeholder
+        context["columns"] = self.columns
+        context["row_actions"] = self.row_actions
+        return context
+
+
+class GuidanceCreateView(GuidanceAccessMixin, CreateView):
+    template_name = "core/academic_form.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["title"] = self.title
+        context["cancel_url_name"] = self.cancel_url_name
+        return context
+
+
+class GuidanceUpdateView(GuidanceAccessMixin, UpdateView):
     template_name = "core/academic_form.html"
 
     def get_context_data(self, **kwargs):
@@ -1936,6 +2006,54 @@ class GradeStatsView(AcademicAccessMixin, View):
         return render(request, self.template_name, context)
 
 
+class RegistryReportView(AcademicAccessMixin, View):
+    template_name = "core/registry_report_form.html"
+
+    def get(self, request):
+        form = RegistryReportForm()
+        return render(request, self.template_name, {"form": form, "title": "Reportes de registro"})
+
+    def post(self, request):
+        form = RegistryReportForm(request.POST)
+        if not form.is_valid():
+            return render(request, self.template_name, {"form": form, "title": "Reportes de registro"})
+
+        section = form.cleaned_data["section"]
+        report_type = form.cleaned_data["report_type"]
+        scope = form.cleaned_data["scope"]
+        student = form.cleaned_data.get("student")
+        enrollments = (
+            Enrollment.objects.filter(section=section, active=True)
+            .select_related("student", "course", "section")
+            .order_by("student__last_name", "student__first_name")
+        )
+        if scope == RegistryReportForm.SCOPE_STUDENT:
+            enrollments = enrollments.filter(student=student)
+
+        if report_type == RegistryReportForm.REPORT_FINAL_ACT:
+            content = build_final_act_pdf(section)
+            filename = f"acta_final_{section.course.name}_{section.name}.pdf"
+        elif report_type == RegistryReportForm.REPORT_RCF:
+            enrollment = enrollments.first()
+            if not enrollment:
+                form.add_error(None, "No se encontro una inscripcion activa para ese estudiante en la seccion.")
+                return render(request, self.template_name, {"form": form, "title": "Reportes de registro"})
+            content = build_rcf_report_pdf(enrollment)
+            filename = f"rcf_{enrollment.student.last_name}_{enrollment.student.first_name}.pdf"
+        else:
+            enrollment_list = list(enrollments)
+            if not enrollment_list:
+                form.add_error(None, "No hay estudiantes inscritos en esa seleccion.")
+                return render(request, self.template_name, {"form": form, "title": "Reportes de registro"})
+            content = build_periodic_report_pdf(section, enrollment_list)
+            suffix = "individual" if scope == RegistryReportForm.SCOPE_STUDENT else "colectivo"
+            filename = f"boletin_periodo_{section.course.name}_{section.name}_{suffix}.pdf"
+
+        response = HttpResponse(content, content_type="application/pdf")
+        response["Content-Disposition"] = f'attachment; filename="{filename.replace(" ", "_")}"'
+        return response
+
+
 class EquipmentCategoryListView(AdministrationListView):
     model = EquipmentCategory
     title = "Categorias de equipos"
@@ -2378,6 +2496,151 @@ class StaffAssignmentUpdateView(AdministrationUpdateView):
     title = "Editar asignacion de personal"
     success_url = reverse_lazy("core:staff_assignment_list")
     cancel_url_name = "core:staff_assignment_list"
+
+
+class GuidanceCaseListView(GuidanceListView):
+    model = GuidanceCase
+    title = "Casos de orientacion"
+    create_url_name = "core:guidance_case_create"
+    edit_url_name = "core:guidance_case_update"
+    search_placeholder = "Buscar por caso, estudiante, responsable o descripcion"
+    columns = [
+        ("case_number", "Caso"),
+        ("student", "Estudiante"),
+        ("case_type", "Tipo"),
+        ("priority", "Prioridad"),
+        ("opened_at", "Apertura"),
+        ("assigned_to", "Responsable"),
+        ("status", "Estado"),
+    ]
+    row_actions = [
+        ("Seguimientos", "core:guidance_followup_list"),
+        ("Editar", "core:guidance_case_update"),
+    ]
+
+    def get_queryset(self):
+        queryset = GuidanceCase.objects.select_related("student", "assigned_to", "referred_by_teacher")
+        query = self.request.GET.get("q", "").strip()
+        if query:
+            queryset = self.apply_search(queryset, query)
+        return queryset
+
+    def apply_search(self, queryset, query):
+        return queryset.filter(
+            Q(case_number__icontains=query)
+            | Q(student__first_name__icontains=query)
+            | Q(student__last_name__icontains=query)
+            | Q(student__document_id__icontains=query)
+            | Q(assigned_to__first_name__icontains=query)
+            | Q(assigned_to__last_name__icontains=query)
+            | Q(summary__icontains=query)
+            | Q(reported_by__icontains=query)
+        )
+
+
+class GuidanceCaseCreateView(GuidanceCreateView):
+    model = GuidanceCase
+    form_class = GuidanceCaseForm
+    title = "Nuevo caso de orientacion"
+    success_url = reverse_lazy("core:guidance_case_list")
+    cancel_url_name = "core:guidance_case_list"
+
+
+class GuidanceCaseUpdateView(GuidanceUpdateView):
+    model = GuidanceCase
+    form_class = GuidanceCaseForm
+    title = "Editar caso de orientacion"
+    success_url = reverse_lazy("core:guidance_case_list")
+    cancel_url_name = "core:guidance_case_list"
+
+
+class GuidanceFollowUpListView(GuidanceListView):
+    model = GuidanceFollowUp
+    title = "Seguimientos de orientacion"
+    create_url_name = "core:guidance_followup_create"
+    edit_url_name = "core:guidance_followup_update"
+    search_placeholder = "Buscar por caso, estudiante, participantes o notas"
+    columns = [
+        ("date", "Fecha"),
+        ("guidance_case", "Caso"),
+        ("student", "Estudiante"),
+        ("intervention_type", "Tipo"),
+        ("attended_by", "Atendido por"),
+        ("next_date", "Proxima fecha"),
+    ]
+
+    def dispatch(self, request, *args, **kwargs):
+        self.guidance_case = None
+        case_pk = self.kwargs.get("case_pk")
+        if case_pk:
+            self.guidance_case = get_object_or_404(GuidanceCase.objects.select_related("student"), pk=case_pk)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        queryset = GuidanceFollowUp.objects.select_related("guidance_case", "guidance_case__student", "attended_by")
+        if self.guidance_case is not None:
+            queryset = queryset.filter(guidance_case=self.guidance_case)
+        query = self.request.GET.get("q", "").strip()
+        if query:
+            queryset = self.apply_search(queryset, query)
+        return queryset
+
+    def apply_search(self, queryset, query):
+        return queryset.filter(
+            Q(guidance_case__case_number__icontains=query)
+            | Q(guidance_case__student__first_name__icontains=query)
+            | Q(guidance_case__student__last_name__icontains=query)
+            | Q(participants__icontains=query)
+            | Q(notes__icontains=query)
+            | Q(next_steps__icontains=query)
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.guidance_case is not None:
+            context["title"] = f"Seguimientos - {self.guidance_case.case_number}"
+            context["create_url_name"] = "core:guidance_followup_case_create"
+            context["create_url_args"] = [self.guidance_case.pk]
+        return context
+
+
+class GuidanceFollowUpCreateView(GuidanceCreateView):
+    model = GuidanceFollowUp
+    form_class = GuidanceFollowUpForm
+    title = "Nuevo seguimiento"
+    success_url = reverse_lazy("core:guidance_followup_list")
+    cancel_url_name = "core:guidance_followup_list"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.guidance_case = None
+        case_pk = self.kwargs.get("case_pk")
+        if case_pk:
+            self.guidance_case = get_object_or_404(GuidanceCase, pk=case_pk)
+            self.success_url = reverse_lazy("core:guidance_followup_list", kwargs={"case_pk": self.guidance_case.pk})
+            self.cancel_url_name = "core:guidance_followup_list"
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        if self.guidance_case is not None:
+            kwargs["guidance_case"] = self.guidance_case
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.guidance_case is not None:
+            context["title"] = f"Nuevo seguimiento - {self.guidance_case.case_number}"
+            context["cancel_url_name"] = "core:guidance_followup_list"
+            context["cancel_url_args"] = [self.guidance_case.pk]
+        return context
+
+
+class GuidanceFollowUpUpdateView(GuidanceUpdateView):
+    model = GuidanceFollowUp
+    form_class = GuidanceFollowUpForm
+    title = "Editar seguimiento"
+    success_url = reverse_lazy("core:guidance_followup_list")
+    cancel_url_name = "core:guidance_followup_list"
 
 
 class TeacherListView(PersonListView):

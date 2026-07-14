@@ -148,6 +148,17 @@
               {% endif %}
             {% endif %}
 
+            {% if can_view_academic %}
+              <p class="nav-header">REGISTRO</p>
+              <a class="nav-link {% if request.resolver_match.url_name == 'registry_reports' %}active{% endif %}" href="{% url 'core:registry_reports' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-subjects"></use></svg><span>Reportes</span></a>
+            {% endif %}
+
+            {% if can_manage_guidance %}
+              <p class="nav-header">ORIENTACION</p>
+              <a class="nav-link {% if 'guidance_case' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:guidance_case_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-students"></use></svg><span>Casos</span></a>
+              <a class="nav-link {% if 'guidance_followup' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:guidance_followup_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-teaching"></use></svg><span>Seguimientos</span></a>
+            {% endif %}
+
             {% if can_manage_administration %}
               <p class="nav-header">ADMINISTRATIVO</p>
               <a class="nav-link {% if 'equipment_item' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:equipment_item_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-staff"></use></svg><span>Inventario equipos</span></a>

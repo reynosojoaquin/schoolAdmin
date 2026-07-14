@@ -5,7 +5,7 @@
 {% block content %}
 <section class="page-header">
   <div>
-    <p class="eyebrow">Gestion academica</p>
+    <p class="eyebrow">Registro</p>
     <h1>{{ title }}</h1>
   </div>
 </section>
@@ -19,7 +19,7 @@
 
   <div class="form-grid">
     {% for field in form %}
-      <div class="field {% if field.field.widget.input_type == 'checkbox' %}field-checkbox{% endif %}">
+      <div class="field">
         <label for="{{ field.id_for_label }}">{{ field.label }}</label>
         {{ field }}
         {% if field.help_text %}
@@ -33,12 +33,8 @@
   </div>
 
   <div class="form-actions">
-    <button type="submit">Guardar</button>
-    {% if cancel_url_args %}
-      <a class="btn-secondary" href="{% url cancel_url_name cancel_url_args.0 %}">Cancelar</a>
-    {% else %}
-      <a class="btn-secondary" href="{% url cancel_url_name %}">Cancelar</a>
-    {% endif %}
+    <button type="submit">Generar PDF</button>
+    <a class="btn-secondary" href="{% url 'core:dashboard' %}">Cancelar</a>
   </div>
 </form>
 {% endblock %}

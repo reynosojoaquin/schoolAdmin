@@ -9,7 +9,11 @@
     <h1>{{ title }}</h1>
   </div>
   <div class="header-actions">
-    <a class="btn" href="{% url create_url_name %}">Nuevo</a>
+    {% if create_url_args %}
+      <a class="btn" href="{% url create_url_name create_url_args.0 %}">Nuevo</a>
+    {% else %}
+      <a class="btn" href="{% url create_url_name %}">Nuevo</a>
+    {% endif %}
   </div>
 </section>
 
@@ -44,6 +48,34 @@
                 {% endif %}
               {% elif field_name == "status" %}
                 <span class="status active">{{ item.get_status_display|default:item.status }}</span>
+              {% elif field_name == "case_number" %}
+                <strong>{{ item.case_number }}</strong>
+              {% elif field_name == "case_type" %}
+                {{ item.get_case_type_display|default:item.case_type }}
+              {% elif field_name == "priority" %}
+                {{ item.get_priority_display|default:item.priority }}
+              {% elif field_name == "opened_at" %}
+                {{ item.opened_at|date:"d/m/Y"|default:"-" }}
+              {% elif field_name == "closed_at" %}
+                {{ item.closed_at|date:"d/m/Y"|default:"-" }}
+              {% elif field_name == "student" %}
+                {% if item.student %}
+                  {{ item.student }}
+                {% elif item.guidance_case.student %}
+                  {{ item.guidance_case.student }}
+                {% else %}
+                  -
+                {% endif %}
+              {% elif field_name == "assigned_to" %}
+                {{ item.assigned_to|default:"-" }}
+              {% elif field_name == "guidance_case" %}
+                {{ item.guidance_case|default:"-" }}
+              {% elif field_name == "intervention_type" %}
+                {{ item.get_intervention_type_display|default:item.intervention_type }}
+              {% elif field_name == "attended_by" %}
+                {{ item.attended_by|default:"-" }}
+              {% elif field_name == "next_date" %}
+                {{ item.next_date|date:"d/m/Y"|default:"-" }}
               {% elif field_name == "stock_status" %}
                 <span class="status {% if item.stock_status == 'Disponible' %}active{% else %}inactive{% endif %}">{{ item.stock_status }}</span>
               {% elif field_name == "code" %}

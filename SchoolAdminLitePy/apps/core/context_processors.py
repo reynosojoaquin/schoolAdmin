@@ -8,12 +8,14 @@ def access_flags(request):
     can_manage_administration = can_manage_people or can_manage_users
     can_manage_academic = user.is_superuser or user.has_perm("core.manage_academic_setup")
     can_view_all_academic = user.is_superuser or user.has_perm("core.view_all_academic")
+    can_manage_guidance = can_manage_people or can_view_all_academic
     is_teacher = user.has_perm("core.view_own_sections") and hasattr(user, "teacher_profile")
     can_view_academic = can_view_all_academic or is_teacher
     return {
         "can_manage_system": can_manage_users,
         "can_manage_people": can_manage_people,
         "can_manage_administration": can_manage_administration,
+        "can_manage_guidance": can_manage_guidance,
         "can_manage_academic": can_manage_academic,
         "can_view_academic": can_view_academic,
         "can_edit_grades": user.is_superuser or user.has_perm("core.edit_grades"),

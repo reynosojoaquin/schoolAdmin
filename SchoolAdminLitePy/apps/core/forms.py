@@ -16,6 +16,8 @@ from .models import (
     EquipmentItem,
     EquipmentLoan,
     Expense,
+    GuidanceCase,
+    GuidanceFollowUp,
     JournalEntry,
     Section,
     StaffAssignment,
@@ -297,6 +299,67 @@ class StaffAssignmentForm(AdministrationFormMixin, forms.ModelForm):
         self.apply_widgets()
 
 
+class GuidanceCaseForm(AdministrationFormMixin, forms.ModelForm):
+    class Meta:
+        model = GuidanceCase
+        fields = [
+            "case_number",
+            "student",
+            "case_type",
+            "priority",
+            "status",
+            "opened_at",
+            "reported_by",
+            "referred_by_teacher",
+            "assigned_to",
+            "summary",
+            "initial_actions",
+            "confidential",
+            "closed_at",
+            "closing_notes",
+        ]
+        widgets = {
+            "opened_at": forms.DateInput(attrs={"type": "date"}),
+            "closed_at": forms.DateInput(attrs={"type": "date"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["student"].queryset = Student.objects.filter(active=True).order_by("last_name", "first_name")
+        self.fields["referred_by_teacher"].queryset = Teacher.objects.filter(active=True).order_by("last_name", "first_name")
+        self.fields["assigned_to"].queryset = AdministrativeEmployee.objects.filter(active=True).order_by("last_name", "first_name")
+        self.apply_widgets()
+
+
+class GuidanceFollowUpForm(AdministrationFormMixin, forms.ModelForm):
+    class Meta:
+        model = GuidanceFollowUp
+        fields = [
+            "guidance_case",
+            "date",
+            "intervention_type",
+            "attended_by",
+            "participants",
+            "notes",
+            "next_steps",
+            "next_date",
+        ]
+        widgets = {
+            "date": forms.DateInput(attrs={"type": "date"}),
+            "next_date": forms.DateInput(attrs={"type": "date"}),
+        }
+
+    def __init__(self, *args, guidance_case=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["guidance_case"].queryset = GuidanceCase.objects.select_related("student").exclude(status=GuidanceCase.STATUS_CLOSED)
+        self.fields["attended_by"].queryset = AdministrativeEmployee.objects.filter(active=True).order_by("last_name", "first_name")
+        if guidance_case is not None:
+            self.fields["guidance_case"].initial = guidance_case
+            self.fields["guidance_case"].queryset = GuidanceCase.objects.filter(pk=guidance_case.pk)
+            self.fields["guidance_case"].widget = forms.HiddenInput()
+        self.apply_widgets()
+
+
 class CourseForm(AcademicFormMixin, forms.ModelForm):
     class Meta:
         model = Course
@@ -489,6 +552,68 @@ class GradeImportForm(forms.Form):
         self.fields["teaching_assignment"].queryset = assignments if assignments is not None else TeachingAssignment.objects.none()
         for field in self.fields.values():
             field.widget.attrs.setdefault("class", "form-control")
+
+
+class RegistryReportForm(forms.Form):
+    REPORT_PERIODIC = "periodic"
+    REPORT_RCF = "rcf"
+    REPORT_FINAL_ACT = "final_act"
+    REPORT_CHOICES = [
+        (REPORT_PERIODIC, "Boletin de calificaciones por periodo"),
+        (REPORT_RCF, "Reporte de calificaciones finales individual (RCF)"),
+        (REPORT_FINAL_ACT, "Acta final colectiva"),
+    ]
+    SCOPE_GROUP = "group"
+    SCOPE_STUDENT = "student"
+    SCOPE_CHOICES = [
+        (SCOPE_GROUP, "Colectivo por seccion"),
+        (SCOPE_STUDENT, "Individual por estudiante"),
+    ]
+
+    report_type = forms.ChoiceField(label="Tipo de reporte", choices=REPORT_CHOICES)
+    section = forms.ModelChoiceField(
+        label="Seccion",
+        queryset=Section.objects.none(),
+        required=True,
+    )
+    scope = forms.ChoiceField(label="Alcance", choices=SCOPE_CHOICES, initial=SCOPE_GROUP)
+    student = forms.ModelChoiceField(
+        label="Estudiante",
+        queryset=Student.objects.none(),
+        required=False,
+        help_text="Solo requerido para reportes individuales.",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["section"].queryset = Section.objects.filter(active=True).select_related("course").order_by(
+            "course__name",
+            "name",
+            "school_year",
+        )
+        self.fields["student"].queryset = Student.objects.filter(active=True).order_by("last_name", "first_name")
+        for field in self.fields.values():
+            field.widget.attrs.setdefault("class", "form-control")
+
+    def clean(self):
+        cleaned_data = super().clean()
+        report_type = cleaned_data.get("report_type")
+        scope = cleaned_data.get("scope")
+        section = cleaned_data.get("section")
+        student = cleaned_data.get("student")
+        if report_type == self.REPORT_RCF:
+            cleaned_data["scope"] = self.SCOPE_STUDENT
+            if not student:
+                raise forms.ValidationError("El RCF requiere seleccionar un estudiante.")
+        if scope == self.SCOPE_STUDENT and not student:
+            raise forms.ValidationError("Selecciona un estudiante para generar un reporte individual.")
+        if report_type == self.REPORT_FINAL_ACT and scope == self.SCOPE_STUDENT:
+            raise forms.ValidationError("El acta final se genera de forma colectiva por seccion.")
+        if section and student:
+            is_enrolled = student.enrollments.filter(section=section, active=True).exists()
+            if not is_enrolled:
+                raise forms.ValidationError("El estudiante seleccionado no esta inscrito activamente en esa seccion.")
+        return cleaned_data
 
 
 class StudentImportForm(forms.Form):
