@@ -10,11 +10,11 @@ from django.db import transaction
 from django.db.models import Avg, Count
 from django.db.models.deletion import ProtectedError
 from django.db.models import Q
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.views import View
-from django.views.generic import CreateView, DeleteView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 from openpyxl import Workbook, load_workbook
 from openpyxl.comments import Comment
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Protection, Side
@@ -77,7 +77,7 @@ from .models import (
     Teacher,
     TeachingAssignment,
 )
-from .report_pdfs import build_final_act_pdf, build_periodic_report_pdf, build_rcf_report_pdf
+from .report_pdfs import build_final_act_pdf, build_guidance_case_pdf, build_periodic_report_pdf, build_rcf_report_pdf
 
 
 ADMIN_ROLE = "Administrador"
@@ -121,8 +121,65 @@ def can_manage_administration(user):
 
 def can_manage_guidance(user):
     return user.is_authenticated and (
-        user.is_superuser or user.has_perm(MANAGE_PEOPLE) or user.has_perm(VIEW_ALL_ACADEMIC)
+        user.is_superuser
+        or user.has_perm(MANAGE_PEOPLE)
+        or user.has_perm(VIEW_ALL_ACADEMIC)
+        or hasattr(user, "teacher_profile")
     )
+
+
+def visible_guidance_cases_for_user(user):
+    queryset = GuidanceCase.objects.select_related("section", "section__course", "student", "assigned_to", "referred_by_teacher")
+    if not user.is_authenticated:
+        return queryset.none()
+    teacher = getattr(user, "teacher_profile", None)
+    if user.is_superuser or (teacher is None and (user.has_perm(MANAGE_PEOPLE) or user.has_perm(VIEW_ALL_ACADEMIC))):
+        return queryset
+    section_ids = Section.objects.filter(
+        Q(responsible=teacher)
+        | Q(teaching_assignments__teacher=teacher, teaching_assignments__active=True)
+    ).values("id")
+    if teacher and teacher.is_guidance_counselor:
+        return queryset.filter(Q(assigned_to=teacher) | Q(assigned_to__isnull=True, section_id__in=section_ids))
+    if teacher:
+        return queryset.filter(referred_by_teacher=teacher, section_id__in=section_ids)
+    return queryset.none()
+
+
+def can_user_work_in_section(user, section):
+    if not user.is_authenticated:
+        return False
+    if user.is_superuser or user.has_perm(MANAGE_PEOPLE) or user.has_perm(VIEW_ALL_ACADEMIC):
+        return True
+    teacher = getattr(user, "teacher_profile", None)
+    if not teacher:
+        return False
+    return (
+        section.responsible_id == teacher.pk
+        or TeachingAssignment.objects.filter(teacher=teacher, section=section, active=True).exists()
+    )
+
+
+def can_register_guidance_followup(user, guidance_case=None):
+    if not user.is_authenticated:
+        return False
+    if user.is_superuser or user.has_perm(MANAGE_PEOPLE) or user.has_perm(VIEW_ALL_ACADEMIC):
+        return True
+    teacher = getattr(user, "teacher_profile", None)
+    if not teacher or not teacher.is_guidance_counselor:
+        return False
+    if guidance_case is None:
+        return True
+    return guidance_case.assigned_to_id == teacher.pk
+
+
+def can_print_guidance_case(user, guidance_case):
+    if not user.is_authenticated:
+        return False
+    if user.is_superuser or user.has_perm(MANAGE_PEOPLE) or user.has_perm(VIEW_ALL_ACADEMIC):
+        return True
+    teacher = getattr(user, "teacher_profile", None)
+    return bool(teacher and teacher.is_guidance_counselor and guidance_case.assigned_to_id == teacher.pk)
 
 
 def can_manage_academic(user):
@@ -143,6 +200,26 @@ def can_import_grades(user):
 
 def can_view_grade_stats(user):
     return user.is_authenticated and (user.is_superuser or user.has_perm(VIEW_GRADE_STATS))
+
+
+@login_required
+def section_students_options(request):
+    section_id = request.GET.get("section")
+    students = []
+    if section_id:
+        section = get_object_or_404(Section, pk=section_id, active=True)
+        if can_user_work_in_section(request.user, section):
+            students = [
+                {"id": student.id, "text": str(student)}
+                for student in Student.objects.filter(
+                    active=True,
+                    enrollments__section=section,
+                    enrollments__active=True,
+                )
+                .distinct()
+                .order_by("last_name", "first_name")
+            ]
+    return JsonResponse({"students": students})
 
 
 def visible_assignments_for_user(user):
@@ -451,20 +528,32 @@ class GuidanceListView(GuidanceAccessMixin, ListView):
 class GuidanceCreateView(GuidanceAccessMixin, CreateView):
     template_name = "core/academic_form.html"
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["title"] = self.title
         context["cancel_url_name"] = self.cancel_url_name
+        context["load_section_students"] = isinstance(context.get("form"), GuidanceCaseForm)
         return context
 
 
 class GuidanceUpdateView(GuidanceAccessMixin, UpdateView):
     template_name = "core/academic_form.html"
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["title"] = self.title
         context["cancel_url_name"] = self.cancel_url_name
+        context["load_section_students"] = isinstance(context.get("form"), GuidanceCaseForm)
         return context
 
 
@@ -2506,6 +2595,7 @@ class GuidanceCaseListView(GuidanceListView):
     search_placeholder = "Buscar por caso, estudiante, responsable o descripcion"
     columns = [
         ("case_number", "Caso"),
+        ("section", "Grado/seccion"),
         ("student", "Estudiante"),
         ("case_type", "Tipo"),
         ("priority", "Prioridad"),
@@ -2514,12 +2604,13 @@ class GuidanceCaseListView(GuidanceListView):
         ("status", "Estado"),
     ]
     row_actions = [
+        ("Detalle", "core:guidance_case_detail"),
         ("Seguimientos", "core:guidance_followup_list"),
         ("Editar", "core:guidance_case_update"),
     ]
 
     def get_queryset(self):
-        queryset = GuidanceCase.objects.select_related("student", "assigned_to", "referred_by_teacher")
+        queryset = visible_guidance_cases_for_user(self.request.user)
         query = self.request.GET.get("q", "").strip()
         if query:
             queryset = self.apply_search(queryset, query)
@@ -2545,6 +2636,34 @@ class GuidanceCaseCreateView(GuidanceCreateView):
     success_url = reverse_lazy("core:guidance_case_list")
     cancel_url_name = "core:guidance_case_list"
 
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        teacher = getattr(self.request.user, "teacher_profile", None)
+        if teacher and not teacher.is_guidance_counselor and self.object.section_id and not self.object.assigned_to_id:
+            if (
+                self.object.section.responsible_id
+                and self.object.section.responsible.is_guidance_counselor
+                and self.object.section.responsible.active
+            ):
+                self.object.assigned_to = self.object.section.responsible
+                self.object.save(update_fields=["assigned_to", "updated_at"])
+                return response
+            counselor_assignment = (
+                TeachingAssignment.objects.filter(
+                    section=self.object.section,
+                    teacher__is_guidance_counselor=True,
+                    teacher__active=True,
+                    active=True,
+                )
+                .select_related("teacher")
+                .order_by("teacher__last_name", "teacher__first_name")
+                .first()
+            )
+            if counselor_assignment:
+                self.object.assigned_to = counselor_assignment.teacher
+                self.object.save(update_fields=["assigned_to", "updated_at"])
+        return response
+
 
 class GuidanceCaseUpdateView(GuidanceUpdateView):
     model = GuidanceCase
@@ -2552,6 +2671,66 @@ class GuidanceCaseUpdateView(GuidanceUpdateView):
     title = "Editar caso de orientacion"
     success_url = reverse_lazy("core:guidance_case_list")
     cancel_url_name = "core:guidance_case_list"
+
+    def get_queryset(self):
+        return visible_guidance_cases_for_user(self.request.user)
+
+
+class GuidanceCaseDetailView(GuidanceAccessMixin, DetailView):
+    model = GuidanceCase
+    template_name = "core/guidance_case_detail.html"
+    context_object_name = "case"
+
+    def get_queryset(self):
+        return visible_guidance_cases_for_user(self.request.user).prefetch_related("followups", "followups__attended_by")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        teacher = getattr(self.request.user, "teacher_profile", None)
+        context["can_claim_case"] = (
+            teacher is not None
+            and teacher.is_guidance_counselor
+            and self.object.assigned_to_id is None
+            and self.object.status != GuidanceCase.STATUS_CLOSED
+        )
+        context["can_register_followup"] = can_register_guidance_followup(self.request.user, self.object)
+        context["can_print_case"] = can_print_guidance_case(self.request.user, self.object)
+        return context
+
+
+class GuidanceCasePrintView(GuidanceAccessMixin, View):
+    def get(self, request, pk):
+        guidance_case = get_object_or_404(
+            visible_guidance_cases_for_user(request.user).prefetch_related("followups", "followups__attended_by"),
+            pk=pk,
+        )
+        if not can_print_guidance_case(request.user, guidance_case):
+            messages.error(request, "La impresion del expediente corresponde al orientador responsable o a administracion.")
+            return redirect("core:guidance_case_detail", pk=guidance_case.pk)
+        content = build_guidance_case_pdf(guidance_case)
+        response = HttpResponse(content, content_type="application/pdf")
+        response["Content-Disposition"] = f'inline; filename="{guidance_case.case_number}.pdf"'
+        return response
+
+
+class GuidanceCaseClaimView(GuidanceAccessMixin, View):
+    def post(self, request, pk):
+        teacher = getattr(request.user, "teacher_profile", None)
+        guidance_case = get_object_or_404(visible_guidance_cases_for_user(request.user), pk=pk)
+        if not teacher or not teacher.is_guidance_counselor:
+            messages.error(request, "Solo un orientador o psicologo puede conectar un caso.")
+            return redirect("core:guidance_case_detail", pk=guidance_case.pk)
+        if guidance_case.assigned_to_id and guidance_case.assigned_to_id != teacher.pk:
+            messages.error(request, "Este caso ya esta asignado a otro orientador o psicologo.")
+            return redirect("core:guidance_case_detail", pk=guidance_case.pk)
+        if guidance_case.status == GuidanceCase.STATUS_CLOSED:
+            messages.error(request, "No se puede conectar un caso cerrado.")
+            return redirect("core:guidance_case_detail", pk=guidance_case.pk)
+        guidance_case.assigned_to = teacher
+        guidance_case.status = GuidanceCase.STATUS_IN_PROGRESS
+        guidance_case.save(update_fields=["assigned_to", "status", "updated_at"])
+        messages.success(request, "Caso conectado correctamente. Ya puedes registrar los datos y seguimientos.")
+        return redirect("core:guidance_case_detail", pk=guidance_case.pk)
 
 
 class GuidanceFollowUpListView(GuidanceListView):
@@ -2573,11 +2752,16 @@ class GuidanceFollowUpListView(GuidanceListView):
         self.guidance_case = None
         case_pk = self.kwargs.get("case_pk")
         if case_pk:
-            self.guidance_case = get_object_or_404(GuidanceCase.objects.select_related("student"), pk=case_pk)
+            self.guidance_case = get_object_or_404(visible_guidance_cases_for_user(request.user), pk=case_pk)
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
-        queryset = GuidanceFollowUp.objects.select_related("guidance_case", "guidance_case__student", "attended_by")
+        visible_cases = visible_guidance_cases_for_user(self.request.user)
+        queryset = GuidanceFollowUp.objects.filter(guidance_case__in=visible_cases).select_related(
+            "guidance_case",
+            "guidance_case__student",
+            "attended_by",
+        )
         if self.guidance_case is not None:
             queryset = queryset.filter(guidance_case=self.guidance_case)
         query = self.request.GET.get("q", "").strip()
@@ -2597,10 +2781,14 @@ class GuidanceFollowUpListView(GuidanceListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        if not can_register_guidance_followup(self.request.user, self.guidance_case):
+            context["create_url_name"] = ""
         if self.guidance_case is not None:
             context["title"] = f"Seguimientos - {self.guidance_case.case_number}"
-            context["create_url_name"] = "core:guidance_followup_case_create"
-            context["create_url_args"] = [self.guidance_case.pk]
+            if can_register_guidance_followup(self.request.user, self.guidance_case):
+                context["create_url_name"] = "core:guidance_followup_case_create"
+                context["create_url_args"] = [self.guidance_case.pk]
+            context["empty_message"] = "Este caso existe, pero todavia no tiene seguimientos registrados."
         return context
 
 
@@ -2615,9 +2803,15 @@ class GuidanceFollowUpCreateView(GuidanceCreateView):
         self.guidance_case = None
         case_pk = self.kwargs.get("case_pk")
         if case_pk:
-            self.guidance_case = get_object_or_404(GuidanceCase, pk=case_pk)
+            self.guidance_case = get_object_or_404(visible_guidance_cases_for_user(request.user), pk=case_pk)
+            if not can_register_guidance_followup(request.user, self.guidance_case):
+                messages.error(request, "Puedes visualizar los seguimientos de este caso, pero el registro corresponde a orientacion o psicologia.")
+                return redirect("core:guidance_case_detail", pk=self.guidance_case.pk)
             self.success_url = reverse_lazy("core:guidance_followup_list", kwargs={"case_pk": self.guidance_case.pk})
             self.cancel_url_name = "core:guidance_followup_list"
+        elif not can_register_guidance_followup(request.user):
+            messages.error(request, "El registro de seguimientos corresponde a orientacion o psicologia.")
+            return redirect("core:guidance_case_list")
         return super().dispatch(request, *args, **kwargs)
 
     def get_form_kwargs(self):
@@ -2625,6 +2819,14 @@ class GuidanceFollowUpCreateView(GuidanceCreateView):
         if self.guidance_case is not None:
             kwargs["guidance_case"] = self.guidance_case
         return kwargs
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        guidance_case = self.object.guidance_case
+        if guidance_case.status == GuidanceCase.STATUS_OPEN:
+            guidance_case.status = GuidanceCase.STATUS_IN_PROGRESS
+            guidance_case.save(update_fields=["status", "updated_at"])
+        return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -2641,6 +2843,10 @@ class GuidanceFollowUpUpdateView(GuidanceUpdateView):
     title = "Editar seguimiento"
     success_url = reverse_lazy("core:guidance_followup_list")
     cancel_url_name = "core:guidance_followup_list"
+
+    def get_queryset(self):
+        visible_cases = visible_guidance_cases_for_user(self.request.user)
+        return GuidanceFollowUp.objects.filter(guidance_case__in=visible_cases)
 
 
 class TeacherListView(PersonListView):

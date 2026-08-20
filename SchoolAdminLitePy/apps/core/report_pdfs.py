@@ -1,5 +1,6 @@
 from collections import defaultdict
 from io import BytesIO
+from xml.sax.saxutils import escape
 
 from django.db.models import Prefetch
 
@@ -61,6 +62,12 @@ def _fmt(value):
     if number.is_integer():
         return str(int(number))
     return f"{number:.1f}"
+
+
+def _text(value):
+    if value is None:
+        return ""
+    return escape(str(value)).replace("\n", "<br/>")
 
 
 def _avg(values):
@@ -339,5 +346,136 @@ def build_final_act_pdf(section):
         )
     )
     story.append(table)
+    doc.build(story)
+    return buffer.getvalue()
+
+
+def build_guidance_case_pdf(guidance_case):
+    rl = _reportlab()
+    buffer = BytesIO()
+    doc = rl["SimpleDocTemplate"](
+        buffer,
+        pagesize=rl["letter"],
+        rightMargin=0.45 * rl["inch"],
+        leftMargin=0.45 * rl["inch"],
+        topMargin=0.45 * rl["inch"],
+        bottomMargin=0.45 * rl["inch"],
+    )
+    styles = rl["getSampleStyleSheet"]()
+    title = rl["ParagraphStyle"](
+        "guidance_title",
+        parent=styles["Title"],
+        alignment=rl["TA_CENTER"],
+        fontSize=14,
+        leading=18,
+        textColor=rl["colors"].darkgreen,
+    )
+    subtitle = rl["ParagraphStyle"](
+        "guidance_subtitle",
+        parent=styles["Heading2"],
+        fontSize=11,
+        leading=14,
+        textColor=rl["colors"].HexColor("#1f2937"),
+        spaceBefore=10,
+        spaceAfter=6,
+    )
+    normal = rl["ParagraphStyle"]("guidance_normal", parent=styles["Normal"], fontSize=8, leading=10)
+    small = rl["ParagraphStyle"]("guidance_small", parent=styles["Normal"], fontSize=7, leading=9)
+
+    story = [
+        rl["Paragraph"](INSTITUTION_NAME, title),
+        rl["Paragraph"](INSTITUTION_SUBTITLE, normal),
+        rl["Spacer"](1, 8),
+        rl["Paragraph"]("EXPEDIENTE DE ORIENTACION Y PSICOLOGIA", title),
+        rl["Paragraph"](f"Caso: {_text(guidance_case.case_number)}", normal),
+        rl["Spacer"](1, 12),
+    ]
+
+    case_rows = [
+        ["Estudiante", _text(guidance_case.student or "Pendiente")],
+        ["Grado o seccion", _text(guidance_case.section or "-")],
+        ["Tipo", _text(guidance_case.get_case_type_display())],
+        ["Prioridad", _text(guidance_case.get_priority_display())],
+        ["Estado", _text(guidance_case.get_status_display())],
+        ["Fecha de apertura", guidance_case.opened_at.strftime("%d/%m/%Y") if guidance_case.opened_at else "-"],
+        ["Fecha de cierre", guidance_case.closed_at.strftime("%d/%m/%Y") if guidance_case.closed_at else "-"],
+        ["Reportado por", _text(guidance_case.reported_by or "-")],
+        ["Docente que refiere", _text(guidance_case.referred_by_teacher or "-")],
+        ["Responsable", _text(guidance_case.assigned_to or "-")],
+    ]
+    case_table = rl["Table"](
+        [[rl["Paragraph"](label, small), rl["Paragraph"](value, small)] for label, value in case_rows],
+        colWidths=[1.7 * rl["inch"], 4.9 * rl["inch"]],
+    )
+    case_table.setStyle(
+        rl["TableStyle"](
+            [
+                ("GRID", (0, 0), (-1, -1), 0.35, rl["colors"].HexColor("#d1d5db")),
+                ("BACKGROUND", (0, 0), (0, -1), rl["colors"].HexColor("#eef2f7")),
+                ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 5),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+            ]
+        )
+    )
+    story.append(case_table)
+    story.append(rl["Paragraph"]("Descripcion inicial", subtitle))
+    story.append(rl["Paragraph"](_text(guidance_case.summary), normal))
+    if guidance_case.initial_actions:
+        story.append(rl["Paragraph"]("Acciones iniciales", subtitle))
+        story.append(rl["Paragraph"](_text(guidance_case.initial_actions), normal))
+    if guidance_case.closing_notes:
+        story.append(rl["Paragraph"]("Explicacion de cierre", subtitle))
+        story.append(rl["Paragraph"](_text(guidance_case.closing_notes), normal))
+
+    story.append(rl["Paragraph"]("Seguimientos y evidencias", subtitle))
+    followups = list(guidance_case.followups.select_related("attended_by").order_by("date", "id"))
+    if followups:
+        data = [["Fecha", "Tipo", "Atendido por", "Participantes", "Notas", "Proximos pasos", "Evidencia"]]
+        for followup in followups:
+            data.append(
+                [
+                    followup.date.strftime("%d/%m/%Y") if followup.date else "-",
+                    _text(followup.get_intervention_type_display()),
+                    _text(followup.attended_by or "-"),
+                    _text(followup.participants or "-"),
+                    _text(followup.notes),
+                    _text(followup.next_steps or "-"),
+                    _text(followup.evidence_file.name if followup.evidence_file else "-"),
+                ]
+            )
+        table = rl["Table"](
+            [[rl["Paragraph"](cell, small) for cell in row] for row in data],
+            repeatRows=1,
+            colWidths=[
+                0.55 * rl["inch"],
+                0.85 * rl["inch"],
+                1.05 * rl["inch"],
+                1.0 * rl["inch"],
+                1.35 * rl["inch"],
+                1.15 * rl["inch"],
+                0.95 * rl["inch"],
+            ],
+        )
+        table.setStyle(
+            rl["TableStyle"](
+                [
+                    ("GRID", (0, 0), (-1, -1), 0.35, rl["colors"].HexColor("#d1d5db")),
+                    ("BACKGROUND", (0, 0), (-1, 0), rl["colors"].HexColor("#dcead7")),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 3),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 3),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [rl["colors"].white, rl["colors"].HexColor("#f8fafc")]),
+                ]
+            )
+        )
+        story.append(table)
+    else:
+        story.append(rl["Paragraph"]("Este caso todavia no tiene seguimientos registrados.", normal))
+
+    story.append(rl["Spacer"](1, 34))
+    story.append(_signature_block(rl))
     doc.build(story)
     return buffer.getvalue()

@@ -10,7 +10,7 @@
   </div>
 </section>
 
-<form class="form-panel" method="post">
+<form class="form-panel" method="post" enctype="multipart/form-data">
   {% csrf_token %}
 
   {% if form.non_field_errors %}
@@ -19,16 +19,20 @@
 
   <div class="form-grid">
     {% for field in form %}
-      <div class="field {% if field.field.widget.input_type == 'checkbox' %}field-checkbox{% endif %}">
-        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {% if field.is_hidden %}
         {{ field }}
-        {% if field.help_text %}
-          <small>{{ field.help_text }}</small>
-        {% endif %}
-        {% for error in field.errors %}
-          <small class="error">{{ error }}</small>
-        {% endfor %}
-      </div>
+      {% else %}
+        <div class="field {% if field.field.widget.input_type == 'checkbox' %}field-checkbox{% endif %}">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}
+            <small>{{ field.help_text }}</small>
+          {% endif %}
+          {% for error in field.errors %}
+            <small class="error">{{ error }}</small>
+          {% endfor %}
+        </div>
+      {% endif %}
     {% endfor %}
   </div>
 
@@ -41,4 +45,61 @@
     {% endif %}
   </div>
 </form>
+{% if load_section_students %}
+<script>
+  (() => {
+    const sectionField = document.getElementById("id_section");
+    const studentField = document.getElementById("id_student");
+    if (!sectionField || !studentField) {
+      return;
+    }
+
+    const studentsUrl = "{% url 'core:section_students_options' %}";
+    const currentStudent = studentField.value;
+
+    const setPlaceholder = (text) => {
+      studentField.innerHTML = "";
+      const option = document.createElement("option");
+      option.value = "";
+      option.textContent = text;
+      studentField.appendChild(option);
+    };
+
+    const loadStudents = async () => {
+      const sectionId = sectionField.value;
+      if (!sectionId) {
+        setPlaceholder("Selecciona primero el grado o seccion");
+        return;
+      }
+      setPlaceholder("Cargando estudiantes...");
+      const response = await fetch(`${studentsUrl}?section=${encodeURIComponent(sectionId)}`, {
+        headers: {"X-Requested-With": "XMLHttpRequest"},
+      });
+      const data = await response.json();
+      setPlaceholder("Selecciona un estudiante");
+      data.students.forEach((student) => {
+        const option = document.createElement("option");
+        option.value = student.id;
+        option.textContent = student.text;
+        if (String(student.id) === String(currentStudent)) {
+          option.selected = true;
+        }
+        studentField.appendChild(option);
+      });
+      if (!data.students.length) {
+        setPlaceholder("No hay estudiantes inscritos en esta seccion");
+      }
+    };
+
+    const availableSections = Array.from(sectionField.options).filter((option) => option.value);
+    if (!sectionField.value && availableSections.length === 1) {
+      sectionField.value = availableSections[0].value;
+    }
+    sectionField.addEventListener("change", loadStudents);
+    if (sectionField.value && studentField.options.length <= 1) {
+      loadStudents();
+    }
+  })();
+</script>
+{% endif %}
 {% endblock %}

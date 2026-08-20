@@ -353,6 +353,7 @@ class Student(PersonBase):
 
 
 class Teacher(PersonBase):
+    is_guidance_counselor = models.BooleanField("es orientador/psicologo", default=False)
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -988,17 +989,30 @@ class GuidanceCase(TimeStampedModel):
 
     STATUS_OPEN = "open"
     STATUS_IN_PROGRESS = "in_progress"
-    STATUS_REFERRED = "referred"
     STATUS_CLOSED = "closed"
     STATUS_CHOICES = [
         (STATUS_OPEN, "Abierto"),
-        (STATUS_IN_PROGRESS, "En seguimiento"),
-        (STATUS_REFERRED, "Referido"),
+        (STATUS_IN_PROGRESS, "En proceso"),
         (STATUS_CLOSED, "Cerrado"),
     ]
 
     case_number = models.CharField("numero de caso", max_length=40, unique=True)
-    student = models.ForeignKey(Student, on_delete=models.PROTECT, related_name="guidance_cases", verbose_name="estudiante")
+    section = models.ForeignKey(
+        Section,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="guidance_cases",
+        verbose_name="grado o seccion",
+    )
+    student = models.ForeignKey(
+        Student,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="guidance_cases",
+        verbose_name="estudiante",
+    )
     case_type = models.CharField("tipo", max_length=20, choices=TYPE_CHOICES, default=TYPE_INCIDENT)
     priority = models.CharField("prioridad", max_length=20, choices=PRIORITY_CHOICES, default=PRIORITY_MEDIUM)
     status = models.CharField("estado", max_length=20, choices=STATUS_CHOICES, default=STATUS_OPEN)
@@ -1013,7 +1027,7 @@ class GuidanceCase(TimeStampedModel):
         verbose_name="docente que refiere",
     )
     assigned_to = models.ForeignKey(
-        AdministrativeEmployee,
+        Teacher,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -1032,7 +1046,7 @@ class GuidanceCase(TimeStampedModel):
         verbose_name_plural = "casos de orientacion"
 
     def __str__(self):
-        return f"{self.case_number} - {self.student}"
+        return f"{self.case_number} - {self.student or 'Sin estudiante asignado'}"
 
 
 class GuidanceFollowUp(TimeStampedModel):
@@ -1055,7 +1069,7 @@ class GuidanceFollowUp(TimeStampedModel):
     date = models.DateField("fecha")
     intervention_type = models.CharField("tipo de seguimiento", max_length=20, choices=TYPE_CHOICES)
     attended_by = models.ForeignKey(
-        AdministrativeEmployee,
+        Teacher,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -1064,6 +1078,7 @@ class GuidanceFollowUp(TimeStampedModel):
     )
     participants = models.CharField("participantes", max_length=240, blank=True)
     notes = models.TextField("notas")
+    evidence_file = models.FileField("evidencia", upload_to="guidance/evidence/", blank=True)
     next_steps = models.TextField("proximos pasos", blank=True)
     next_date = models.DateField("proxima fecha", null=True, blank=True)
 

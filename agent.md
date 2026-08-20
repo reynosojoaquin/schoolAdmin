@@ -49,7 +49,7 @@ Repositorio remoto:
 https://github.com/reynosojoaquin/schoolAdmin.git
 ```
 
-Al momento de crear este archivo, el estado local de Git estaba limpio, sin cambios pendientes.
+Actualmente hay cambios locales en desarrollo para reforzar el flujo de orientacion y psicologia.
 
 ## Modulo academico
 
@@ -183,10 +183,18 @@ El modulo permite registrar:
 - Estudiante relacionado.
 - Docente que refiere.
 - Orientador o psicologo responsable.
+- Campo `is_guidance_counselor` en docentes para identificar orientadores/psicologos.
 - Descripcion del caso.
 - Acciones iniciales.
 - Indicador de confidencialidad.
 - Fecha y notas de cierre.
+- Estados del caso: abierto, en proceso y cerrado.
+- Pantalla de detalle del caso para revisar la explicacion del orientador y el historial de seguimiento.
+- Cada caso queda asociado a un grado o seccion.
+- Cualquier docente u orientador puede iniciar un caso solamente en los grados o secciones donde tiene carga activa.
+- Los docentes regulares inician casos con un formulario minimo: grado o seccion y descripcion del caso. El orientador completa estudiante, clasificacion, acciones, seguimiento y cierre.
+- Cuando un docente regular inicia un caso, el sistema intenta asignarlo automaticamente a un orientador activo de esa misma seccion.
+- Los orientadores pueden ver los casos asignados a ellos y tambien conectar/asumir casos sin responsable de las secciones donde trabajan, pasandolos a estado en proceso.
 
 Los seguimientos permiten registrar:
 
@@ -198,10 +206,15 @@ Los seguimientos permiten registrar:
 - Observaciones.
 - Participantes.
 - Notas.
+- Evidencia adjunta mediante archivo.
 - Proximos pasos.
 - Proxima fecha de seguimiento.
 
 El menu lateral incluye la seccion `ORIENTACION` con accesos a `Casos` y `Seguimientos`.
+Desde el listado de casos se puede abrir el detalle del caso; cuando esta cerrado, el detalle muestra la explicacion del trabajo realizado.
+Los orientadores/psicologos solo ven los casos asignados a ellos y los casos pendientes sin responsable de sus secciones. Los docentes regulares solo ven los casos iniciados o referidos por ellos en las secciones donde trabajan.
+Los docentes regulares pueden visualizar los seguimientos de los casos que iniciaron, pero el registro de seguimientos corresponde al orientador o psicologo responsable.
+El orientador o psicologo responsable puede imprimir el expediente completo del caso en PDF, incluyendo datos del caso, descripcion, cierre, seguimientos y evidencias registradas.
 
 ## Registro y reportes academicos
 
@@ -291,6 +304,11 @@ Migraciones agregadas recientemente:
 - `0026_cheque_consumableitem_equipmentcategory_expense_and_more.py`
 - `0027_bankaccount_journalentry_bankreconciliation.py`
 - `0028_guidancecase_guidancefollowup.py`
+- `0029_alter_guidancecase_status.py`
+- `0030_teacher_is_guidance_counselor_and_more.py`
+- `0031_alter_guidancecase_student.py`
+- `0032_guidancecase_section.py`
+- `0033_guidancefollowup_evidence_file.py`
 
 Tambien se corrigio `0017_competency_grade_matrix.py` para evitar SQL especifico de PostgreSQL incompatible con SQLite.
 

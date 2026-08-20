@@ -8,13 +8,15 @@
     <p class="eyebrow">{{ section_label }}</p>
     <h1>{{ title }}</h1>
   </div>
-  <div class="header-actions">
-    {% if create_url_args %}
-      <a class="btn" href="{% url create_url_name create_url_args.0 %}">Nuevo</a>
-    {% else %}
-      <a class="btn" href="{% url create_url_name %}">Nuevo</a>
-    {% endif %}
-  </div>
+  {% if create_url_name %}
+    <div class="header-actions">
+      {% if create_url_args %}
+        <a class="btn" href="{% url create_url_name create_url_args.0 %}">Nuevo</a>
+      {% else %}
+        <a class="btn" href="{% url create_url_name %}">Nuevo</a>
+      {% endif %}
+    </div>
+  {% endif %}
 </section>
 
 <form class="toolbar" method="get">
@@ -49,7 +51,7 @@
               {% elif field_name == "status" %}
                 <span class="status active">{{ item.get_status_display|default:item.status }}</span>
               {% elif field_name == "case_number" %}
-                <strong>{{ item.case_number }}</strong>
+                <strong><a href="{% url 'core:guidance_case_detail' item.pk %}">{{ item.case_number }}</a></strong>
               {% elif field_name == "case_type" %}
                 {{ item.get_case_type_display|default:item.case_type }}
               {% elif field_name == "priority" %}
@@ -197,7 +199,7 @@
         </tr>
       {% empty %}
         <tr>
-          <td colspan="{{ columns|length|add:1 }}" class="empty">No hay registros para mostrar.</td>
+          <td colspan="{{ columns|length|add:1 }}" class="empty">{{ empty_message|default:"No hay registros para mostrar." }}</td>
         </tr>
       {% endfor %}
     </tbody>

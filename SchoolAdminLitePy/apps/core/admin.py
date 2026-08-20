@@ -168,8 +168,8 @@ class StudentAdmin(admin.ModelAdmin):
 @admin.register(Teacher)
 class TeacherAdmin(admin.ModelAdmin):
     search_fields = ["first_name", "last_name", "document_id", "email", "user__username"]
-    list_display = ["last_name", "first_name", "document_id", "email", "user", "active"]
-    list_filter = ["active", "nationality"]
+    list_display = ["last_name", "first_name", "document_id", "email", "user", "is_guidance_counselor", "active"]
+    list_filter = ["active", "is_guidance_counselor", "nationality"]
     inlines = [AddressInline, PhoneInline, ContactInline]
 
 
@@ -310,14 +310,16 @@ class AttendanceAdmin(admin.ModelAdmin):
 class GuidanceCaseAdmin(admin.ModelAdmin):
     search_fields = [
         "case_number",
+        "section__name",
+        "section__course__name",
         "student__first_name",
         "student__last_name",
         "student__document_id",
         "reported_by",
         "summary",
     ]
-    list_display = ["case_number", "student", "case_type", "priority", "opened_at", "assigned_to", "status", "confidential"]
-    list_filter = ["case_type", "priority", "status", "confidential", "opened_at"]
+    list_display = ["case_number", "section", "student", "case_type", "priority", "opened_at", "assigned_to", "status", "confidential"]
+    list_filter = ["case_type", "priority", "status", "confidential", "section__course", "section", "opened_at"]
 
 
 @admin.register(GuidanceFollowUp)
@@ -328,8 +330,9 @@ class GuidanceFollowUpAdmin(admin.ModelAdmin):
         "guidance_case__student__last_name",
         "participants",
         "notes",
+        "evidence_file",
     ]
-    list_display = ["date", "guidance_case", "intervention_type", "attended_by", "next_date"]
+    list_display = ["date", "guidance_case", "intervention_type", "attended_by", "evidence_file", "next_date"]
     list_filter = ["intervention_type", "date", "next_date"]
 
 

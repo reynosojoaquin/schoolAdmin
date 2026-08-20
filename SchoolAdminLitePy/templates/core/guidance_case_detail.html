@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}{{ case.case_number }} - SchoolAdmin Lite{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <div>
+    <p class="eyebrow">Orientacion y psicologia</p>
+    <h1>{{ case.case_number }}</h1>
+  </div>
+  <div class="header-actions">
+    {% if can_claim_case %}
+      <form method="post" action="{% url 'core:guidance_case_claim' case.pk %}">
+        {% csrf_token %}
+        <button type="submit">Conectar caso</button>
+      </form>
+    {% endif %}
+    <a class="btn-secondary" href="{% url 'core:guidance_followup_list' case.pk %}">Seguimientos</a>
+    {% if can_print_case %}
+      <a class="btn-secondary" href="{% url 'core:guidance_case_print' case.pk %}" target="_blank">Imprimir expediente</a>
+    {% endif %}
+    {% if can_register_followup and case.status != 'closed' %}
+      <a class="btn" href="{% url 'core:guidance_followup_case_create' case.pk %}">Registrar seguimiento</a>
+    {% endif %}
+    <a class="btn" href="{% url 'core:guidance_case_update' case.pk %}">Editar</a>
+  </div>
+</section>
+
+<section class="detail-grid">
+  <article class="detail-panel">
+    <h2>Datos del caso</h2>
+    <dl class="detail-list">
+      <div><dt>Estudiante</dt><dd>{{ case.student|default:"Pendiente de completar por orientacion" }}</dd></div>
+      <div><dt>Grado o seccion</dt><dd>{{ case.section|default:"-" }}</dd></div>
+      <div><dt>Tipo</dt><dd>{{ case.get_case_type_display }}</dd></div>
+      <div><dt>Prioridad</dt><dd>{{ case.get_priority_display }}</dd></div>
+      <div><dt>Estado</dt><dd><span class="status {% if case.status == 'closed' %}inactive{% else %}active{% endif %}">{{ case.get_status_display }}</span></dd></div>
+      <div><dt>Apertura</dt><dd>{{ case.opened_at|date:"d/m/Y" }}</dd></div>
+      <div><dt>Cierre</dt><dd>{{ case.closed_at|date:"d/m/Y"|default:"-" }}</dd></div>
+      <div><dt>Reportado por</dt><dd>{{ case.reported_by|default:"-" }}</dd></div>
+      <div><dt>Docente que refiere</dt><dd>{{ case.referred_by_teacher|default:"-" }}</dd></div>
+      <div><dt>Responsable</dt><dd>{{ case.assigned_to|default:"-" }}</dd></div>
+      <div><dt>Confidencial</dt><dd>{% if case.confidential %}Si{% else %}No{% endif %}</dd></div>
+    </dl>
+  </article>
+
+  <article class="detail-panel">
+    <h2>Descripcion inicial</h2>
+    <p>{{ case.summary|linebreaksbr }}</p>
+    {% if case.initial_actions %}
+      <h2>Acciones iniciales</h2>
+      <p>{{ case.initial_actions|linebreaksbr }}</p>
+    {% endif %}
+  </article>
+</section>
+
+<section class="detail-panel">
+  <h2>Explicacion del trabajo realizado</h2>
+  {% if case.status == 'closed' and case.closing_notes %}
+    <p>{{ case.closing_notes|linebreaksbr }}</p>
+  {% elif case.closing_notes %}
+    <p>{{ case.closing_notes|linebreaksbr }}</p>
+  {% else %}
+    <p class="empty">Este caso aun no tiene explicacion de cierre registrada.</p>
+  {% endif %}
+</section>
+
+<section class="table-panel">
+  <table>
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        <th>Tipo</th>
+        <th>Atendido por</th>
+        <th>Participantes</th>
+        <th>Notas</th>
+        <th>Evidencia</th>
+        <th>Proximos pasos</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for followup in case.followups.all %}
+        <tr>
+          <td>{{ followup.date|date:"d/m/Y" }}</td>
+          <td>{{ followup.get_intervention_type_display }}</td>
+          <td>{{ followup.attended_by|default:"-" }}</td>
+          <td>{{ followup.participants|default:"-" }}</td>
+          <td>{{ followup.notes|linebreaksbr }}</td>
+          <td>
+            {% if followup.evidence_file %}
+              <a href="{{ followup.evidence_file.url }}" target="_blank">Ver evidencia</a>
+            {% else %}
+              -
+            {% endif %}
+          </td>
+          <td>{{ followup.next_steps|default:"-"|linebreaksbr }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="7" class="empty">Este caso todavia no tiene seguimientos registrados.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

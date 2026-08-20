@@ -105,5 +105,6 @@ LOGOUT_REDIRECT_URL = "core:login"
 
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
+    secure_cookies = os.getenv("DJANGO_SECURE_COOKIES", "True").lower() == "true"
+    SESSION_COOKIE_SECURE = secure_cookies
+    CSRF_COOKIE_SECURE = secure_cookies

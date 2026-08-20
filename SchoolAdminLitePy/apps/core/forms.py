@@ -3,6 +3,7 @@ from datetime import date
 from django import forms
 from django.contrib.auth.models import Group, Permission, User
 from django.db.models import Q
+from django.utils.crypto import get_random_string
 
 from .models import (
     AdministrativeEmployee,
@@ -59,8 +60,9 @@ class PersonFormMixin:
     def apply_common_widgets(self):
         for field in self.fields.values():
             field.widget.attrs.setdefault("class", "form-control")
-        if "active" in self.fields:
-            self.fields["active"].widget.attrs["class"] = "form-check-input"
+        for field_name in ("active", "is_guidance_counselor"):
+            if field_name in self.fields:
+                self.fields[field_name].widget.attrs["class"] = "form-check-input"
         if "photo_url" in self.fields:
             self.fields["photo_url"].widget.attrs["accept"] = "image/*"
 
@@ -81,7 +83,7 @@ class StudentForm(PersonFormMixin, forms.ModelForm):
 class TeacherForm(PersonFormMixin, forms.ModelForm):
     class Meta:
         model = Teacher
-        fields = PersonFormMixin.common_fields + ["user"]
+        fields = PersonFormMixin.common_fields + ["is_guidance_counselor", "user"]
         widgets = {
             "birth_date": forms.DateInput(attrs={"type": "date"}),
         }
@@ -304,6 +306,7 @@ class GuidanceCaseForm(AdministrationFormMixin, forms.ModelForm):
         model = GuidanceCase
         fields = [
             "case_number",
+            "section",
             "student",
             "case_type",
             "priority",
@@ -323,12 +326,123 @@ class GuidanceCaseForm(AdministrationFormMixin, forms.ModelForm):
             "closed_at": forms.DateInput(attrs={"type": "date"}),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["student"].queryset = Student.objects.filter(active=True).order_by("last_name", "first_name")
+        self.user = user
+        teacher = getattr(user, "teacher_profile", None)
+        if not self.instance.pk:
+            self.fields["case_number"].initial = f"ORI-{date.today():%Y%m%d}-{get_random_string(6).upper()}"
+            self.fields["opened_at"].initial = date.today()
+            self.fields["status"].initial = GuidanceCase.STATUS_OPEN
+            self.fields["priority"].initial = GuidanceCase.PRIORITY_MEDIUM
+            self.fields["case_type"].initial = GuidanceCase.TYPE_INCIDENT
+            self.fields["confidential"].initial = True
+        section_queryset = Section.objects.filter(active=True).select_related("course").order_by("course__name", "name", "school_year")
+        if teacher and not user.is_superuser:
+            section_queryset = section_queryset.filter(
+                Q(responsible=teacher)
+                | Q(teaching_assignments__teacher=teacher, teaching_assignments__active=True)
+            ).distinct()
+        self.fields["section"].queryset = section_queryset
+        student_queryset = Student.objects.filter(active=True).order_by("last_name", "first_name")
+        selected_section_id = self.data.get(self.add_prefix("section")) if self.is_bound else self.instance.section_id
+        if selected_section_id:
+            student_queryset = student_queryset.filter(enrollments__section_id=selected_section_id, enrollments__active=True).distinct()
+        else:
+            student_queryset = Student.objects.none()
+        self.fields["student"].queryset = student_queryset
         self.fields["referred_by_teacher"].queryset = Teacher.objects.filter(active=True).order_by("last_name", "first_name")
-        self.fields["assigned_to"].queryset = AdministrativeEmployee.objects.filter(active=True).order_by("last_name", "first_name")
+        assigned_queryset = Teacher.objects.filter(
+            active=True,
+            is_guidance_counselor=True,
+        ).order_by("last_name", "first_name")
+        if teacher and teacher.is_guidance_counselor and not user.is_superuser:
+            assigned_queryset = assigned_queryset.filter(pk=teacher.pk)
+            self.fields["assigned_to"].initial = teacher
+        if teacher and not teacher.is_guidance_counselor and not user.is_superuser:
+            self.fields["referred_by_teacher"].initial = teacher
+            self.fields["reported_by"].initial = str(teacher)
+            for field_name in [
+                "case_number",
+                "case_type",
+                "priority",
+                "status",
+                "opened_at",
+                "reported_by",
+                "referred_by_teacher",
+                "assigned_to",
+                "initial_actions",
+                "confidential",
+                "closed_at",
+                "closing_notes",
+            ]:
+                self.fields[field_name].widget = forms.HiddenInput()
+                self.fields[field_name].required = False
+            self.fields["section"].required = True
+            self.fields["student"].required = True
+        else:
+            self.fields["section"].required = True
+            self.fields["student"].required = True
+        self.fields["assigned_to"].queryset = assigned_queryset
         self.apply_widgets()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        teacher = getattr(self.user, "teacher_profile", None)
+        if not cleaned_data.get("case_number"):
+            cleaned_data["case_number"] = f"ORI-{date.today():%Y%m%d}-{get_random_string(6).upper()}"
+        section = cleaned_data.get("section")
+        if teacher and section and not self.user.is_superuser:
+            works_in_section = (
+                section.responsible_id == teacher.pk
+                or TeachingAssignment.objects.filter(teacher=teacher, section=section, active=True).exists()
+            )
+            if not works_in_section:
+                raise forms.ValidationError("Solo puedes iniciar o tramitar casos en grados donde estas trabajando.")
+        if teacher and teacher.is_guidance_counselor and not self.user.is_superuser:
+            cleaned_data["assigned_to"] = teacher
+        elif teacher and not self.user.is_superuser:
+            cleaned_data["referred_by_teacher"] = teacher
+            cleaned_data["reported_by"] = str(teacher)
+            if self.instance.pk:
+                cleaned_data["status"] = self.instance.status
+                cleaned_data["priority"] = self.instance.priority
+                cleaned_data["case_type"] = self.instance.case_type
+                cleaned_data["opened_at"] = self.instance.opened_at
+                cleaned_data["confidential"] = self.instance.confidential
+                cleaned_data["assigned_to"] = self.instance.assigned_to
+                cleaned_data["student"] = self.instance.student
+                cleaned_data["initial_actions"] = self.instance.initial_actions
+                cleaned_data["closed_at"] = self.instance.closed_at
+                cleaned_data["closing_notes"] = self.instance.closing_notes
+            else:
+                cleaned_data["status"] = GuidanceCase.STATUS_OPEN
+                cleaned_data["priority"] = GuidanceCase.PRIORITY_MEDIUM
+                cleaned_data["case_type"] = GuidanceCase.TYPE_INCIDENT
+                cleaned_data["opened_at"] = cleaned_data.get("opened_at") or date.today()
+                cleaned_data["confidential"] = True
+                cleaned_data["assigned_to"] = None
+                cleaned_data["initial_actions"] = ""
+                cleaned_data["closed_at"] = None
+                cleaned_data["closing_notes"] = ""
+            if section and cleaned_data.get("student"):
+                is_enrolled = cleaned_data["student"].enrollments.filter(section=section, active=True).exists()
+                if not is_enrolled:
+                    raise forms.ValidationError("El estudiante seleccionado no pertenece a ese grado o seccion.")
+        elif not cleaned_data.get("student"):
+            raise forms.ValidationError("Selecciona el estudiante relacionado con el caso.")
+        if cleaned_data.get("student") and section:
+            is_enrolled = cleaned_data["student"].enrollments.filter(section=section, active=True).exists()
+            if not is_enrolled:
+                raise forms.ValidationError("El estudiante seleccionado no pertenece a ese grado o seccion.")
+        status = cleaned_data.get("status")
+        closing_notes = (cleaned_data.get("closing_notes") or "").strip()
+        if status == GuidanceCase.STATUS_CLOSED:
+            if not closing_notes:
+                raise forms.ValidationError("Para cerrar el caso debes escribir la explicacion del trabajo realizado.")
+            if not cleaned_data.get("closed_at"):
+                cleaned_data["closed_at"] = date.today()
+        return cleaned_data
 
 
 class GuidanceFollowUpForm(AdministrationFormMixin, forms.ModelForm):
@@ -341,6 +455,7 @@ class GuidanceFollowUpForm(AdministrationFormMixin, forms.ModelForm):
             "attended_by",
             "participants",
             "notes",
+            "evidence_file",
             "next_steps",
             "next_date",
         ]
@@ -349,15 +464,42 @@ class GuidanceFollowUpForm(AdministrationFormMixin, forms.ModelForm):
             "next_date": forms.DateInput(attrs={"type": "date"}),
         }
 
-    def __init__(self, *args, guidance_case=None, **kwargs):
+    def __init__(self, *args, guidance_case=None, user=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["guidance_case"].queryset = GuidanceCase.objects.select_related("student").exclude(status=GuidanceCase.STATUS_CLOSED)
-        self.fields["attended_by"].queryset = AdministrativeEmployee.objects.filter(active=True).order_by("last_name", "first_name")
+        self.user = user
+        teacher = getattr(user, "teacher_profile", None)
+        guidance_cases = GuidanceCase.objects.select_related("student").exclude(status=GuidanceCase.STATUS_CLOSED)
+        if teacher and teacher.is_guidance_counselor and not user.is_superuser:
+            guidance_cases = guidance_cases.filter(assigned_to=teacher)
+        elif teacher and not user.is_superuser:
+            guidance_cases = guidance_cases.none()
+        self.fields["guidance_case"].queryset = guidance_cases
+        attended_by_queryset = Teacher.objects.filter(
+            active=True,
+            is_guidance_counselor=True,
+        ).order_by("last_name", "first_name")
+        if teacher and teacher.is_guidance_counselor and not user.is_superuser:
+            attended_by_queryset = attended_by_queryset.filter(pk=teacher.pk)
+            self.fields["attended_by"].initial = teacher
+            self.fields["attended_by"].widget = forms.HiddenInput()
+        self.fields["attended_by"].queryset = attended_by_queryset
         if guidance_case is not None:
             self.fields["guidance_case"].initial = guidance_case
             self.fields["guidance_case"].queryset = GuidanceCase.objects.filter(pk=guidance_case.pk)
             self.fields["guidance_case"].widget = forms.HiddenInput()
         self.apply_widgets()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        teacher = getattr(self.user, "teacher_profile", None)
+        guidance_case = cleaned_data.get("guidance_case")
+        if teacher and not teacher.is_guidance_counselor and not self.user.is_superuser:
+            raise forms.ValidationError("Los docentes pueden visualizar los seguimientos, pero no registrarlos.")
+        if teacher and teacher.is_guidance_counselor and not self.user.is_superuser:
+            cleaned_data["attended_by"] = teacher
+            if guidance_case and guidance_case.assigned_to_id != teacher.pk:
+                raise forms.ValidationError("Solo puedes registrar seguimiento en casos asignados a ti.")
+        return cleaned_data
 
 
 class CourseForm(AcademicFormMixin, forms.ModelForm):

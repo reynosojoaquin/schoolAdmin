@@ -1125,6 +1125,53 @@ tr:last-child td {
   padding: 20px;
 }
 
+.detail-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(260px, 0.8fr) minmax(320px, 1.2fr);
+  margin-bottom: 16px;
+}
+
+.detail-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  margin-bottom: 16px;
+  padding: 16px;
+}
+
+.detail-panel h2 {
+  font-size: 16px;
+  margin: 0 0 12px;
+}
+
+.detail-panel p {
+  line-height: 1.5;
+  margin: 0 0 12px;
+}
+
+.detail-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.detail-list div {
+  display: grid;
+  gap: 3px;
+}
+
+.detail-list dt {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.detail-list dd {
+  margin: 0;
+}
+
 @media (max-width: 900px) {
   .login-box {
     grid-template-columns: 1fr;
@@ -1179,6 +1226,10 @@ tr:last-child td {
   }
 
   .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-grid {
     grid-template-columns: 1fr;
   }
 

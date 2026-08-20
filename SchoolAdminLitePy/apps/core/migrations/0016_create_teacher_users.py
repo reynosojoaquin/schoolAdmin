@@ -4,9 +4,6 @@ from django.contrib.auth.hashers import make_password
 from django.db import migrations
 
 
-TEMPORARY_PASSWORD = "admin"
-
-
 def slug_part(value):
     normalized = unicodedata.normalize("NFKD", value or "")
     ascii_value = normalized.encode("ascii", "ignore").decode("ascii")
@@ -42,7 +39,9 @@ def create_teacher_users(apps, schema_editor):
     Teacher = apps.get_model("core", "Teacher")
 
     docente_group, _ = Group.objects.get_or_create(name="Docente")
-    password = make_password(TEMPORARY_PASSWORD)
+    # Las cuentas importadas deben activarse asignando una contraseña individual.
+    # No establecer una contraseña temporal compartida y predecible.
+    password = make_password(None)
 
     for teacher in Teacher.objects.filter(active=True).order_by("last_name", "first_name", "id"):
         base_username = build_base_username(teacher)
