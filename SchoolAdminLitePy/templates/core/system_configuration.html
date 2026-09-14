@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Configuracion del sistema - SchoolAdmin Lite{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <div>
+    <p class="eyebrow">Sistema</p>
+    <h1>Identidad institucional</h1>
+    <p>Actualiza el nombre y el logo que se muestran en el inicio de sesion y en la esquina superior izquierda.</p>
+  </div>
+</section>
+
+<form class="form-panel branding-form" method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  {% if form.non_field_errors %}
+    <div class="form-errors">{{ form.non_field_errors }}</div>
+  {% endif %}
+
+  <div class="branding-preview">
+    <img class="{% if not system_configuration.logo %}default-logo-transparent{% endif %}" src="{{ institution_logo_url }}" alt="Vista previa del logo institucional">
+    <div>
+      <strong>Logo actual</strong>
+      <p>La nueva imagen se mostrara despues de guardar los cambios.</p>
+    </div>
+  </div>
+
+  <div class="form-grid">
+    {% for field in form %}
+      <div class="field {% if field.field.widget.input_type == 'checkbox' %}field-checkbox{% endif %}">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+        {% for error in field.errors %}<small class="error">{{ error }}</small>{% endfor %}
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="form-actions">
+    <button type="submit">Guardar configuracion</button>
+    <a class="btn-secondary" href="{% url 'core:dashboard' %}">Cancelar</a>
+  </div>
+</form>
+{% endblock %}

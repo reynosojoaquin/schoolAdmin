@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}SchoolAdmin Lite{% endblock %}</title>
-  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20260903-2">
 </head>
 <body class="{% if request.user.is_authenticated %}admin-layout sidebar-mini{% else %}login-page{% endif %}">
   <svg aria-hidden="true" class="icon-sprite" xmlns="http://www.w3.org/2000/svg">
@@ -43,6 +43,10 @@
       <path d="M13 4h7v7h-7z" />
       <path d="M4 13h7v7H4z" />
       <path d="M13 13h7v7h-7z" />
+    </symbol>
+    <symbol id="icon-schedule" viewBox="0 0 24 24">
+      <path d="M3 13a9 9 0 1 1 18 0" />
+      <path d="M12 7v5l3 3" />
     </symbol>
     <symbol id="icon-subjects" viewBox="0 0 24 24">
       <path d="M6 4h12a2 2 0 0 1 2 2v14H8a4 4 0 0 1-4-4V6a2 2 0 0 1 2-2Z" />
@@ -111,7 +115,7 @@
 
       <aside class="main-sidebar sidebar-dark-primary">
         <a href="{% url 'core:dashboard' %}" class="brand-link">
-          <span class="brand-image">SC</span>
+          <img class="brand-logo{% if not system_configuration.logo %} default-logo-transparent{% endif %}" src="{{ institution_logo_url }}" alt="Logo institucional">
           <span class="brand-text">SchoolAdmin Lite</span>
         </a>
 
@@ -127,18 +131,21 @@
           <nav class="sidebar-nav">
             <p class="nav-header">GESTION ESCOLAR</p>
             <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'core:dashboard' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-dashboard"></use></svg><span>Panel</span></a>
-            {% if can_manage_people %}
+            {% if can_manage_people or can_view_all_people %}
               <a class="nav-link {% if 'student' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:student_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-students"></use></svg><span>Estudiantes</span></a>
               <a class="nav-link {% if 'teacher' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:teacher_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-teachers"></use></svg><span>Docentes</span></a>
+            {% endif %}
+            {% if can_manage_people or can_manage_admin_staff %}
               <a class="nav-link {% if 'employee' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:employee_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-staff"></use></svg><span>Personal</span></a>
             {% endif %}
 
             <p class="nav-header">ACADEMICO</p>
-            {% if can_manage_academic %}
+            {% if can_manage_academic or can_manage_registry_reports %}
               <a class="nav-link {% if 'course' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:course_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-courses"></use></svg><span>Cursos</span></a>
               <a class="nav-link {% if 'section' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:section_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-sections"></use></svg><span>Secciones</span></a>
               <a class="nav-link {% if 'subject' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:subject_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-subjects"></use></svg><span>Asignaturas</span></a>
               <a class="nav-link {% if 'teaching_assignment' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:teaching_assignment_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-teaching"></use></svg><span>Docencia</span></a>
+              <a class="nav-link {% if 'timetabling' in request.resolver_match.url_name or 'horarios' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'timetabling:generar_horario' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-schedule"></use></svg><span>Horarios</span></a>
             {% endif %}
             {% if can_view_academic %}
               <a class="nav-link {% if request.resolver_match.url_name == 'my_sections' %}active{% endif %}" href="{% url 'core:my_sections' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-my-sections"></use></svg><span>Mis secciones</span></a>
@@ -148,34 +155,43 @@
               {% endif %}
             {% endif %}
 
-            {% if can_view_academic %}
+            {% if can_view_academic or can_manage_registry_reports %}
               <p class="nav-header">REGISTRO</p>
               <a class="nav-link {% if request.resolver_match.url_name == 'registry_reports' %}active{% endif %}" href="{% url 'core:registry_reports' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-subjects"></use></svg><span>Reportes</span></a>
             {% endif %}
 
-            {% if can_manage_guidance %}
+            {% if can_manage_guidance or can_manage_guidance_cases %}
               <p class="nav-header">ORIENTACION</p>
               <a class="nav-link {% if 'guidance_case' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:guidance_case_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-students"></use></svg><span>Casos</span></a>
               <a class="nav-link {% if 'guidance_followup' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:guidance_followup_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-teaching"></use></svg><span>Seguimientos</span></a>
             {% endif %}
 
-            {% if can_manage_administration %}
+            {% if can_manage_administration or can_manage_admin_section %}
               <p class="nav-header">ADMINISTRATIVO</p>
-              <a class="nav-link {% if 'equipment_item' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:equipment_item_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-staff"></use></svg><span>Inventario equipos</span></a>
-              <a class="nav-link {% if 'equipment_loan' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:equipment_loan_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-teaching"></use></svg><span>Prestamos equipos</span></a>
-              <a class="nav-link {% if 'consumable_item' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:consumable_item_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-courses"></use></svg><span>Material gastable</span></a>
-              <a class="nav-link {% if 'consumable_movement' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:consumable_movement_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-import"></use></svg><span>Movimientos material</span></a>
-              <a class="nav-link {% if 'expense' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:expense_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-grades"></use></svg><span>Gastos</span></a>
-              <a class="nav-link {% if 'cheque' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:cheque_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-admin"></use></svg><span>Cheques</span></a>
-              <a class="nav-link {% if 'bank_account' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:bank_account_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-admin"></use></svg><span>Cuentas bancarias</span></a>
-              <a class="nav-link {% if 'bank_reconciliation' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:bank_reconciliation_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-grades"></use></svg><span>Conciliacion bancaria</span></a>
-              <a class="nav-link {% if 'journal_entry' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:journal_entry_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-subjects"></use></svg><span>Diario</span></a>
-              <a class="nav-link {% if 'staff_assignment' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:staff_assignment_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-staff"></use></svg><span>Asignacion personal</span></a>
-              <a class="nav-link {% if 'equipment_category' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:equipment_category_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-sections"></use></svg><span>Categorias equipos</span></a>
+              {% if can_manage_admin_inventory or can_manage_administration %}
+                <a class="nav-link {% if 'equipment_item' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:equipment_item_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-staff"></use></svg><span>Inventario equipos</span></a>
+                <a class="nav-link {% if 'equipment_loan' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:equipment_loan_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-teaching"></use></svg><span>Prestamos equipos</span></a>
+                <a class="nav-link {% if 'equipment_category' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:equipment_category_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-sections"></use></svg><span>Categorias equipos</span></a>
+              {% endif %}
+              {% if can_manage_admin_consumables or can_manage_administration %}
+                <a class="nav-link {% if 'consumable_item' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:consumable_item_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-courses"></use></svg><span>Material gastable</span></a>
+                <a class="nav-link {% if 'consumable_movement' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:consumable_movement_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-import"></use></svg><span>Movimientos material</span></a>
+              {% endif %}
+              {% if can_manage_admin_finance or can_manage_administration %}
+                <a class="nav-link {% if 'expense' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:expense_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-grades"></use></svg><span>Gastos</span></a>
+                <a class="nav-link {% if 'cheque' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:cheque_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-admin"></use></svg><span>Cheques</span></a>
+                <a class="nav-link {% if 'bank_account' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:bank_account_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-admin"></use></svg><span>Cuentas bancarias</span></a>
+                <a class="nav-link {% if 'bank_reconciliation' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:bank_reconciliation_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-grades"></use></svg><span>Conciliacion bancaria</span></a>
+                <a class="nav-link {% if 'journal_entry' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:journal_entry_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-subjects"></use></svg><span>Diario</span></a>
+              {% endif %}
+              {% if can_manage_admin_staff or can_manage_administration %}
+                <a class="nav-link {% if 'staff_assignment' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:staff_assignment_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-staff"></use></svg><span>Asignacion personal</span></a>
+              {% endif %}
             {% endif %}
 
             {% if can_manage_system %}
               <p class="nav-header">SISTEMA</p>
+              <a class="nav-link {% if request.resolver_match.url_name == 'system_configuration' %}active{% endif %}" href="{% url 'core:system_configuration' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-admin"></use></svg><span>Configuracion</span></a>
               <a class="nav-link {% if 'user_access' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:user_access_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-users-roles"></use></svg><span>Usuarios y roles</span></a>
               <a class="nav-link {% if 'role' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:role_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-roles"></use></svg><span>Roles</span></a>
               <a class="nav-link" href="{% url 'admin:index' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-admin"></use></svg><span>Administracion</span></a>

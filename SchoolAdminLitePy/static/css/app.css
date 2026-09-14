@@ -176,6 +176,15 @@ button {
   width: 34px;
 }
 
+.brand-logo {
+  background: transparent;
+  border: 0;
+  flex: 0 0 38px;
+  height: 38px;
+  object-fit: contain;
+  width: 38px;
+}
+
 .brand-text {
   font-size: 18px;
   font-weight: 300;
@@ -1083,6 +1092,75 @@ tr:last-child td {
   margin: 0;
 }
 
+.login-logo-frame {
+  align-items: center;
+  display: flex;
+  height: 200px;
+  justify-content: center;
+  margin: 0 auto 22px;
+  width: 200px;
+}
+
+.login-institution-logo {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  display: block;
+  height: 200px;
+  margin: 0;
+  object-fit: contain;
+  padding: 0;
+  width: 200px;
+}
+
+.default-login-logo-frame {
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.default-login-logo-frame .login-institution-logo {
+  flex: 0 0 auto;
+  height: auto;
+  max-height: none;
+  max-width: none;
+  width: 242px;
+}
+
+.branding-form {
+  max-width: 820px;
+}
+
+.branding-preview {
+  align-items: center;
+  background: #f7fafc;
+  border: 1px solid #dfe7ef;
+  border-radius: 10px;
+  display: flex;
+  gap: 18px;
+  margin-bottom: 24px;
+  padding: 18px;
+}
+
+.branding-preview img {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  height: 104px;
+  object-fit: contain;
+  padding: 0;
+  width: 104px;
+}
+
+.default-logo-transparent {
+  clip-path: circle(44.5% at 50% 50%);
+}
+
+.branding-preview p {
+  color: #64748b;
+  margin: 6px 0 0;
+}
+
 .login-card-body {
   padding: 0;
 }
@@ -1252,5 +1330,38 @@ tr:last-child td {
 
   .attendance-savebar button {
     width: 100%;
+  }
+}
+/* Generador de horarios */
+.schedule-form {
+  overflow: visible;
+}
+
+.schedule-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.schedule-grid textarea {
+  font-family: "Cascadia Code", Consolas, monospace;
+  line-height: 1.45;
+  min-height: 180px;
+  resize: vertical;
+}
+
+.schedule-status pre {
+  background: #1f2937;
+  border-radius: 6px;
+  color: #e5eef9;
+  max-height: 420px;
+  overflow: auto;
+  padding: 14px;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 768px) {
+  .schedule-grid {
+    grid-template-columns: 1fr;
   }
 }

@@ -44,6 +44,7 @@ from .forms import (
     StudentForm,
     StudentImportForm,
     SubjectForm,
+    SystemConfigurationForm,
     TeacherForm,
     TeachingAssignmentForm,
     UserAccessForm,
@@ -55,6 +56,7 @@ from .models import (
     BankAccount,
     BankReconciliation,
     Cheque,
+    City,
     Competency,
     ConsumableItem,
     ConsumableMovement,
@@ -62,6 +64,7 @@ from .models import (
     EquipmentCategory,
     EquipmentItem,
     EquipmentLoan,
+    EmployeePosition,
     Enrollment,
     Expense,
     Grade,
@@ -74,6 +77,7 @@ from .models import (
     Student,
     Subject,
     SubjectCompetency,
+    SystemConfiguration,
     Teacher,
     TeachingAssignment,
 )
@@ -91,6 +95,17 @@ VIEW_OWN_SECTIONS = "core.view_own_sections"
 EDIT_GRADES = "core.edit_grades"
 IMPORT_GRADES = "core.import_grades"
 VIEW_GRADE_STATS = "core.view_grade_stats"
+VIEW_ALL_SCHOOL_YEARS = "core.view_all_school_years"
+# Coordinacion Administrativa
+MANAGE_ADMIN_INVENTORY = "core.manage_admin_inventory"
+MANAGE_ADMIN_CONSUMABLES = "core.manage_admin_consumables"
+MANAGE_ADMIN_FINANCE = "core.manage_admin_finance"
+MANAGE_ADMIN_STAFF = "core.manage_admin_staff"
+# Orientacion
+MANAGE_GUIDANCE_CASES = "core.manage_guidance_cases"
+VIEW_ALL_PEOPLE = "core.view_all_people"
+# Coordinacion Academica
+MANAGE_REGISTRY_REPORTS = "core.manage_registry_reports"
 
 
 def has_role(user, role_name):
@@ -115,7 +130,13 @@ def can_manage_people(user):
 
 def can_manage_administration(user):
     return user.is_authenticated and (
-        user.is_superuser or user.has_perm(MANAGE_PEOPLE) or user.has_perm(MANAGE_USERS)
+        user.is_superuser
+        or user.has_perm(MANAGE_PEOPLE)
+        or user.has_perm(MANAGE_USERS)
+        or user.has_perm(MANAGE_ADMIN_INVENTORY)
+        or user.has_perm(MANAGE_ADMIN_CONSUMABLES)
+        or user.has_perm(MANAGE_ADMIN_FINANCE)
+        or user.has_perm(MANAGE_ADMIN_STAFF)
     )
 
 
@@ -124,16 +145,20 @@ def can_manage_guidance(user):
         user.is_superuser
         or user.has_perm(MANAGE_PEOPLE)
         or user.has_perm(VIEW_ALL_ACADEMIC)
+        or user.has_perm(VIEW_ALL_SCHOOL_YEARS)
+        or user.has_perm(MANAGE_GUIDANCE_CASES)
         or hasattr(user, "teacher_profile")
     )
 
 
-def visible_guidance_cases_for_user(user):
+def visible_guidance_cases_for_user(user, school_year=None):
+    school_year = school_year or default_school_year()
     queryset = GuidanceCase.objects.select_related("section", "section__course", "student", "assigned_to", "referred_by_teacher")
+    queryset = queryset.filter(Q(section__school_year=school_year) | Q(section__isnull=True))
     if not user.is_authenticated:
         return queryset.none()
     teacher = getattr(user, "teacher_profile", None)
-    if user.is_superuser or (teacher is None and (user.has_perm(MANAGE_PEOPLE) or user.has_perm(VIEW_ALL_ACADEMIC))):
+    if user.is_superuser or (teacher is None and (user.has_perm(MANAGE_PEOPLE) or user.has_perm(VIEW_ALL_ACADEMIC) or user.has_perm(VIEW_ALL_SCHOOL_YEARS) or user.has_perm(MANAGE_GUIDANCE_CASES))):
         return queryset
     section_ids = Section.objects.filter(
         Q(responsible=teacher)
@@ -149,7 +174,7 @@ def visible_guidance_cases_for_user(user):
 def can_user_work_in_section(user, section):
     if not user.is_authenticated:
         return False
-    if user.is_superuser or user.has_perm(MANAGE_PEOPLE) or user.has_perm(VIEW_ALL_ACADEMIC):
+    if user.is_superuser or user.has_perm(MANAGE_PEOPLE) or user.has_perm(VIEW_ALL_ACADEMIC) or user.has_perm(VIEW_ALL_SCHOOL_YEARS) or user.has_perm(VIEW_ALL_PEOPLE):
         return True
     teacher = getattr(user, "teacher_profile", None)
     if not teacher:
@@ -163,7 +188,7 @@ def can_user_work_in_section(user, section):
 def can_register_guidance_followup(user, guidance_case=None):
     if not user.is_authenticated:
         return False
-    if user.is_superuser or user.has_perm(MANAGE_PEOPLE) or user.has_perm(VIEW_ALL_ACADEMIC):
+    if user.is_superuser or user.has_perm(MANAGE_PEOPLE) or user.has_perm(VIEW_ALL_ACADEMIC) or user.has_perm(VIEW_ALL_SCHOOL_YEARS) or user.has_perm(MANAGE_GUIDANCE_CASES):
         return True
     teacher = getattr(user, "teacher_profile", None)
     if not teacher or not teacher.is_guidance_counselor:
@@ -176,7 +201,7 @@ def can_register_guidance_followup(user, guidance_case=None):
 def can_print_guidance_case(user, guidance_case):
     if not user.is_authenticated:
         return False
-    if user.is_superuser or user.has_perm(MANAGE_PEOPLE) or user.has_perm(VIEW_ALL_ACADEMIC):
+    if user.is_superuser or user.has_perm(MANAGE_PEOPLE) or user.has_perm(VIEW_ALL_ACADEMIC) or user.has_perm(VIEW_ALL_SCHOOL_YEARS) or user.has_perm(MANAGE_GUIDANCE_CASES):
         return True
     teacher = getattr(user, "teacher_profile", None)
     return bool(teacher and teacher.is_guidance_counselor and guidance_case.assigned_to_id == teacher.pk)
@@ -202,6 +227,88 @@ def can_view_grade_stats(user):
     return user.is_authenticated and (user.is_superuser or user.has_perm(VIEW_GRADE_STATS))
 
 
+def default_school_year():
+    configuration = SystemConfiguration.get_solo()
+    if configuration.current_school_year:
+        return configuration.current_school_year
+    return f"{date.today().year}-{date.today().year + 1}"
+
+
+def can_filter_school_year(user):
+    return user.is_authenticated and (
+        user.is_superuser
+        or user.has_perm(MANAGE_ACADEMIC)
+        or user.has_perm(VIEW_ALL_ACADEMIC)
+        or user.has_perm(VIEW_ALL_SCHOOL_YEARS)
+    )
+
+
+def is_guidance_counselor_user(user):
+    return user.is_authenticated and hasattr(user, "teacher_profile") and user.teacher_profile.is_guidance_counselor
+
+
+def is_registry_staff_user(user):
+    return user.is_authenticated and user.has_perm(VIEW_ALL_SCHOOL_YEARS)
+
+
+def can_manage_admin_inventory(user):
+    return user.is_authenticated and (user.is_superuser or user.has_perm(MANAGE_ADMIN_INVENTORY))
+
+
+def can_manage_admin_consumables(user):
+    return user.is_authenticated and (user.is_superuser or user.has_perm(MANAGE_ADMIN_CONSUMABLES))
+
+
+def can_manage_admin_finance(user):
+    return user.is_authenticated and (user.is_superuser or user.has_perm(MANAGE_ADMIN_FINANCE))
+
+
+def can_manage_admin_staff(user):
+    return user.is_authenticated and (user.is_superuser or user.has_perm(MANAGE_ADMIN_STAFF))
+
+
+def can_manage_guidance_cases(user):
+    return user.is_authenticated and (user.is_superuser or user.has_perm(MANAGE_GUIDANCE_CASES))
+
+
+def can_view_all_people(user):
+    return user.is_authenticated and (user.is_superuser or user.has_perm(VIEW_ALL_PEOPLE))
+
+
+def can_manage_registry_reports(user):
+    return user.is_authenticated and (user.is_superuser or user.has_perm(MANAGE_REGISTRY_REPORTS))
+
+
+def selected_school_year(request):
+    current_year = default_school_year()
+    if can_filter_school_year(request.user):
+        return request.GET.get("school_year") or request.POST.get("school_year") or current_year
+    return current_year
+
+
+def available_school_years():
+    years = set(
+        Section.objects.exclude(school_year="")
+        .values_list("school_year", flat=True)
+    )
+    years.update(
+        Enrollment.objects.exclude(school_year="")
+        .values_list("school_year", flat=True)
+    )
+    years.add(default_school_year())
+    return sorted(years, reverse=True)
+
+
+def school_year_context(request):
+    year = selected_school_year(request)
+    return {
+        "selected_school_year": year,
+        "current_school_year": default_school_year(),
+        "can_filter_school_year": can_filter_school_year(request.user),
+        "school_year_options": available_school_years(),
+    }
+
+
 @login_required
 def section_students_options(request):
     section_id = request.GET.get("section")
@@ -213,13 +320,44 @@ def section_students_options(request):
                 {"id": student.id, "text": str(student)}
                 for student in Student.objects.filter(
                     active=True,
-                    enrollments__section=section,
+                    enrollments__course=section.course,
+                    enrollments__school_year=section.school_year or default_school_year(),
                     enrollments__active=True,
                 )
                 .distinct()
                 .order_by("last_name", "first_name")
             ]
     return JsonResponse({"students": students})
+
+
+@login_required
+def birth_cities_options(request):
+    if not can_manage_people(request.user):
+        return JsonResponse({"detail": "No autorizado."}, status=403)
+    province_id = request.GET.get("province")
+    cities = []
+    if province_id:
+        cities = [
+            {"id": city.id, "text": city.name}
+            for city in City.objects.filter(province_id=province_id).order_by("name")
+        ]
+    return JsonResponse({"cities": cities})
+
+
+@login_required
+def employee_positions_options(request):
+    if not can_manage_people(request.user):
+        return JsonResponse({"detail": "No autorizado."}, status=403)
+    employee_type_id = request.GET.get("employee_type")
+    positions = []
+    if employee_type_id:
+        positions = [
+            {"id": position.id, "text": position.name}
+            for position in EmployeePosition.objects.filter(
+                employee_type_id=employee_type_id
+            ).order_by("name")
+        ]
+    return JsonResponse({"positions": positions})
 
 
 def visible_assignments_for_user(user):
@@ -240,7 +378,7 @@ def visible_grades_for_user(user):
     assignments = visible_assignments_for_user(user)
     grade_filter = None
     for assignment in assignments:
-        condition = Q(enrollment__section=assignment.section, subject=assignment.subject)
+        condition = Q(enrollment__course=assignment.section.course, subject=assignment.subject)
         grade_filter = condition if grade_filter is None else grade_filter | condition
     if grade_filter is None:
         return Grade.objects.none()
@@ -261,7 +399,7 @@ class ManagementAccessMixin(LoginRequiredMixin, UserPassesTestMixin):
 
 class PeopleAccessMixin(LoginRequiredMixin, UserPassesTestMixin):
     def test_func(self):
-        return can_manage_people(self.request.user)
+        return can_manage_people(self.request.user) or can_view_all_people(self.request.user)
 
 
 class AdministrationAccessMixin(LoginRequiredMixin, UserPassesTestMixin):
@@ -286,27 +424,32 @@ class AcademicAccessMixin(LoginRequiredMixin, UserPassesTestMixin):
 
 @login_required
 def dashboard(request):
+    school_year = selected_school_year(request)
     if is_teacher_user(request.user) and not is_admin_user(request.user):
-        assignments = visible_assignments_for_user(request.user)
+        assignments = visible_assignments_for_user(request.user).filter(section__school_year=school_year)
         context = {
             "teacher_mode": True,
             "assignment_count": assignments.count(),
             "section_count": assignments.values("section_id").distinct().count(),
-            "grade_count": visible_grades_for_user(request.user).count(),
+            "grade_count": visible_grades_for_user(request.user).filter(enrollment__school_year=school_year).count(),
         }
+        context.update(school_year_context(request))
         return render(request, "core/dashboard.html", context)
 
     context = {
-        "student_count": Student.objects.filter(active=True).count(),
+        "student_count": Student.objects.filter(active=True, enrollments__school_year=school_year, enrollments__active=True).distinct().count(),
         "teacher_count": Teacher.objects.filter(active=True).count(),
         "employee_count": AdministrativeEmployee.objects.filter(active=True).count(),
-        "course_count": Course.objects.filter(active=True).count(),
-        "section_count": Section.objects.filter(active=True).count(),
-        "subject_count": Subject.objects.count(),
-        "assignment_count": TeachingAssignment.objects.filter(active=True).count(),
-        "enrollment_count": Enrollment.objects.filter(active=True).count(),
-        "grade_count": Grade.objects.count(),
+        "course_count": Course.objects.filter(
+            active=True,
+        ).filter(Q(sections__school_year=school_year) | Q(enrollments__school_year=school_year)).distinct().count(),
+        "section_count": Section.objects.filter(active=True, school_year=school_year).count(),
+        "subject_count": Subject.objects.filter(section__school_year=school_year).count(),
+        "assignment_count": TeachingAssignment.objects.filter(active=True, section__school_year=school_year).count(),
+        "enrollment_count": Enrollment.objects.filter(active=True, school_year=school_year).count(),
+        "grade_count": Grade.objects.filter(enrollment__school_year=school_year).count(),
     }
+    context.update(school_year_context(request))
     return render(request, "core/dashboard.html", context)
 
 
@@ -320,6 +463,10 @@ class PersonListView(PeopleAccessMixin, ListView):
 
     def get_queryset(self):
         queryset = super().get_queryset()
+        if can_view_all_people(self.request.user):
+            pass
+        elif not can_manage_people(self.request.user):
+            return queryset.none()
         query = self.request.GET.get("q", "").strip()
         if query:
             queryset = queryset.filter(
@@ -332,6 +479,7 @@ class PersonListView(PeopleAccessMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context.update(school_year_context(self.request))
         context["query"] = self.request.GET.get("q", "").strip()
         context["title"] = self.title
         context["section_label"] = self.section_label
@@ -383,6 +531,7 @@ class AcademicListView(AcademicSetupAccessMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context.update(school_year_context(self.request))
         context["query"] = self.request.GET.get("q", "").strip()
         context["title"] = self.title
         context["section_label"] = self.section_label
@@ -462,6 +611,7 @@ class AdministrationListView(AdministrationAccessMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context.update(school_year_context(self.request))
         context["query"] = self.request.GET.get("q", "").strip()
         context["title"] = self.title
         context["section_label"] = self.section_label
@@ -514,6 +664,7 @@ class GuidanceListView(GuidanceAccessMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context.update(school_year_context(self.request))
         context["query"] = self.request.GET.get("q", "").strip()
         context["title"] = self.title
         context["section_label"] = self.section_label
@@ -565,6 +716,17 @@ class StudentListView(PersonListView):
     edit_url_name = "core:student_update"
     import_url_name = "core:student_import"
     search_placeholder = "Buscar por nombre, cedula o correo"
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if not can_view_all_people(self.request.user):
+            return queryset.filter(enrollments__school_year=selected_school_year(self.request), enrollments__active=True).distinct()
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["show_school_year_filter"] = True
+        return context
 
 
 class StudentCreateView(PersonCreateView):
@@ -654,7 +816,10 @@ class CourseListView(AcademicListView):
     ]
 
     def get_queryset(self):
-        queryset = Course.objects.select_related("responsible")
+        school_year = selected_school_year(self.request)
+        queryset = Course.objects.select_related("responsible").filter(
+            Q(sections__school_year=school_year) | Q(enrollments__school_year=school_year)
+        ).distinct()
         query = self.request.GET.get("q", "").strip()
         if query:
             queryset = self.apply_search(queryset, query)
@@ -705,7 +870,11 @@ class CourseStudentsView(AcademicSetupAccessMixin, ListView):
 
     def get_queryset(self):
         self.course = Course.objects.get(pk=self.kwargs["pk"])
-        queryset = Enrollment.objects.filter(course=self.course, active=True).select_related("student", "course", "section")
+        queryset = Enrollment.objects.filter(
+            course=self.course,
+            school_year=selected_school_year(self.request),
+            active=True,
+        ).select_related("student", "course", "section")
         query = self.request.GET.get("q", "").strip()
         if query:
             queryset = queryset.filter(
@@ -719,6 +888,7 @@ class CourseStudentsView(AcademicSetupAccessMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["query"] = self.request.GET.get("q", "").strip()
+        context.update(school_year_context(self.request))
         context["title"] = f"Estudiantes del curso {self.course}"
         context["group_label"] = "Curso"
         context["group_value"] = self.course
@@ -747,7 +917,7 @@ class SectionListView(AcademicListView):
     ]
 
     def get_queryset(self):
-        queryset = Section.objects.select_related("course", "responsible")
+        queryset = Section.objects.filter(school_year=selected_school_year(self.request)).select_related("course", "responsible")
         query = self.request.GET.get("q", "").strip()
         if query:
             queryset = self.apply_search(queryset, query)
@@ -797,8 +967,15 @@ class SectionStudentsView(AcademicSetupAccessMixin, ListView):
     paginate_by = 30
 
     def get_queryset(self):
-        self.section = Section.objects.select_related("course").get(pk=self.kwargs["pk"])
-        queryset = Enrollment.objects.filter(section=self.section, active=True).select_related("student", "course", "section")
+        self.section = Section.objects.select_related("course").get(
+            pk=self.kwargs["pk"],
+            school_year=selected_school_year(self.request),
+        )
+        queryset = Enrollment.objects.filter(
+            course=self.section.course,
+            school_year=selected_school_year(self.request),
+            active=True,
+        ).select_related("student", "course", "section")
         query = self.request.GET.get("q", "").strip()
         if query:
             queryset = queryset.filter(
@@ -811,6 +988,7 @@ class SectionStudentsView(AcademicSetupAccessMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["query"] = self.request.GET.get("q", "").strip()
+        context.update(school_year_context(self.request))
         context["title"] = f"Estudiantes de la seccion {self.section}"
         context["group_label"] = "Seccion"
         context["group_value"] = self.section
@@ -823,26 +1001,55 @@ def course_number(course):
     return int(digits) if digits else None
 
 
-def previous_course_for_section(section):
-    number = course_number(section.course)
+def previous_course_for_course(course):
+    number = course_number(course)
     if not number or number <= 1:
         return None
     return Course.objects.filter(name=str(number - 1)).first()
 
 
-class SectionEnrollmentView(AcademicSetupAccessMixin, View):
+def default_school_year_for_course(course):
+    school_year = (
+        course.sections.exclude(school_year="")
+        .filter(school_year=default_school_year())
+        .order_by("name")
+        .values_list("school_year", flat=True)
+        .first()
+    )
+    return school_year or default_school_year()
+
+
+class CourseEnrollmentView(AcademicSetupAccessMixin, View):
     template_name = "core/section_enrollment.html"
 
-    def get_section(self):
-        return get_object_or_404(Section.objects.select_related("course"), pk=self.kwargs["pk"])
+    def get_course(self):
+        return get_object_or_404(Course.objects.filter(active=True), pk=self.kwargs["pk"])
 
-    def get_candidates(self, section):
+    def get_school_year(self, course):
+        return (
+            self.request.POST.get("school_year")
+            or self.request.GET.get("school_year")
+            or default_school_year_for_course(course)
+        )
+
+    def get_school_years(self, course, selected_school_year):
+        years = list(
+            course.sections.exclude(school_year="")
+            .order_by("-school_year")
+            .values_list("school_year", flat=True)
+            .distinct()
+        )
+        if selected_school_year not in years:
+            years.insert(0, selected_school_year)
+        return years
+
+    def get_candidates(self, course, school_year):
         already_enrolled = Enrollment.objects.filter(
-            school_year=section.school_year,
+            school_year=school_year,
             active=True,
         ).values("student_id")
         filters = Q(new_admission=True)
-        previous_course = previous_course_for_section(section)
+        previous_course = previous_course_for_course(course)
         if previous_course:
             filters |= Q(
                 promoted=True,
@@ -864,17 +1071,20 @@ class SectionEnrollmentView(AcademicSetupAccessMixin, View):
                 | Q(last_name__icontains=query)
                 | Q(document_id__icontains=query)
                 | Q(sigerd_id__icontains=query)
-            )
+        )
         return queryset
 
-    def render_page(self, request, section):
-        candidates = self.get_candidates(section)
+    def render_page(self, request, course):
+        school_year = self.get_school_year(course)
+        candidates = self.get_candidates(course, school_year)
         return render(
             request,
             self.template_name,
             {
-                "section": section,
-                "previous_course": previous_course_for_section(section),
+                "course": course,
+                "school_year": school_year,
+                "school_years": self.get_school_years(course, school_year),
+                "previous_course": previous_course_for_course(course),
                 "query": request.GET.get("q", "").strip(),
                 "candidates": candidates[:200],
                 "candidate_count": candidates.count(),
@@ -882,32 +1092,29 @@ class SectionEnrollmentView(AcademicSetupAccessMixin, View):
         )
 
     def get(self, request, *args, **kwargs):
-        return self.render_page(request, self.get_section())
+        return self.render_page(request, self.get_course())
 
     @transaction.atomic
     def post(self, request, *args, **kwargs):
-        section = self.get_section()
+        course = self.get_course()
+        school_year = self.get_school_year(course)
         student_ids = request.POST.getlist("students")
         if not student_ids:
             messages.error(request, "Selecciona al menos un estudiante para inscribir.")
-            return self.render_page(request, section)
+            return self.render_page(request, course)
 
-        candidate_ids = set(str(pk) for pk in self.get_candidates(section).values_list("pk", flat=True))
+        candidate_ids = set(str(pk) for pk in self.get_candidates(course, school_year).values_list("pk", flat=True))
         selected_ids = [student_id for student_id in student_ids if student_id in candidate_ids]
         students = Student.objects.filter(pk__in=selected_ids, active=True)
         enrolled_count = 0
         for student in students:
             enrollment, created = Enrollment.objects.get_or_create(
                 student=student,
-                course=section.course,
-                school_year=section.school_year,
-                defaults={"section": section, "active": True},
+                course=course,
+                school_year=school_year,
+                defaults={"active": True},
             )
-            if not created and enrollment.section_id != section.id:
-                enrollment.section = section
-                enrollment.active = True
-                enrollment.save(update_fields=["section", "active"])
-            elif not created and not enrollment.active:
+            if not created and not enrollment.active:
                 enrollment.active = True
                 enrollment.save(update_fields=["active"])
 
@@ -916,15 +1123,24 @@ class SectionEnrollmentView(AcademicSetupAccessMixin, View):
             student.save(update_fields=["promoted", "new_admission"])
             enrolled_count += 1
 
-        messages.success(request, f"Se inscribieron {enrolled_count} estudiantes en {section}.")
-        return redirect("core:section_students", pk=section.pk)
+        messages.success(request, f"Se inscribieron {enrolled_count} estudiantes en el curso {course}.")
+        return redirect("core:course_students", pk=course.pk)
+
+
+class SectionEnrollmentView(AcademicSetupAccessMixin, View):
+    def get(self, request, *args, **kwargs):
+        section = get_object_or_404(Section.objects.select_related("course"), pk=self.kwargs["pk"])
+        return redirect("core:course_enrollment", pk=section.course_id)
+
+    def post(self, request, *args, **kwargs):
+        return self.get(request, *args, **kwargs)
 
 
 class SectionAttendanceView(AcademicAccessMixin, View):
     template_name = "core/section_attendance.html"
 
     def get_section(self):
-        section_queryset = Section.objects.select_related("course")
+        section_queryset = Section.objects.select_related("course").filter(school_year=selected_school_year(self.request))
         if not can_view_all_academic(self.request.user):
             section_ids = visible_assignments_for_user(self.request.user).values("section_id")
             section_queryset = section_queryset.filter(pk__in=section_ids)
@@ -941,7 +1157,7 @@ class SectionAttendanceView(AcademicAccessMixin, View):
 
     def get_enrollments(self, section):
         return (
-            Enrollment.objects.filter(section=section, active=True)
+            Enrollment.objects.filter(course=section.course, active=True)
             .select_related("student")
             .order_by("student__last_name", "student__first_name", "student__id")
         )
@@ -1018,7 +1234,10 @@ class SectionTeachingAssignmentsView(AcademicSetupAccessMixin, ListView):
     paginate_by = 30
 
     def get_queryset(self):
-        self.section = Section.objects.select_related("course", "responsible").get(pk=self.kwargs["pk"])
+        self.section = Section.objects.select_related("course", "responsible").get(
+            pk=self.kwargs["pk"],
+            school_year=selected_school_year(self.request),
+        )
         queryset = TeachingAssignment.objects.filter(section=self.section).select_related(
             "section",
             "section__course",
@@ -1036,6 +1255,7 @@ class SectionTeachingAssignmentsView(AcademicSetupAccessMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context.update(school_year_context(self.request))
         context["query"] = self.request.GET.get("q", "").strip()
         context["section"] = self.section
         context["title"] = f"Docencia de la seccion {self.section}"
@@ -1062,6 +1282,7 @@ class SubjectListView(AcademicListView):
     def get_queryset(self):
         queryset = (
             Subject.objects.select_related("section", "section__course", "responsible")
+            .filter(section__school_year=selected_school_year(self.request))
             .distinct()
         )
         query = self.request.GET.get("q", "").strip()
@@ -1134,7 +1355,7 @@ class TeachingAssignmentListView(AcademicListView):
             "subject",
             "subject__section",
             "teacher",
-        )
+        ).filter(section__school_year=selected_school_year(self.request))
         query = self.request.GET.get("q", "").strip()
         if query:
             queryset = self.apply_search(queryset, query)
@@ -1187,6 +1408,36 @@ class UserAccessListView(ManagementAccessMixin, ListView):
         context = super().get_context_data(**kwargs)
         context["query"] = self.request.GET.get("q", "").strip()
         return context
+
+
+class SystemConfigurationView(ManagementAccessMixin, View):
+    template_name = "core/system_configuration.html"
+
+    def get(self, request):
+        configuration = SystemConfiguration.get_solo()
+        return render(
+            request,
+            self.template_name,
+            {"form": SystemConfigurationForm(instance=configuration)},
+        )
+
+    def post(self, request):
+        configuration = SystemConfiguration.get_solo()
+        old_logo_name = configuration.logo.name
+        form = SystemConfigurationForm(request.POST, request.FILES, instance=configuration)
+        if not form.is_valid():
+            return render(request, self.template_name, {"form": form})
+
+        updated_configuration = form.save(commit=False)
+        if form.cleaned_data["remove_logo"]:
+            updated_configuration.logo = ""
+        updated_configuration.save()
+
+        if old_logo_name and old_logo_name != updated_configuration.logo.name:
+            configuration._meta.get_field("logo").storage.delete(old_logo_name)
+
+        messages.success(request, "La identidad institucional fue actualizada correctamente.")
+        return redirect("core:system_configuration")
 
 
 class UserAccessUpdateView(ManagementAccessMixin, UpdateView):
@@ -1259,7 +1510,10 @@ class MySectionsView(AcademicAccessMixin, ListView):
     def get_queryset(self):
         assignments = visible_assignments_for_user(self.request.user)
         section_ids = assignments.values_list("section_id", flat=True).distinct()
-        return Section.objects.filter(pk__in=section_ids).select_related("course", "responsible").order_by(
+        return Section.objects.filter(
+            pk__in=section_ids,
+            school_year=selected_school_year(self.request),
+        ).select_related("course", "responsible").order_by(
             "course__name",
             "name",
             "-school_year",
@@ -1275,7 +1529,10 @@ class GradeBookView(AcademicAccessMixin, View):
     template_name = "core/gradebook.html"
 
     def get_assignment(self, assignment_id):
-        return get_object_or_404(visible_assignments_for_user(self.request.user), pk=assignment_id)
+        return get_object_or_404(
+            visible_assignments_for_user(self.request.user).filter(section__school_year=selected_school_year(self.request)),
+            pk=assignment_id,
+        )
 
     def get(self, request, assignment_id):
         assignment = self.get_assignment(assignment_id)
@@ -1300,7 +1557,7 @@ class GradeBookView(AcademicAccessMixin, View):
 
     def get_rows(self, assignment, create_missing=False):
         enrollments = Enrollment.objects.filter(
-            section=assignment.section,
+            course=assignment.section.course,
             active=True,
         ).select_related("student").order_by("student__last_name", "student__first_name")
         rows = []
@@ -1468,7 +1725,7 @@ class GradeImportView(AcademicAccessMixin, View):
         return super().dispatch(request, *args, **kwargs)
 
     def get_assignments(self):
-        return visible_assignments_for_user(self.request.user).order_by(
+        return visible_assignments_for_user(self.request.user).filter(section__school_year=selected_school_year(self.request)).order_by(
             "section__course__name",
             "section__name",
             "subject__name",
@@ -1609,10 +1866,10 @@ class GradeImportView(AcademicAccessMixin, View):
                 skipped += 1
                 continue
             try:
-                enrollment = Enrollment.objects.select_related("student").get(pk=enrollment_id, section=assignment.section, active=True)
+                enrollment = Enrollment.objects.select_related("student").get(pk=enrollment_id, course=assignment.section.course, active=True)
             except Enrollment.DoesNotExist:
                 skipped += 1
-                errors.append(f"Fila {row_number}: estudiante no pertenece a esta seccion.")
+                errors.append(f"Fila {row_number}: estudiante no pertenece a este curso.")
                 continue
             try:
                 competencies = []
@@ -1675,7 +1932,7 @@ class GradeImportView(AcademicAccessMixin, View):
         errors = []
         for row in rows:
             try:
-                enrollment = Enrollment.objects.get(pk=row["enrollment_id"], section=assignment.section, active=True)
+                enrollment = Enrollment.objects.get(pk=row["enrollment_id"], course=assignment.section.course, active=True)
             except Enrollment.DoesNotExist:
                 skipped += 1
                 continue
@@ -1716,7 +1973,10 @@ class GradeImportView(AcademicAccessMixin, View):
 
 class GradeTemplateDownloadView(AcademicAccessMixin, View):
     def get(self, request, assignment_id):
-        assignment = get_object_or_404(visible_assignments_for_user(request.user), pk=assignment_id)
+        assignment = get_object_or_404(
+            visible_assignments_for_user(request.user).filter(section__school_year=selected_school_year(request)),
+            pk=assignment_id,
+        )
         subject_competencies = get_subject_competencies(assignment.subject)
         workbook = Workbook()
         sheet = workbook.active
@@ -1872,7 +2132,7 @@ class GradeTemplateDownloadView(AcademicAccessMixin, View):
             cell.font = Font(color="FFFFFF", bold=True)
             cell.border = thin_border
 
-        enrollments = Enrollment.objects.filter(section=assignment.section, active=True).select_related("student").order_by(
+        enrollments = Enrollment.objects.filter(course=assignment.section.course, active=True).select_related("student").order_by(
             "student__last_name",
             "student__first_name",
         )
@@ -2068,7 +2328,7 @@ class GradeStatsView(AcademicAccessMixin, View):
         return super().dispatch(request, *args, **kwargs)
 
     def get(self, request):
-        grades = visible_grades_for_user(request.user)
+        grades = visible_grades_for_user(request.user).filter(enrollment__school_year=selected_school_year(request))
         context = {
             "grade_count": grades.count(),
             "period_1_avg": grades.aggregate(value=Avg("period_1"))["value"],
@@ -2078,10 +2338,10 @@ class GradeStatsView(AcademicAccessMixin, View):
             "by_course": grades.values("enrollment__course__name").annotate(total=Count("id"), p1=Avg("period_1")).order_by(
                 "enrollment__course__name"
             ),
-            "by_section": grades.values("enrollment__section__course__name", "enrollment__section__name").annotate(
+            "by_section": grades.values("subject__section__course__name", "subject__section__name").annotate(
                 total=Count("id"),
                 p1=Avg("period_1"),
-            ).order_by("enrollment__section__course__name", "enrollment__section__name"),
+            ).order_by("subject__section__course__name", "subject__section__name"),
             "by_subject": grades.values("subject__name").annotate(total=Count("id"), p1=Avg("period_1")).order_by("subject__name"),
             "by_student": grades.values(
                 "enrollment__student__first_name",
@@ -2092,27 +2352,38 @@ class GradeStatsView(AcademicAccessMixin, View):
                 "enrollment__student__first_name",
             )[:50],
         }
+        context.update(school_year_context(request))
         return render(request, self.template_name, context)
 
 
 class RegistryReportView(AcademicAccessMixin, View):
     template_name = "core/registry_report_form.html"
 
+    def dispatch(self, request, *args, **kwargs):
+        if not (can_view_all_academic(request.user) or can_manage_registry_reports(request.user) or is_teacher_user(request.user)):
+            messages.error(request, "No tienes permiso para acceder a reportes de registro.")
+            return redirect("core:dashboard")
+        return super().dispatch(request, *args, **kwargs)
+
     def get(self, request):
-        form = RegistryReportForm()
-        return render(request, self.template_name, {"form": form, "title": "Reportes de registro"})
+        form = RegistryReportForm(school_year=selected_school_year(request))
+        context = {"form": form, "title": "Reportes de registro"}
+        context.update(school_year_context(request))
+        return render(request, self.template_name, context)
 
     def post(self, request):
-        form = RegistryReportForm(request.POST)
+        form = RegistryReportForm(request.POST, school_year=selected_school_year(request))
         if not form.is_valid():
-            return render(request, self.template_name, {"form": form, "title": "Reportes de registro"})
+            context = {"form": form, "title": "Reportes de registro"}
+            context.update(school_year_context(request))
+            return render(request, self.template_name, context)
 
         section = form.cleaned_data["section"]
         report_type = form.cleaned_data["report_type"]
         scope = form.cleaned_data["scope"]
         student = form.cleaned_data.get("student")
         enrollments = (
-            Enrollment.objects.filter(section=section, active=True)
+            Enrollment.objects.filter(course=section.course, active=True)
             .select_related("student", "course", "section")
             .order_by("student__last_name", "student__first_name")
         )
@@ -2126,14 +2397,18 @@ class RegistryReportView(AcademicAccessMixin, View):
             enrollment = enrollments.first()
             if not enrollment:
                 form.add_error(None, "No se encontro una inscripcion activa para ese estudiante en la seccion.")
-                return render(request, self.template_name, {"form": form, "title": "Reportes de registro"})
-            content = build_rcf_report_pdf(enrollment)
+                context = {"form": form, "title": "Reportes de registro"}
+                context.update(school_year_context(request))
+                return render(request, self.template_name, context)
+            content = build_rcf_report_pdf(enrollment, section)
             filename = f"rcf_{enrollment.student.last_name}_{enrollment.student.first_name}.pdf"
         else:
             enrollment_list = list(enrollments)
             if not enrollment_list:
                 form.add_error(None, "No hay estudiantes inscritos en esa seleccion.")
-                return render(request, self.template_name, {"form": form, "title": "Reportes de registro"})
+                context = {"form": form, "title": "Reportes de registro"}
+                context.update(school_year_context(request))
+                return render(request, self.template_name, context)
             content = build_periodic_report_pdf(section, enrollment_list)
             suffix = "individual" if scope == RegistryReportForm.SCOPE_STUDENT else "colectivo"
             filename = f"boletin_periodo_{section.course.name}_{section.name}_{suffix}.pdf"
@@ -2610,7 +2885,7 @@ class GuidanceCaseListView(GuidanceListView):
     ]
 
     def get_queryset(self):
-        queryset = visible_guidance_cases_for_user(self.request.user)
+        queryset = visible_guidance_cases_for_user(self.request.user, selected_school_year(self.request))
         query = self.request.GET.get("q", "").strip()
         if query:
             queryset = self.apply_search(queryset, query)
@@ -2673,7 +2948,7 @@ class GuidanceCaseUpdateView(GuidanceUpdateView):
     cancel_url_name = "core:guidance_case_list"
 
     def get_queryset(self):
-        return visible_guidance_cases_for_user(self.request.user)
+        return visible_guidance_cases_for_user(self.request.user, selected_school_year(self.request))
 
 
 class GuidanceCaseDetailView(GuidanceAccessMixin, DetailView):
@@ -2682,7 +2957,7 @@ class GuidanceCaseDetailView(GuidanceAccessMixin, DetailView):
     context_object_name = "case"
 
     def get_queryset(self):
-        return visible_guidance_cases_for_user(self.request.user).prefetch_related("followups", "followups__attended_by")
+        return visible_guidance_cases_for_user(self.request.user, selected_school_year(self.request)).prefetch_related("followups", "followups__attended_by")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -2701,7 +2976,7 @@ class GuidanceCaseDetailView(GuidanceAccessMixin, DetailView):
 class GuidanceCasePrintView(GuidanceAccessMixin, View):
     def get(self, request, pk):
         guidance_case = get_object_or_404(
-            visible_guidance_cases_for_user(request.user).prefetch_related("followups", "followups__attended_by"),
+            visible_guidance_cases_for_user(request.user, selected_school_year(request)).prefetch_related("followups", "followups__attended_by"),
             pk=pk,
         )
         if not can_print_guidance_case(request.user, guidance_case):
@@ -2716,7 +2991,7 @@ class GuidanceCasePrintView(GuidanceAccessMixin, View):
 class GuidanceCaseClaimView(GuidanceAccessMixin, View):
     def post(self, request, pk):
         teacher = getattr(request.user, "teacher_profile", None)
-        guidance_case = get_object_or_404(visible_guidance_cases_for_user(request.user), pk=pk)
+        guidance_case = get_object_or_404(visible_guidance_cases_for_user(request.user, selected_school_year(request)), pk=pk)
         if not teacher or not teacher.is_guidance_counselor:
             messages.error(request, "Solo un orientador o psicologo puede conectar un caso.")
             return redirect("core:guidance_case_detail", pk=guidance_case.pk)
@@ -2752,11 +3027,11 @@ class GuidanceFollowUpListView(GuidanceListView):
         self.guidance_case = None
         case_pk = self.kwargs.get("case_pk")
         if case_pk:
-            self.guidance_case = get_object_or_404(visible_guidance_cases_for_user(request.user), pk=case_pk)
+            self.guidance_case = get_object_or_404(visible_guidance_cases_for_user(request.user, selected_school_year(request)), pk=case_pk)
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
-        visible_cases = visible_guidance_cases_for_user(self.request.user)
+        visible_cases = visible_guidance_cases_for_user(self.request.user, selected_school_year(self.request))
         queryset = GuidanceFollowUp.objects.filter(guidance_case__in=visible_cases).select_related(
             "guidance_case",
             "guidance_case__student",
@@ -2803,7 +3078,7 @@ class GuidanceFollowUpCreateView(GuidanceCreateView):
         self.guidance_case = None
         case_pk = self.kwargs.get("case_pk")
         if case_pk:
-            self.guidance_case = get_object_or_404(visible_guidance_cases_for_user(request.user), pk=case_pk)
+            self.guidance_case = get_object_or_404(visible_guidance_cases_for_user(request.user, selected_school_year(request)), pk=case_pk)
             if not can_register_guidance_followup(request.user, self.guidance_case):
                 messages.error(request, "Puedes visualizar los seguimientos de este caso, pero el registro corresponde a orientacion o psicologia.")
                 return redirect("core:guidance_case_detail", pk=self.guidance_case.pk)
@@ -2845,7 +3120,7 @@ class GuidanceFollowUpUpdateView(GuidanceUpdateView):
     cancel_url_name = "core:guidance_followup_list"
 
     def get_queryset(self):
-        visible_cases = visible_guidance_cases_for_user(self.request.user)
+        visible_cases = visible_guidance_cases_for_user(self.request.user, selected_school_year(self.request))
         return GuidanceFollowUp.objects.filter(guidance_case__in=visible_cases)
 
 

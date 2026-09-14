@@ -20,6 +20,13 @@
 </section>
 
 <form class="toolbar" method="get">
+  {% if can_filter_school_year %}
+    <select name="school_year" class="form-control">
+      {% for year in school_year_options %}
+        <option value="{{ year }}" {% if year == selected_school_year %}selected{% endif %}>{{ year }}</option>
+      {% endfor %}
+    </select>
+  {% endif %}
   <input type="search" name="q" value="{{ query }}" placeholder="{{ search_placeholder }}">
   <button type="submit">Buscar</button>
   {% if query %}
@@ -171,9 +178,9 @@
               {% elif field_name == "students" %}
                 {% if title == "Cursos" %}
                   <a class="btn-secondary compact-link" href="{% url 'core:course_students' item.pk %}">Ver estudiantes</a>
+                  <a class="btn-secondary compact-link" href="{% url 'core:course_enrollment' item.pk %}">Inscripcion</a>
                 {% elif title == "Secciones" %}
                   <a class="btn-secondary compact-link" href="{% url 'core:section_students' item.pk %}">Ver estudiantes</a>
-                  <a class="btn-secondary compact-link" href="{% url 'core:section_enrollment' item.pk %}">Inscripcion</a>
                   <a class="btn-secondary compact-link" href="{% url 'core:section_attendance' item.pk %}">Asistencia</a>
                 {% endif %}
               {% elif field_name == "assignments" %}

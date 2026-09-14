@@ -1,4 +1,5 @@
 from django.core.exceptions import ValidationError
+from django.core.validators import FileExtensionValidator
 from django.conf import settings
 from django.db import models
 
@@ -9,6 +10,37 @@ class TimeStampedModel(models.Model):
 
     class Meta:
         abstract = True
+
+
+class SystemConfiguration(TimeStampedModel):
+    institution_name = models.CharField(
+        "nombre del centro",
+        max_length=180,
+        default="Liceo Secundario Coronel Rafael T. Fernandez Dominguez",
+    )
+    current_school_year = models.CharField("ano escolar actual", max_length=20, default="2026-2027")
+    logo = models.FileField(
+        "logo institucional",
+        upload_to="branding/",
+        blank=True,
+        validators=[FileExtensionValidator(["png", "jpg", "jpeg", "webp"])],
+    )
+
+    class Meta:
+        verbose_name = "configuracion del sistema"
+        verbose_name_plural = "configuracion del sistema"
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_solo(cls):
+        configuration, _ = cls.objects.get_or_create(pk=1)
+        return configuration
+
+    def __str__(self):
+        return self.institution_name
 
 
 class Province(TimeStampedModel):
@@ -88,12 +120,31 @@ class Birthplace(TimeStampedModel):
 
 
 class PersonBase(TimeStampedModel):
+    GENDER_CHOICES = [
+        ("Masculino", "Masculino"),
+        ("Femenino", "Femenino"),
+    ]
+
+    MARITAL_STATUS_CHOICES = [
+        ("Soltero/a", "Soltero/a"),
+        ("Casado/a", "Casado/a"),
+        ("Union libre", "Unión libre"),
+        ("Divorciado/a", "Divorciado/a"),
+        ("Viudo/a", "Viudo/a"),
+        ("Separado/a", "Separado/a"),
+    ]
+
     first_name = models.CharField("nombres", max_length=120)
     last_name = models.CharField("apellidos", max_length=120)
     document_id = models.CharField("cedula", max_length=20, blank=True)
     active = models.BooleanField("activo", default=True)
     email = models.EmailField("correo", blank=True)
-    gender = models.CharField("sexo", max_length=20, blank=True)
+    gender = models.CharField(
+        "sexo",
+        max_length=20,
+        choices=GENDER_CHOICES,
+        blank=True,
+    )
     photo_url = models.FileField("foto", upload_to="people/photos/", blank=True)
     nationality = models.ForeignKey(
         Nationality,
@@ -103,15 +154,28 @@ class PersonBase(TimeStampedModel):
         related_name="%(class)s_people",
         verbose_name="nacionalidad",
     )
-    marital_status = models.CharField("estado civil", max_length=60, blank=True)
+    marital_status = models.CharField(
+        "estado civil",
+        max_length=60,
+        choices=MARITAL_STATUS_CHOICES,
+        blank=True,
+    )
     license_number = models.CharField("licencia", max_length=80, blank=True)
+    birth_province = models.ForeignKey(
+        Province,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="%(class)s_birth_province_people",
+        verbose_name="provincia de nacimiento",
+    )
     birthplace = models.ForeignKey(
-        Birthplace,
+        City,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name="%(class)s_people",
-        verbose_name="lugar de nacimiento",
+        verbose_name="ciudad de nacimiento",
     )
     birth_date = models.DateField("fecha de nacimiento", null=True, blank=True)
 
@@ -186,6 +250,17 @@ class AccessRule(TimeStampedModel):
             ("edit_grades", "Puede editar calificaciones"),
             ("import_grades", "Puede importar calificaciones desde Excel"),
             ("view_grade_stats", "Puede ver estadisticas de calificaciones"),
+            ("view_all_school_years", "Puede ver informacion de todos los anos escolares"),
+            # Coordinacion Administrativa
+            ("manage_admin_inventory", "Puede gestionar inventario de equipos"),
+            ("manage_admin_consumables", "Puede gestionar material gastable y movimientos"),
+            ("manage_admin_finance", "Puede gestionar gastos, cheques y cuentas bancarias"),
+            ("manage_admin_staff", "Puede gestionar asignaciones de personal administrativo"),
+            # Orientacion
+            ("manage_guidance_cases", "Puede gestionar casos y seguimientos de orientacion"),
+            ("view_all_people", "Puede ver informacion de todos los estudiantes y docentes"),
+            # Coordinacion Academica
+            ("manage_registry_reports", "Puede gestionar reportes de registro academico"),
         ]
         verbose_name = "regla de acceso"
         verbose_name_plural = "reglas de acceso"
@@ -904,6 +979,8 @@ class Enrollment(TimeStampedModel):
     section = models.ForeignKey(
         Section,
         on_delete=models.PROTECT,
+        null=True,
+        blank=True,
         related_name="enrollments",
         verbose_name="seccion",
     )
@@ -917,7 +994,8 @@ class Enrollment(TimeStampedModel):
         verbose_name_plural = "inscripciones"
 
     def __str__(self):
-        return f"{self.student} - {self.section} ({self.school_year})"
+        group = self.section or self.course
+        return f"{self.student} - {group} ({self.school_year})"
 
     def clean(self):
         if self.section_id and self.course_id and self.section.course_id != self.course_id:

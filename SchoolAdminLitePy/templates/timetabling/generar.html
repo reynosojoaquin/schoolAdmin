@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Generar horario - SchoolAdmin Lite{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <div>
+    <p class="eyebrow">Planificacion academica</p>
+    <h1>Generar horario</h1>
+    <p>Introduce los catalogos requeridos y ejecuta el generador. El resultado se actualiza automaticamente.</p>
+  </div>
+</section>
+
+<form id="schedule-form" class="form-panel schedule-form" method="post">
+  {% csrf_token %}
+  <div class="schedule-grid">
+    <div class="field">
+      <label for="schedule-blocks">Bloques</label>
+      <textarea id="schedule-blocks" class="form-control" rows="8" spellcheck="false">[]</textarea>
+      <small>Lista JSON con día, hora de inicio, hora de fin y orden.</small>
+    </div>
+    <div class="field">
+      <label for="schedule-teachers">Profesores</label>
+      <textarea id="schedule-teachers" class="form-control" rows="8" spellcheck="false">[]</textarea>
+      <small>Incluye materias habilitadas, disponibilidad y límites de horas.</small>
+    </div>
+    <div class="field">
+      <label for="schedule-subjects">Materias</label>
+      <textarea id="schedule-subjects" class="form-control" rows="8" spellcheck="false">[]</textarea>
+    </div>
+    <div class="field">
+      <label for="schedule-groups">Grupos</label>
+      <textarea id="schedule-groups" class="form-control" rows="8" spellcheck="false">[]</textarea>
+      <small>Cada grupo debe indicar sus materias y horas asignadas.</small>
+    </div>
+    <div class="field">
+      <label for="schedule-classrooms">Aulas</label>
+      <textarea id="schedule-classrooms" class="form-control" rows="8" spellcheck="false">[]</textarea>
+    </div>
+    <div class="field">
+      <label for="schedule-constraints">Restricciones personalizadas</label>
+      <textarea id="schedule-constraints" class="form-control" rows="8" spellcheck="false">[]</textarea>
+    </div>
+  </div>
+
+  <div class="form-actions">
+    <button id="generate-schedule" type="submit">Generar horario</button>
+  </div>
+</form>
+
+<section id="schedule-status" class="result-panel schedule-status" aria-live="polite" hidden>
+  <h2>Estado de generación</h2>
+  <p id="schedule-message"></p>
+  <pre id="schedule-result"></pre>
+</section>
+
+<script>
+  (() => {
+    const form = document.getElementById("schedule-form");
+    const button = document.getElementById("generate-schedule");
+    const statusPanel = document.getElementById("schedule-status");
+    const message = document.getElementById("schedule-message");
+    const result = document.getElementById("schedule-result");
+    const csrfToken = form.querySelector("input[name='csrfmiddlewaretoken']").value;
+
+    const parseField = (id, label) => {
+      try {
+        return JSON.parse(document.getElementById(id).value);
+      } catch (error) {
+        throw new Error(`${label} no contiene JSON válido.`);
+      }
+    };
+
+    const show = (text, data = null) => {
+      statusPanel.hidden = false;
+      message.textContent = text;
+      result.textContent = data ? JSON.stringify(data, null, 2) : "";
+    };
+
+    const poll = async (jobId) => {
+      for (let attempt = 0; attempt < 60; attempt += 1) {
+        const response = await fetch(`../estado/${jobId}/`, {credentials: "same-origin"});
+        const data = await response.json();
+        show(data.mensaje || data.estado, data);
+        if (["completado", "infactible"].includes(data.estado)) {
+          const finalResponse = await fetch(`../resultado/${jobId}/`, {credentials: "same-origin"});
+          const finalData = await finalResponse.json();
+          show(`Generación ${finalData.estado}.`, finalData);
+          return;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+      show("La generación continúa. Puedes volver a consultar el estado más tarde.");
+    };
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      button.disabled = true;
+      try {
+        const payload = {
+          bloques: parseField("schedule-blocks", "Bloques"),
+          profesores: parseField("schedule-teachers", "Profesores"),
+          materias: parseField("schedule-subjects", "Materias"),
+          grupos: parseField("schedule-groups", "Grupos"),
+          aulas: parseField("schedule-classrooms", "Aulas"),
+          restricciones_personalizadas: parseField("schedule-constraints", "Restricciones personalizadas"),
+        };
+        show("Enviando datos al generador...");
+        const response = await fetch(window.location.pathname, {
+          method: "POST",
+          credentials: "same-origin",
+          headers: {"Content-Type": "application/json", "X-CSRFToken": csrfToken},
+          body: JSON.stringify(payload),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          show("Revisa los datos enviados.", data);
+          return;
+        }
+        show("Horario en cola.", data);
+        await poll(data.job_id);
+      } catch (error) {
+        show(error.message);
+      } finally {
+        button.disabled = false;
+      }
+    });
+  })();
+</script>
+{% endblock %}

@@ -10,12 +10,14 @@ from .models import (
     BankAccount,
     BankReconciliation,
     Cheque,
+    City,
     ConsumableItem,
     ConsumableMovement,
     Course,
     EquipmentCategory,
     EquipmentItem,
     EquipmentLoan,
+    EmployeePosition,
     Expense,
     GuidanceCase,
     GuidanceFollowUp,
@@ -24,9 +26,54 @@ from .models import (
     StaffAssignment,
     Student,
     Subject,
+    SystemConfiguration,
     Teacher,
     TeachingAssignment,
 )
+
+
+def configured_school_year():
+    configuration = SystemConfiguration.get_solo()
+    return configuration.current_school_year or f"{date.today().year}-{date.today().year + 1}"
+
+
+class SystemConfigurationForm(forms.ModelForm):
+    remove_logo = forms.BooleanField(
+        label="Restablecer el logo inicial",
+        required=False,
+        help_text="Elimina el logo cargado y vuelve a mostrar el logo institucional incluido con el sistema.",
+    )
+
+    class Meta:
+        model = SystemConfiguration
+        fields = ["institution_name", "current_school_year", "logo"]
+        widgets = {"logo": forms.FileInput()}
+        labels = {
+            "institution_name": "Nombre del centro educativo",
+            "current_school_year": "Ano escolar actual",
+            "logo": "Nuevo logo institucional",
+        }
+        help_texts = {
+            "current_school_year": "Ejemplo: 2026-2027. Los usuarios veran por defecto solo este ano escolar.",
+            "logo": "Formatos permitidos: PNG, JPG, JPEG o WebP. Tamano maximo: 4 MB.",
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.widget.attrs.setdefault("class", "form-control")
+        self.fields["logo"].widget.attrs["accept"] = "image/png,image/jpeg,image/webp"
+        self.fields["remove_logo"].widget.attrs["class"] = "form-check-input"
+
+    def clean_logo(self):
+        logo = self.cleaned_data.get("logo")
+        if not logo or not hasattr(logo, "content_type"):
+            return logo
+        if logo.size > 4 * 1024 * 1024:
+            raise forms.ValidationError("El archivo supera el limite de 4 MB.")
+        if logo.content_type not in {"image/png", "image/jpeg", "image/webp"}:
+            raise forms.ValidationError("Selecciona una imagen PNG, JPG, JPEG o WebP valida.")
+        return logo
 
 
 ACCESS_PERMISSION_CODES = [
@@ -38,6 +85,17 @@ ACCESS_PERMISSION_CODES = [
     "edit_grades",
     "import_grades",
     "view_grade_stats",
+    "view_all_school_years",
+    # Coordinacion Administrativa
+    "manage_admin_inventory",
+    "manage_admin_consumables",
+    "manage_admin_finance",
+    "manage_admin_staff",
+    # Orientacion
+    "manage_guidance_cases",
+    "view_all_people",
+    # Coordinacion Academica
+    "manage_registry_reports",
 ]
 
 
@@ -51,6 +109,7 @@ class PersonFormMixin:
         "gender",
         "birth_date",
         "nationality",
+        "birth_province",
         "birthplace",
         "marital_status",
         "license_number",
@@ -65,6 +124,34 @@ class PersonFormMixin:
                 self.fields[field_name].widget.attrs["class"] = "form-check-input"
         if "photo_url" in self.fields:
             self.fields["photo_url"].widget.attrs["accept"] = "image/*"
+        if "nationality" in self.fields:
+            self.fields["nationality"].empty_label = "Seleccione una nacionalidad"
+        if "birth_province" in self.fields:
+            self.fields["birth_province"].empty_label = "Seleccione una provincia"
+            self.fields["birth_province"].widget.attrs["data-dependent-source"] = "birth-province"
+        if "birthplace" in self.fields:
+            self.fields["birthplace"].empty_label = "Seleccione primero una provincia"
+            self.fields["birthplace"].widget.attrs["data-dependent-target"] = "birth-city"
+            province_id = self.data.get("birth_province") if self.is_bound else None
+            if not province_id and getattr(self.instance, "pk", None):
+                province_id = self.instance.birth_province_id
+                if not province_id and self.instance.birthplace_id:
+                    province_id = self.instance.birthplace.province_id
+                    self.initial["birth_province"] = province_id
+            try:
+                self.fields["birthplace"].queryset = City.objects.filter(
+                    province_id=int(province_id)
+                ) if province_id else City.objects.none()
+            except (TypeError, ValueError):
+                self.fields["birthplace"].queryset = City.objects.none()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        province = cleaned_data.get("birth_province")
+        city = cleaned_data.get("birthplace")
+        if city and province and city.province_id != province.pk:
+            self.add_error("birthplace", "La ciudad no pertenece a la provincia seleccionada.")
+        return cleaned_data
 
 
 class StudentForm(PersonFormMixin, forms.ModelForm):
@@ -104,6 +191,27 @@ class AdministrativeEmployeeForm(PersonFormMixin, forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.apply_common_widgets()
+        self.fields["employee_type"].empty_label = "Seleccione un tipo de empleado"
+        self.fields["employee_type"].widget.attrs["data-dependent-source"] = "employee-type"
+        self.fields["position"].empty_label = "Seleccione primero un tipo de empleado"
+        self.fields["position"].widget.attrs["data-dependent-target"] = "employee-position"
+        employee_type_id = self.data.get("employee_type") if self.is_bound else None
+        if not employee_type_id and getattr(self.instance, "pk", None):
+            employee_type_id = self.instance.employee_type_id
+        try:
+            self.fields["position"].queryset = EmployeePosition.objects.filter(
+                employee_type_id=int(employee_type_id)
+            ) if employee_type_id else EmployeePosition.objects.none()
+        except (TypeError, ValueError):
+            self.fields["position"].queryset = EmployeePosition.objects.none()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        employee_type = cleaned_data.get("employee_type")
+        position = cleaned_data.get("position")
+        if position and employee_type and position.employee_type_id != employee_type.pk:
+            self.add_error("position", "La posición no pertenece al tipo de empleado seleccionado.")
+        return cleaned_data
 
 
 class AcademicFormMixin:
@@ -337,7 +445,10 @@ class GuidanceCaseForm(AdministrationFormMixin, forms.ModelForm):
             self.fields["priority"].initial = GuidanceCase.PRIORITY_MEDIUM
             self.fields["case_type"].initial = GuidanceCase.TYPE_INCIDENT
             self.fields["confidential"].initial = True
-        section_queryset = Section.objects.filter(active=True).select_related("course").order_by("course__name", "name", "school_year")
+        section_queryset = Section.objects.filter(
+            active=True,
+            school_year=configured_school_year(),
+        ).select_related("course").order_by("course__name", "name", "school_year")
         if teacher and not user.is_superuser:
             section_queryset = section_queryset.filter(
                 Q(responsible=teacher)
@@ -347,7 +458,15 @@ class GuidanceCaseForm(AdministrationFormMixin, forms.ModelForm):
         student_queryset = Student.objects.filter(active=True).order_by("last_name", "first_name")
         selected_section_id = self.data.get(self.add_prefix("section")) if self.is_bound else self.instance.section_id
         if selected_section_id:
-            student_queryset = student_queryset.filter(enrollments__section_id=selected_section_id, enrollments__active=True).distinct()
+            selected_section = Section.objects.filter(pk=selected_section_id).select_related("course").first()
+            if selected_section:
+                student_queryset = student_queryset.filter(
+                    enrollments__course=selected_section.course,
+                    enrollments__school_year=selected_section.school_year or configured_school_year(),
+                    enrollments__active=True,
+                ).distinct()
+            else:
+                student_queryset = Student.objects.none()
         else:
             student_queryset = Student.objects.none()
         self.fields["student"].queryset = student_queryset
@@ -426,15 +545,23 @@ class GuidanceCaseForm(AdministrationFormMixin, forms.ModelForm):
                 cleaned_data["closed_at"] = None
                 cleaned_data["closing_notes"] = ""
             if section and cleaned_data.get("student"):
-                is_enrolled = cleaned_data["student"].enrollments.filter(section=section, active=True).exists()
+                is_enrolled = cleaned_data["student"].enrollments.filter(
+                    course=section.course,
+                    school_year=section.school_year or configured_school_year(),
+                    active=True,
+                ).exists()
                 if not is_enrolled:
-                    raise forms.ValidationError("El estudiante seleccionado no pertenece a ese grado o seccion.")
+                    raise forms.ValidationError("El estudiante seleccionado no pertenece al curso de esa seccion.")
         elif not cleaned_data.get("student"):
             raise forms.ValidationError("Selecciona el estudiante relacionado con el caso.")
         if cleaned_data.get("student") and section:
-            is_enrolled = cleaned_data["student"].enrollments.filter(section=section, active=True).exists()
+            is_enrolled = cleaned_data["student"].enrollments.filter(
+                course=section.course,
+                school_year=section.school_year or configured_school_year(),
+                active=True,
+            ).exists()
             if not is_enrolled:
-                raise forms.ValidationError("El estudiante seleccionado no pertenece a ese grado o seccion.")
+                raise forms.ValidationError("El estudiante seleccionado no pertenece al curso de esa seccion.")
         status = cleaned_data.get("status")
         closing_notes = (cleaned_data.get("closing_notes") or "").strip()
         if status == GuidanceCase.STATUS_CLOSED:
@@ -518,6 +645,8 @@ class CourseForm(AcademicFormMixin, forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["responsible"].queryset = Teacher.objects.filter(active=True)
+        if not self.instance.pk:
+            self.fields["school_year"].initial = configured_school_year()
         self.apply_widgets()
 
 
@@ -562,7 +691,10 @@ class SubjectForm(AcademicFormMixin, forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        section_queryset = Section.objects.filter(active=True).select_related("course", "responsible")
+        section_queryset = Section.objects.filter(
+            active=True,
+            school_year=configured_school_year(),
+        ).select_related("course", "responsible")
         if self.instance and self.instance.pk:
             section_queryset = (section_queryset | Section.objects.filter(pk=self.instance.section_id)).distinct()
         self.fields["section"].queryset = section_queryset
@@ -587,7 +719,10 @@ class TeachingAssignmentForm(AcademicFormMixin, forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["section"].queryset = Section.objects.filter(active=True).select_related("course", "responsible")
+        self.fields["section"].queryset = Section.objects.filter(
+            active=True,
+            school_year=configured_school_year(),
+        ).select_related("course", "responsible")
         self.fields["subject"].queryset = self.get_subject_queryset()
         self.fields["teacher"].queryset = Teacher.objects.filter(active=True)
         self.apply_widgets()
@@ -726,14 +861,20 @@ class RegistryReportForm(forms.Form):
         help_text="Solo requerido para reportes individuales.",
     )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, school_year=None, **kwargs):
         super().__init__(*args, **kwargs)
+        school_year = school_year or configured_school_year()
         self.fields["section"].queryset = Section.objects.filter(active=True).select_related("course").order_by(
             "course__name",
             "name",
             "school_year",
         )
-        self.fields["student"].queryset = Student.objects.filter(active=True).order_by("last_name", "first_name")
+        self.fields["section"].queryset = self.fields["section"].queryset.filter(school_year=school_year)
+        self.fields["student"].queryset = Student.objects.filter(
+            active=True,
+            enrollments__school_year=school_year,
+            enrollments__active=True,
+        ).distinct().order_by("last_name", "first_name")
         for field in self.fields.values():
             field.widget.attrs.setdefault("class", "form-control")
 
@@ -752,9 +893,9 @@ class RegistryReportForm(forms.Form):
         if report_type == self.REPORT_FINAL_ACT and scope == self.SCOPE_STUDENT:
             raise forms.ValidationError("El acta final se genera de forma colectiva por seccion.")
         if section and student:
-            is_enrolled = student.enrollments.filter(section=section, active=True).exists()
+            is_enrolled = student.enrollments.filter(course=section.course, active=True).exists()
             if not is_enrolled:
-                raise forms.ValidationError("El estudiante seleccionado no esta inscrito activamente en esa seccion.")
+                raise forms.ValidationError("El estudiante seleccionado no esta inscrito activamente en el curso de esa seccion.")
         return cleaned_data
 
 
@@ -766,7 +907,7 @@ class StudentImportForm(forms.Form):
     school_year = forms.CharField(
         label="Ano escolar",
         max_length=20,
-        initial=f"{date.today().year}-{date.today().year + 1}",
+        initial=configured_school_year,
     )
     update_existing = forms.BooleanField(
         label="Actualizar estudiantes existentes",

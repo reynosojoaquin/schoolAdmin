@@ -86,5 +86,63 @@
       reader.readAsDataURL(file);
     });
   })();
+
+  (function () {
+    function connectDependentSelect(sourceSelector, targetSelector, endpoint, queryName, responseKey, emptyText) {
+      const source = document.querySelector(sourceSelector);
+      const target = document.querySelector(targetSelector);
+      if (!source || !target) {
+        return;
+      }
+
+      source.addEventListener("change", async function () {
+        target.disabled = true;
+        target.innerHTML = `<option value="">${source.value ? "Cargando..." : emptyText}</option>`;
+        if (!source.value) {
+          target.disabled = false;
+          return;
+        }
+
+        try {
+          const response = await fetch(`${endpoint}?${queryName}=${encodeURIComponent(source.value)}`, {
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+          });
+          if (!response.ok) {
+            throw new Error("No fue posible cargar las opciones.");
+          }
+          const data = await response.json();
+          const options = data[responseKey] || [];
+          target.innerHTML = `<option value="">${options.length ? "Seleccione una opción" : "No hay opciones registradas"}</option>`;
+          options.forEach(function (option) {
+            const element = document.createElement("option");
+            element.value = option.id;
+            element.textContent = option.text;
+            target.appendChild(element);
+          });
+        } catch (error) {
+          target.innerHTML = '<option value="">Error al cargar las opciones</option>';
+        } finally {
+          target.disabled = false;
+        }
+      });
+    }
+
+    connectDependentSelect(
+      '[data-dependent-source="birth-province"]',
+      '[data-dependent-target="birth-city"]',
+      "{% url 'core:birth_cities_options' %}",
+      "province",
+      "cities",
+      "Seleccione primero una provincia"
+    );
+    connectDependentSelect(
+      '[data-dependent-source="employee-type"]',
+      '[data-dependent-target="employee-position"]',
+      "{% url 'core:employee_positions_options' %}",
+      "employee_type",
+      "positions",
+      "Seleccione primero un tipo de empleado"
+    );
+  })();
 </script>
 {% endblock %}

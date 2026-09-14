@@ -17,6 +17,13 @@
 </section>
 
 <form class="toolbar" method="get">
+  {% if show_school_year_filter and can_filter_school_year %}
+    <select name="school_year" class="form-control">
+      {% for year in school_year_options %}
+        <option value="{{ year }}" {% if year == selected_school_year %}selected{% endif %}>{{ year }}</option>
+      {% endfor %}
+    </select>
+  {% endif %}
   <input type="search" name="q" value="{{ query }}" placeholder="{{ search_placeholder }}">
   <button type="submit">Buscar</button>
   {% if query %}

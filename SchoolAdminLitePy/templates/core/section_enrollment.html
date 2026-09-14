@@ -1,13 +1,14 @@
 {% extends "base.html" %}
 
-{% block title %}Inscripcion - {{ section }} - SchoolAdmin Lite{% endblock %}
+{% block title %}Inscripcion - {{ course }} - SchoolAdmin Lite{% endblock %}
 
 {% block content %}
 <section class="page-header">
   <div>
-    <p class="eyebrow">Seccion {{ section }}</p>
+    <p class="eyebrow">Curso {{ course }}</p>
     <h1>Inscripcion de estudiantes</h1>
     <p>
+      Ano escolar: {{ school_year }} ·
       Curso anterior:
       {% if previous_course %}
         {{ previous_course }}
@@ -17,10 +18,15 @@
       · Candidatos: {{ candidate_count }}
     </p>
   </div>
-  <a class="btn-secondary" href="{% url 'core:section_list' %}">Volver</a>
+  <a class="btn-secondary" href="{% url 'core:course_list' %}">Volver</a>
 </section>
 
 <form class="toolbar" method="get">
+  <select name="school_year" class="form-control">
+    {% for year in school_years %}
+      <option value="{{ year }}" {% if year == school_year %}selected{% endif %}>{{ year }}</option>
+    {% endfor %}
+  </select>
   <input type="search" name="q" value="{{ query }}" placeholder="Buscar por nombre, cedula o SIGERD">
   <button type="submit">Buscar</button>
   {% if query %}
@@ -30,6 +36,7 @@
 
 <form method="post">
   {% csrf_token %}
+  <input type="hidden" name="school_year" value="{{ school_year }}">
   <section class="table-panel">
     <table>
       <thead>
@@ -60,7 +67,7 @@
           </tr>
         {% empty %}
           <tr>
-            <td colspan="5" class="empty">No hay candidatos disponibles para esta seccion.</td>
+            <td colspan="5" class="empty">No hay candidatos disponibles para este curso.</td>
           </tr>
         {% endfor %}
       </tbody>

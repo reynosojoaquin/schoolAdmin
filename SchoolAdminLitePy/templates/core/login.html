@@ -10,7 +10,10 @@
   <div class="login-panel">
     <div class="login-card login-form">
       <div class="login-card-header">
-        <h1>Iniciar sesion</h1>
+        <div class="login-logo-frame{% if not system_configuration.logo %} default-login-logo-frame{% endif %}">
+          <img class="login-institution-logo" src="{{ institution_logo_url }}" alt="Logo de {{ system_configuration.institution_name|default:'centro educativo' }}">
+        </div>
+        <h1>Iniciar sesi&oacute;n</h1>
       </div>
       <div class="login-card-body">
         {% if form.non_field_errors %}

@@ -337,6 +337,7 @@ __pycache__/
 /SchoolAdminLitePy/.codex_pydeps/
 /SchoolAdminLitePy/.env
 /SchoolAdminLitePy/db.sqlite3
+/.megamemory/
 
 # Cake - Uncomment if you are using it
 # tools/**

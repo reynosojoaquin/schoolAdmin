@@ -77,10 +77,11 @@ def _avg(values):
     return sum(clean_values) / len(clean_values)
 
 
-def _subject_grade_matrix(enrollment):
-    subjects = Subject.objects.filter(section=enrollment.section).order_by("name")
+def _subject_grade_matrix(enrollment, section=None):
+    section = section or enrollment.section
+    subjects = Subject.objects.filter(section=section).order_by("name")
     grades = (
-        Grade.objects.filter(enrollment=enrollment, subject__section=enrollment.section)
+        Grade.objects.filter(enrollment=enrollment, subject__section=section)
         .select_related("subject", "subject_competency", "subject_competency__competency")
         .order_by("subject__name", "subject_competency__competency__description")
     )
@@ -135,13 +136,14 @@ def _header_elements(rl, section, title, horizontal=False):
     ]
 
 
-def _student_line(rl, enrollment):
+def _student_line(rl, enrollment, section=None):
+    section = section or enrollment.section
     table = rl["Table"](
         [
             [
                 f"Nombre(s) y Apellido(s): {enrollment.student}",
                 f"Grado: {enrollment.course.name}",
-                f"Seccion: {enrollment.section.name}",
+                f"Seccion: {section.name if section else '-'}",
             ]
         ],
         colWidths=[3.8 * rl["inch"], 1.4 * rl["inch"], 1.6 * rl["inch"]],
@@ -158,10 +160,10 @@ def _student_line(rl, enrollment):
     return table
 
 
-def _periodic_table(rl, enrollment):
+def _periodic_table(rl, enrollment, section=None):
     colors = rl["colors"]
     data = [["ASIGNATURAS", "P1", "P2", "P3", "P4", "PROM."]]
-    for row in _subject_grade_matrix(enrollment):
+    for row in _subject_grade_matrix(enrollment, section):
         data.append(
             [
                 row["subject"].name,
@@ -218,16 +220,17 @@ def build_periodic_report_pdf(section, enrollments):
         if index:
             story.append(rl["PageBreak"]())
         story.extend(_header_elements(rl, section, "BOLETIN DE CALIFICACIONES"))
-        story.append(_student_line(rl, enrollment))
+        story.append(_student_line(rl, enrollment, section))
         story.append(rl["Spacer"](1, 10))
-        story.append(_periodic_table(rl, enrollment))
+        story.append(_periodic_table(rl, enrollment, section))
         story.append(rl["Spacer"](1, 70))
         story.append(_signature_block(rl))
     doc.build(story)
     return buffer.getvalue()
 
 
-def build_rcf_report_pdf(enrollment):
+def build_rcf_report_pdf(enrollment, section=None):
+    section = section or enrollment.section
     rl = _reportlab()
     colors = rl["colors"]
     buffer = BytesIO()
@@ -239,15 +242,15 @@ def build_rcf_report_pdf(enrollment):
         topMargin=0.25 * rl["inch"],
         bottomMargin=0.25 * rl["inch"],
     )
-    story = _header_elements(rl, enrollment.section, "BOLETIN DE CALIFICACIONES", horizontal=True)
-    story.append(_student_line(rl, enrollment))
+    story = _header_elements(rl, section, "BOLETIN DE CALIFICACIONES", horizontal=True)
+    story.append(_student_line(rl, enrollment, section))
     story.append(rl["Spacer"](1, 6))
     header = ["ASIGNATURA"]
     for label in COMPETENCY_LABELS:
         header.extend([label, "P1", "P2", "P3", "P4"])
     header.extend(["FINAL", "A", "R"])
     data = [header]
-    for row in _subject_grade_matrix(enrollment):
+    for row in _subject_grade_matrix(enrollment, section):
         line = [row["subject"].name]
         grades = row["grades"][:4]
         for index in range(4):
@@ -308,7 +311,7 @@ def build_final_act_pdf(section):
     data[0].extend(["Prom.", "A", "R"])
 
     enrollments = (
-        Enrollment.objects.filter(section=section, active=True)
+        Enrollment.objects.filter(course=section.course, active=True)
         .select_related("student", "course", "section")
         .prefetch_related(Prefetch("grades", queryset=Grade.objects.select_related("subject", "subject_competency")))
         .order_by("student__last_name", "student__first_name")

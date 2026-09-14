@@ -10,8 +10,20 @@
   </div>
 </section>
 
+{% if can_filter_school_year %}
+  <form class="toolbar" method="get">
+    <select name="school_year" class="form-control">
+      {% for year in school_year_options %}
+        <option value="{{ year }}" {% if year == selected_school_year %}selected{% endif %}>{{ year }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">Filtrar</button>
+  </form>
+{% endif %}
+
 <form class="form-panel" method="post">
   {% csrf_token %}
+  <input type="hidden" name="school_year" value="{{ selected_school_year }}">
 
   {% if form.non_field_errors %}
     <div class="form-errors">{{ form.non_field_errors }}</div>

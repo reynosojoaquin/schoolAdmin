@@ -58,15 +58,19 @@ El modelo academico fue reorganizado con esta relacion:
 - `Course` representa el curso o grado como nivel superior.
 - `Section` depende de `Course`.
 - `Subject` depende de `Section`.
-- `Enrollment` ata estudiantes a secciones.
+- `Enrollment` ata estudiantes a cursos; la seccion queda opcional para preservar datos anteriores.
+- Las secciones se conforman con las materias y con los estudiantes activos inscritos en su curso.
 - Los docentes solo ven las secciones donde estan asignados como docentes.
+- `SystemConfiguration.current_school_year` define el ano escolar actual del sistema.
+- Los usuarios normales ven por defecto solo la informacion del ano escolar actual.
+- Los administradores y usuarios con vista academica completa pueden filtrar por ano escolar en panel, estudiantes, cursos, secciones, asignaturas, docencia, orientacion, estadisticas y reportes.
 
 Se implementaron tambien:
 
 - Cursos y secciones ajustados a la carga horaria 2025-2026.
 - Eliminacion de secciones llamadas `General`.
 - Eliminacion de cursos erroneos nombrados como secciones (`1A`, `1B`, `1C`, `1D`).
-- Inscripcion de estudiantes desde una seccion.
+- Inscripcion de estudiantes desde el curso.
 - Importacion de estudiantes marcados como nuevo ingreso.
 - Campos `promoted` y `new_admission` en estudiantes.
 - Registro de asistencia por seccion, pensado para docentes y dispositivos moviles.
