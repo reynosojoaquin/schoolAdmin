@@ -645,8 +645,6 @@ class CourseForm(AcademicFormMixin, forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["responsible"].queryset = Teacher.objects.filter(active=True)
-        if not self.instance.pk:
-            self.fields["school_year"].initial = configured_school_year()
         self.apply_widgets()
 
 
@@ -656,7 +654,7 @@ class SectionForm(AcademicFormMixin, forms.ModelForm):
         fields = ["course", "name", "school_year", "responsible", "active"]
         labels = {
             "name": "Seccion",
-            "responsible": "Docente guia",
+            "responsible": "Maestro encargado",
         }
         help_texts = {
             "name": "Ejemplo: A, B, C o D.",
@@ -671,6 +669,27 @@ class SectionForm(AcademicFormMixin, forms.ModelForm):
             course_queryset = (course_queryset | Course.objects.filter(pk=self.instance.course_id)).distinct()
         self.fields["course"].queryset = course_queryset
         self.fields["responsible"].queryset = Teacher.objects.filter(active=True)
+        self.fields["responsible"].required = True
+        if not self.instance.pk:
+            self.fields["school_year"].initial = configured_school_year()
+        self.apply_widgets()
+
+
+class SectionResponsibleForm(AcademicFormMixin, forms.ModelForm):
+    class Meta:
+        model = Section
+        fields = ["responsible"]
+        labels = {
+            "responsible": "Maestro encargado",
+        }
+        help_texts = {
+            "responsible": "Selecciona el docente que tendra a cargo esta seccion.",
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["responsible"].queryset = Teacher.objects.filter(active=True)
+        self.fields["responsible"].required = True
         self.apply_widgets()
 
 

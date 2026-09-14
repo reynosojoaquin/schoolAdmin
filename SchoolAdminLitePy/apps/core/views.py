@@ -40,6 +40,7 @@ from .forms import (
     RegistryReportForm,
     RoleForm,
     SectionForm,
+    SectionResponsibleForm,
     StaffAssignmentForm,
     StudentForm,
     StudentImportForm,
@@ -906,12 +907,13 @@ class SectionListView(AcademicListView):
         ("course", "Curso"),
         ("name", "Seccion"),
         ("school_year", "Ano escolar"),
-        ("responsible", "Docente guia"),
+        ("responsible", "Maestro encargado"),
         ("active", "Estado"),
         ("students", "Estudiantes"),
         ("assignments", "Asignaturas/docentes"),
     ]
     row_actions = [
+        ("Asignar maestro", "core:section_responsible"),
         ("Editar", "core:section_update"),
         ("Eliminar", "core:section_delete"),
     ]
@@ -947,6 +949,18 @@ class SectionUpdateView(AcademicUpdateView):
     title = "Editar seccion"
     success_url = reverse_lazy("core:section_list")
     cancel_url_name = "core:section_list"
+
+
+class SectionResponsibleUpdateView(AcademicUpdateView):
+    model = Section
+    form_class = SectionResponsibleForm
+    title = "Asignar maestro encargado"
+    success_url = reverse_lazy("core:section_list")
+    cancel_url_name = "core:section_list"
+
+    def form_valid(self, form):
+        messages.success(self.request, "Maestro encargado asignado correctamente.")
+        return super().form_valid(form)
 
 
 class SectionDeleteView(AcademicDeleteView):

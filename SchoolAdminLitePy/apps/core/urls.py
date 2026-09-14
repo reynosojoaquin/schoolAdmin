@@ -23,6 +23,7 @@ urlpatterns = [
     path("secciones/<int:pk>/inscripcion/", views.SectionEnrollmentView.as_view(), name="section_enrollment"),
     path("secciones/<int:pk>/asistencia/", views.SectionAttendanceView.as_view(), name="section_attendance"),
     path("secciones/<int:pk>/docencia/", views.SectionTeachingAssignmentsView.as_view(), name="section_assignments"),
+    path("secciones/<int:pk>/maestro/", views.SectionResponsibleUpdateView.as_view(), name="section_responsible"),
     path("secciones/<int:pk>/editar/", views.SectionUpdateView.as_view(), name="section_update"),
     path("secciones/<int:pk>/eliminar/", views.SectionDeleteView.as_view(), name="section_delete"),
     path("secciones/estudiantes/opciones/", views.section_students_options, name="section_students_options"),
