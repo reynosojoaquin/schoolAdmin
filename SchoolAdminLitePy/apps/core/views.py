@@ -561,6 +561,8 @@ class AcademicListView(AcademicSetupAccessMixin, ListView):
         context["create_url_name"] = self.create_url_name
         context["edit_url_name"] = self.edit_url_name
         context["delete_url_name"] = getattr(self, "delete_url_name", "")
+        context["columns"] = self.columns
+        context["row_actions"] = getattr(self, "row_actions", [])
         context["search_placeholder"] = self.search_placeholder
         return context
 
