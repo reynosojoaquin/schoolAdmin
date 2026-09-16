@@ -66,6 +66,9 @@
           </td>
           <td class="actions">
             <a href="{% url edit_url_name person.pk %}">Editar</a>
+            {% if delete_url_name %}
+              <a href="{% url delete_url_name person.pk %}" class="danger-link">Eliminar</a>
+            {% endif %}
           </td>
         </tr>
       {% empty %}

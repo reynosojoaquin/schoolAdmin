@@ -487,6 +487,7 @@ class PersonListView(PeopleAccessMixin, ListView):
         context["create_url_name"] = self.create_url_name
         context["edit_url_name"] = self.edit_url_name
         context["import_url_name"] = getattr(self, "import_url_name", "")
+        context["delete_url_name"] = getattr(self, "delete_url_name", "")
         context["search_placeholder"] = self.search_placeholder
         return context
 
@@ -538,9 +539,8 @@ class AcademicListView(AcademicSetupAccessMixin, ListView):
         context["section_label"] = self.section_label
         context["create_url_name"] = self.create_url_name
         context["edit_url_name"] = self.edit_url_name
+        context["delete_url_name"] = getattr(self, "delete_url_name", "")
         context["search_placeholder"] = self.search_placeholder
-        context["columns"] = self.columns
-        context["row_actions"] = getattr(self, "row_actions", [])
         return context
 
 
@@ -715,6 +715,7 @@ class StudentListView(PersonListView):
     section_label = "Gestion de estudiantes"
     create_url_name = "core:student_create"
     edit_url_name = "core:student_update"
+    delete_url_name = "core:student_delete"
     import_url_name = "core:student_import"
     search_placeholder = "Buscar por nombre, cedula o correo"
 
@@ -744,6 +745,37 @@ class StudentUpdateView(PersonUpdateView):
     title = "Editar estudiante"
     success_url = reverse_lazy("core:student_list")
     cancel_url_name = "core:student_list"
+
+
+class StudentDeleteView(PeopleAccessMixin, DeleteView):
+    model = Student
+    template_name = "core/confirm_delete.html"
+    title = "Eliminar estudiante"
+    success_url = reverse_lazy("core:student_list")
+    cancel_url_name = "core:student_list"
+    protected_message = "No se puede eliminar este estudiante porque tiene inscripciones, calificaciones o casos de orientacion relacionados."
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["title"] = self.title
+        context["cancel_url_name"] = self.cancel_url_name
+        context["related_summary"] = [
+            ("Inscripciones", self.object.enrollments.count()),
+            ("Calificaciones", Grade.objects.filter(enrollment__student=self.object).count()),
+            ("Asistencias", Attendance.objects.filter(enrollment__student=self.object).count()),
+            ("Casos de orientacion", self.object.guidance_cases.count()),
+        ]
+        return context
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        try:
+            self.object.delete()
+        except ProtectedError:
+            messages.error(request, self.protected_message)
+            return redirect(self.success_url)
+        messages.success(request, "Estudiante eliminado correctamente.")
+        return redirect(self.success_url)
 
 
 class StudentImportView(LoginRequiredMixin, View):
