@@ -167,6 +167,38 @@ class StudentForm(PersonFormMixin, forms.ModelForm):
         self.apply_common_widgets()
 
 
+class StudentTransferForm(forms.Form):
+    course = forms.ModelChoiceField(
+        queryset=Course.objects.filter(active=True),
+        label="Nuevo curso",
+        empty_label="-- Seleccionar curso --",
+    )
+    section = forms.ModelChoiceField(
+        queryset=Section.objects.none(),
+        label="Nueva seccion",
+        empty_label="-- Seleccionar seccion --",
+        required=False,
+    )
+
+    def __init__(self, *args, school_year=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.school_year = school_year
+        if self.initial.get("course_id"):
+            course = Course.objects.filter(pk=self.initial["course_id"]).first()
+            if course:
+                self.fields["section"].queryset = Section.objects.filter(
+                    course=course, school_year=school_year, active=True
+                )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        course = cleaned_data.get("course")
+        section = cleaned_data.get("section")
+        if course and section and section.course_id != course.pk:
+            raise forms.ValidationError("La seccion debe pertenecer al curso seleccionado.")
+        return cleaned_data
+
+
 class TeacherForm(PersonFormMixin, forms.ModelForm):
     class Meta:
         model = Teacher

@@ -44,6 +44,7 @@ from .forms import (
     StaffAssignmentForm,
     StudentForm,
     StudentImportForm,
+    StudentTransferForm,
     SubjectForm,
     SystemConfigurationForm,
     TeacherForm,
@@ -332,6 +333,25 @@ def section_students_options(request):
 
 
 @login_required
+def course_sections_options(request):
+    if not can_manage_people(request.user):
+        return JsonResponse({"detail": "No autorizado."}, status=403)
+    course_id = request.GET.get("course")
+    school_year = request.GET.get("school_year") or default_school_year()
+    sections = []
+    if course_id:
+        sections = [
+            {"id": section.id, "text": section.name}
+            for section in Section.objects.filter(
+                course_id=course_id,
+                school_year=school_year,
+                active=True,
+            ).order_by("name")
+        ]
+    return JsonResponse({"sections": sections})
+
+
+@login_required
 def birth_cities_options(request):
     if not can_manage_people(request.user):
         return JsonResponse({"detail": "No autorizado."}, status=403)
@@ -488,6 +508,7 @@ class PersonListView(PeopleAccessMixin, ListView):
         context["edit_url_name"] = self.edit_url_name
         context["import_url_name"] = getattr(self, "import_url_name", "")
         context["delete_url_name"] = getattr(self, "delete_url_name", "")
+        context["transfer_url_name"] = getattr(self, "transfer_url_name", "")
         context["search_placeholder"] = self.search_placeholder
         return context
 
@@ -716,6 +737,7 @@ class StudentListView(PersonListView):
     create_url_name = "core:student_create"
     edit_url_name = "core:student_update"
     delete_url_name = "core:student_delete"
+    transfer_url_name = "core:student_transfer"
     import_url_name = "core:student_import"
     search_placeholder = "Buscar por nombre, cedula o correo"
 
@@ -776,6 +798,87 @@ class StudentDeleteView(PeopleAccessMixin, DeleteView):
             return redirect(self.success_url)
         messages.success(request, "Estudiante eliminado correctamente.")
         return redirect(self.success_url)
+
+
+class StudentTransferView(PeopleAccessMixin, View):
+    template_name = "core/student_transfer.html"
+
+    def get_student(self):
+        return get_object_or_404(Student, pk=self.kwargs["pk"])
+
+    def get_current_enrollment(self, student):
+        school_year = selected_school_year(self.request)
+        return Enrollment.objects.filter(
+            student=student,
+            school_year=school_year,
+            active=True,
+        ).select_related("course", "section").first()
+
+    def get(self, request, *args, **kwargs):
+        student = self.get_student()
+        enrollment = self.get_current_enrollment(student)
+        school_year = selected_school_year(request)
+
+        if not enrollment:
+            messages.error(request, "El estudiante no tiene inscripcion activa en este ano escolar.")
+            return redirect("core:student_list")
+
+        form = StudentTransferForm(
+            school_year=school_year,
+            initial={"course_id": enrollment.course_id},
+        )
+        return render(request, self.template_name, {
+            "student": student,
+            "enrollment": enrollment,
+            "form": form,
+        })
+
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        student = self.get_student()
+        enrollment = self.get_current_enrollment(student)
+        school_year = selected_school_year(request)
+
+        if not enrollment:
+            messages.error(request, "El estudiante no tiene inscripcion activa en este ano escolar.")
+            return redirect("core:student_list")
+
+        form = StudentTransferForm(request.POST, school_year=school_year)
+
+        if form.is_valid():
+            new_course = form.cleaned_data["course"]
+            new_section = form.cleaned_data["section"]
+
+            if new_course.pk == enrollment.course_id and (new_section or None) == enrollment.section:
+                messages.warning(request, "El estudiante ya esta inscrito en ese curso/seccion.")
+                return redirect("core:student_list")
+
+            new_enrollment, created = Enrollment.objects.get_or_create(
+                student=student,
+                course=new_course,
+                school_year=school_year,
+                defaults={"section": new_section, "active": True},
+            )
+            if not created:
+                new_enrollment.section = new_section
+                new_enrollment.active = True
+                new_enrollment.save(update_fields=["section", "active", "updated_at"])
+
+            enrollment.active = False
+            enrollment.save(update_fields=["active", "updated_at"])
+
+            group_label = f"{new_course}{new_section}" if new_section else str(new_course)
+            messages.success(
+                request,
+                f"{student} transferido de {enrollment} a {group_label} ({school_year}).",
+            )
+            return redirect("core:student_list")
+
+        return render(request, self.template_name, {
+            "student": student,
+            "enrollment": enrollment,
+            "form": form,
+        })
 
 
 class StudentImportView(LoginRequiredMixin, View):

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Transferir estudiante - SchoolAdmin Lite{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <div>
+    <p class="eyebrow">Gestion de estudiantes</p>
+    <h1>Transferir estudiante</h1>
+  </div>
+</section>
+
+<section class="form-panel">
+  <h2>{{ student }}</h2>
+  <p style="color: var(--muted); margin-bottom: 18px;">
+    Cedula: {{ student.document_id|default:"-" }} |
+    Actualmente en: <strong>{{ enrollment }}</strong>
+  </p>
+
+  {% if form.non_field_errors %}
+    <div class="form-errors">{{ form.non_field_errors }}</div>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+
+    <div class="form-grid">
+      <div class="field">
+        <label for="{{ form.course.id_for_label }}">{{ form.course.label }}</label>
+        {{ form.course }}
+        {% for error in form.course.errors %}
+          <small class="error">{{ error }}</small>
+        {% endfor %}
+      </div>
+
+      <div class="field">
+        <label for="{{ form.section.id_for_label }}">{{ form.section.label }}</label>
+        {{ form.section }}
+        {% for error in form.section.errors %}
+          <small class="error">{{ error }}</small>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit">Transferir</button>
+      <a class="btn-secondary" href="{% url 'core:student_list' %}">Cancelar</a>
+    </div>
+  </form>
+</section>
+
+<script>
+  (function () {
+    const courseSelect = document.querySelector('#id_course');
+    const sectionSelect = document.querySelector('#id_section');
+    if (!courseSelect || !sectionSelect) return;
+
+    courseSelect.addEventListener('change', async function () {
+      sectionSelect.disabled = true;
+      sectionSelect.innerHTML = '<option value="">Cargando...</option>';
+      if (!courseSelect.value) {
+        sectionSelect.innerHTML = '<option value="">-- Seleccionar seccion --</option>';
+        sectionSelect.disabled = false;
+        return;
+      }
+      try {
+        const response = await fetch(`/cursos/secciones/opciones/?course=${courseSelect.value}&school_year={{ enrollment.school_year }}`);
+        const data = await response.json();
+        sectionSelect.innerHTML = '<option value="">-- Seleccionar seccion --</option>';
+        (data.sections || []).forEach(function (section) {
+          const option = document.createElement('option');
+          option.value = section.id;
+          option.textContent = section.text;
+          sectionSelect.appendChild(option);
+        });
+      } catch (e) {
+        sectionSelect.innerHTML = '<option value="">Error al cargar</option>';
+      } finally {
+        sectionSelect.disabled = false;
+      }
+    });
+  })();
+</script>
+{% endblock %}
