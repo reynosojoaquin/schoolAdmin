@@ -22,6 +22,7 @@ from .models import (
     GuidanceCase,
     GuidanceFollowUp,
     JournalEntry,
+    Phone,
     Section,
     StaffAssignment,
     Student,
@@ -213,6 +214,8 @@ class TeacherForm(PersonFormMixin, forms.ModelForm):
 
 
 class AdministrativeEmployeeForm(PersonFormMixin, forms.ModelForm):
+    phone = forms.CharField(label="Telefono", max_length=40, required=False)
+
     class Meta:
         model = AdministrativeEmployee
         fields = PersonFormMixin.common_fields + ["employee_type", "position"]
@@ -222,6 +225,8 @@ class AdministrativeEmployeeForm(PersonFormMixin, forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if self.instance.pk and not self.is_bound:
+            self.fields["phone"].initial = self.instance.phones.order_by("pk").values_list("number", flat=True).first()
         self.apply_common_widgets()
         self.fields["employee_type"].empty_label = "Seleccione un tipo de empleado"
         self.fields["employee_type"].widget.attrs["data-dependent-source"] = "employee-type"
@@ -244,6 +249,21 @@ class AdministrativeEmployeeForm(PersonFormMixin, forms.ModelForm):
         if position and employee_type and position.employee_type_id != employee_type.pk:
             self.add_error("position", "La posición no pertenece al tipo de empleado seleccionado.")
         return cleaned_data
+
+    def save(self, commit=True):
+        employee = super().save(commit=commit)
+        if commit:
+            phone = self.cleaned_data.get("phone", "").strip()
+            current = employee.phones.order_by("pk").first()
+            if current:
+                if phone:
+                    current.number = phone
+                    current.save(update_fields=["number"])
+                else:
+                    current.delete()
+            elif phone:
+                Phone.objects.create(administrative_employee=employee, number=phone)
+        return employee
 
 
 class AcademicFormMixin:

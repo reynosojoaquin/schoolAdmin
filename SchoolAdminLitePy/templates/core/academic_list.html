@@ -178,9 +178,9 @@
               {% elif field_name == "students" %}
                 {% if title == "Cursos" %}
                   <a class="btn-secondary compact-link" href="{% url 'core:course_students' item.pk %}">Ver estudiantes</a>
-                  <a class="btn-secondary compact-link" href="{% url 'core:course_enrollment' item.pk %}">Inscripcion</a>
                 {% elif title == "Secciones" %}
                   <a class="btn-secondary compact-link" href="{% url 'core:section_students' item.pk %}">Ver estudiantes</a>
+                  <a class="btn-secondary compact-link" href="{% url 'core:section_enrollment' item.pk %}">Inscripcion</a>
                   <a class="btn-secondary compact-link" href="{% url 'core:section_attendance' item.pk %}">Asistencia</a>
                 {% endif %}
               {% elif field_name == "assignments" %}

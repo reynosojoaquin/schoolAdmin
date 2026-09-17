@@ -7,7 +7,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from .forms import AdministrativeEmployeeForm
-from .models import City, EmployeePosition, EmployeeType, Province, SystemConfiguration
+from .models import AdministrativeEmployee, City, Course, EmployeePosition, EmployeeType, Enrollment, Province, Section, Student, SystemConfiguration
 
 
 TEST_MEDIA_ROOT = tempfile.mkdtemp()
@@ -121,6 +121,20 @@ class AdministrativeEmployeeCatalogTests(TestCase):
             [("", "---------"), ("Masculino", "Masculino"), ("Femenino", "Femenino")],
         )
 
+    def test_employee_phone_is_saved_and_can_be_updated(self):
+        response = self.client.post(reverse("core:employee_create"), {
+            "first_name": "Ana", "last_name": "Perez", "phone": "809-555-0101",
+        })
+        self.assertEqual(response.status_code, 302)
+        employee = AdministrativeEmployee.objects.get(first_name="Ana")
+        self.assertEqual(employee.phones.get().number, "809-555-0101")
+        response = self.client.post(reverse("core:employee_update", args=[employee.pk]), {
+            "first_name": "Ana", "last_name": "Perez", "phone": "809-555-0102",
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(employee.phones.get().number, "809-555-0102")
+
+
     def test_form_rejects_city_or_position_from_another_parent(self):
         form = AdministrativeEmployeeForm(
             data={
@@ -136,3 +150,24 @@ class AdministrativeEmployeeCatalogTests(TestCase):
         self.assertFalse(form.is_valid())
         self.assertIn("birthplace", form.errors)
         self.assertIn("position", form.errors)
+
+
+class SectionEnrollmentTests(TestCase):
+    def setUp(self):
+        self.client.force_login(User.objects.create_superuser("enrollment-admin", "admin@example.com", "password"))
+        self.course = Course.objects.create(name="Curso pruebas inscripcion")
+        self.section = Section.objects.create(course=self.course, name="A", school_year="2026-2027")
+        configuration = SystemConfiguration.get_solo()
+        configuration.current_school_year = "2026-2027"
+        configuration.save(update_fields=["current_school_year"])
+        self.student = Student.objects.create(first_name="Eva", last_name="Perez", new_admission=True)
+
+    def test_enrollment_is_assigned_to_selected_section(self):
+        response = self.client.post(reverse("core:section_enrollment", args=[self.section.pk]), {
+            "students": [self.student.pk],
+        })
+        self.assertRedirects(response, reverse("core:section_students", args=[self.section.pk]))
+        enrollment = Enrollment.objects.get(student=self.student)
+        self.assertEqual(enrollment.section, self.section)
+        self.student.refresh_from_db()
+        self.assertFalse(self.student.new_admission)

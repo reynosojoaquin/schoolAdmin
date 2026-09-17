@@ -1123,7 +1123,7 @@ class SectionStudentsView(AcademicSetupAccessMixin, ListView):
             school_year=selected_school_year(self.request),
         )
         queryset = Enrollment.objects.filter(
-            course=self.section.course,
+            section=self.section,
             school_year=selected_school_year(self.request),
             active=True,
         ).select_related("student", "course", "section")
@@ -1170,29 +1170,15 @@ def default_school_year_for_course(course):
     return school_year or default_school_year()
 
 
-class CourseEnrollmentView(AcademicSetupAccessMixin, View):
+class SectionEnrollmentView(AcademicSetupAccessMixin, View):
     template_name = "core/section_enrollment.html"
 
-    def get_course(self):
-        return get_object_or_404(Course.objects.filter(active=True), pk=self.kwargs["pk"])
-
-    def get_school_year(self, course):
-        return (
-            self.request.POST.get("school_year")
-            or self.request.GET.get("school_year")
-            or default_school_year_for_course(course)
+    def get_section(self):
+        return get_object_or_404(
+            Section.objects.select_related("course").filter(active=True, course__active=True),
+            pk=self.kwargs["pk"],
+            school_year=selected_school_year(self.request),
         )
-
-    def get_school_years(self, course, selected_school_year):
-        years = list(
-            course.sections.exclude(school_year="")
-            .order_by("-school_year")
-            .values_list("school_year", flat=True)
-            .distinct()
-        )
-        if selected_school_year not in years:
-            years.insert(0, selected_school_year)
-        return years
 
     def get_candidates(self, course, school_year):
         already_enrolled = Enrollment.objects.filter(
@@ -1225,17 +1211,15 @@ class CourseEnrollmentView(AcademicSetupAccessMixin, View):
         )
         return queryset
 
-    def render_page(self, request, course):
-        school_year = self.get_school_year(course)
-        candidates = self.get_candidates(course, school_year)
+    def render_page(self, request, section):
+        candidates = self.get_candidates(section.course, section.school_year)
         return render(
             request,
             self.template_name,
             {
-                "course": course,
-                "school_year": school_year,
-                "school_years": self.get_school_years(course, school_year),
-                "previous_course": previous_course_for_course(course),
+                "section": section,
+                "school_year": section.school_year,
+                "previous_course": previous_course_for_course(section.course),
                 "query": request.GET.get("q", "").strip(),
                 "candidates": candidates[:200],
                 "candidate_count": candidates.count(),
@@ -1243,16 +1227,17 @@ class CourseEnrollmentView(AcademicSetupAccessMixin, View):
         )
 
     def get(self, request, *args, **kwargs):
-        return self.render_page(request, self.get_course())
+        return self.render_page(request, self.get_section())
 
     @transaction.atomic
     def post(self, request, *args, **kwargs):
-        course = self.get_course()
-        school_year = self.get_school_year(course)
+        section = self.get_section()
+        course = section.course
+        school_year = section.school_year
         student_ids = request.POST.getlist("students")
         if not student_ids:
             messages.error(request, "Selecciona al menos un estudiante para inscribir.")
-            return self.render_page(request, course)
+            return self.render_page(request, section)
 
         candidate_ids = set(str(pk) for pk in self.get_candidates(course, school_year).values_list("pk", flat=True))
         selected_ids = [student_id for student_id in student_ids if student_id in candidate_ids]
@@ -1263,28 +1248,25 @@ class CourseEnrollmentView(AcademicSetupAccessMixin, View):
                 student=student,
                 course=course,
                 school_year=school_year,
-                defaults={"active": True},
+                defaults={"active": True, "section": section},
             )
-            if not created and not enrollment.active:
+            if not created:
                 enrollment.active = True
-                enrollment.save(update_fields=["active"])
+                enrollment.section = section
+                enrollment.save(update_fields=["active", "section"])
 
             student.promoted = False
             student.new_admission = False
             student.save(update_fields=["promoted", "new_admission"])
             enrolled_count += 1
 
-        messages.success(request, f"Se inscribieron {enrolled_count} estudiantes en el curso {course}.")
-        return redirect("core:course_students", pk=course.pk)
+        messages.success(request, f"Se inscribieron {enrolled_count} estudiantes en la seccion {section}.")
+        return redirect("core:section_students", pk=section.pk)
 
 
-class SectionEnrollmentView(AcademicSetupAccessMixin, View):
+class CourseEnrollmentView(AcademicSetupAccessMixin, View):
     def get(self, request, *args, **kwargs):
-        section = get_object_or_404(Section.objects.select_related("course"), pk=self.kwargs["pk"])
-        return redirect("core:course_enrollment", pk=section.course_id)
-
-    def post(self, request, *args, **kwargs):
-        return self.get(request, *args, **kwargs)
+        return redirect("core:section_list")
 
 
 class SectionAttendanceView(AcademicAccessMixin, View):
