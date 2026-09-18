@@ -525,7 +525,7 @@ class PersonListView(PeopleAccessMixin, ListView):
         context["edit_url_name"] = self.edit_url_name
         context["import_url_name"] = getattr(self, "import_url_name", "")
         context["delete_url_name"] = getattr(self, "delete_url_name", "")
-        context["transfer_url_name"] = getattr(self, "transfer_url_name", "")
+        context["transfer_url_name"] = getattr(self, "transfer_url_name", "") if can_manage_people(self.request.user) else ""
         context["search_placeholder"] = self.search_placeholder
         return context
 
@@ -860,6 +860,9 @@ class StudentDeleteView(PeopleAccessMixin, DeleteView):
 class StudentTransferView(PeopleAccessMixin, View):
     template_name = "core/student_transfer.html"
 
+    def test_func(self):
+        return can_manage_people(self.request.user)
+
     def get_student(self):
         return get_object_or_404(Student, pk=self.kwargs["pk"])
 
@@ -883,21 +886,18 @@ class StudentTransferView(PeopleAccessMixin, View):
         school_year = selected_school_year(request)
         redirect_url = self.get_redirect_target()
 
-        if not enrollment:
-            messages.error(request, "El estudiante no tiene inscripcion activa en este ano escolar.")
-            return redirect(redirect_url)
-
         form = StudentTransferForm(
             school_year=school_year,
             initial={
                 "course": enrollment.course_id,
                 "section": enrollment.section_id,
-            },
+            } if enrollment else None,
         )
         return render(request, self.template_name, {
             "student": student,
             "enrollment": enrollment,
             "form": form,
+            "school_year": school_year,
             "next_url": request.GET.get("next", ""),
             "cancel_url": redirect_url,
         })
@@ -909,23 +909,19 @@ class StudentTransferView(PeopleAccessMixin, View):
         school_year = selected_school_year(request)
         redirect_url = self.get_redirect_target()
 
-        if not enrollment:
-            messages.error(request, "El estudiante no tiene inscripcion activa en este ano escolar.")
-            return redirect(redirect_url)
-
         form = StudentTransferForm(request.POST, school_year=school_year)
 
         if form.is_valid():
             new_course = form.cleaned_data["course"]
             new_section = form.cleaned_data["section"]
 
-            if new_course.pk == enrollment.course_id and (new_section or None) == enrollment.section:
+            if enrollment and new_course.pk == enrollment.course_id and (new_section or None) == enrollment.section:
                 messages.warning(request, "El estudiante ya esta inscrito en ese curso/seccion.")
                 return redirect(redirect_url)
 
-            old_label = str(enrollment.section or enrollment.course)
+            old_label = str(enrollment.section or enrollment.course) if enrollment else None
 
-            if new_course.pk == enrollment.course_id:
+            if enrollment and new_course.pk == enrollment.course_id:
                 enrollment.section = new_section
                 enrollment.active = True
                 enrollment.save(update_fields=["section", "active", "updated_at"])
@@ -942,8 +938,9 @@ class StudentTransferView(PeopleAccessMixin, View):
                     new_enrollment.active = True
                     new_enrollment.save(update_fields=["section", "active", "updated_at"])
 
-                enrollment.active = False
-                enrollment.save(update_fields=["active", "updated_at"])
+                if enrollment:
+                    enrollment.active = False
+                    enrollment.save(update_fields=["active", "updated_at"])
                 target_enrollment = new_enrollment
 
             Enrollment.objects.filter(
@@ -951,7 +948,7 @@ class StudentTransferView(PeopleAccessMixin, View):
                 school_year=school_year,
             ).exclude(pk=target_enrollment.pk).update(active=False)
 
-            if new_section and new_course.pk == enrollment.course_id:
+            if enrollment and new_section and new_course.pk == enrollment.course_id:
                 new_subjects = {s.name.strip().lower(): s for s in Subject.objects.filter(section=new_section)}
                 for grade in target_enrollment.grades.select_related("subject"):
                     if grade.subject and grade.subject.section_id != new_section.pk:
@@ -974,16 +971,17 @@ class StudentTransferView(PeopleAccessMixin, View):
                             gc.save(update_fields=["subject", "updated_at"])
 
             target_label = str(new_section or new_course)
-            messages.success(
-                request,
-                f"{student} transferido de {old_label} a {target_label}.",
-            )
+            if old_label:
+                messages.success(request, f"{student} transferido de {old_label} a {target_label}.")
+            else:
+                messages.success(request, f"{student} inscrito en {target_label}.")
             return redirect(redirect_url)
 
         return render(request, self.template_name, {
             "student": student,
             "enrollment": enrollment,
             "form": form,
+            "school_year": school_year,
             "next_url": request.POST.get("next") or request.GET.get("next", ""),
             "cancel_url": redirect_url,
         })

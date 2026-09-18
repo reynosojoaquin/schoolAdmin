@@ -71,7 +71,7 @@
           <td class="actions">
             <a href="{% url edit_url_name person.pk %}">Editar</a>
             {% if transfer_url_name %}
-              <a href="{% url transfer_url_name person.pk %}">Transferir</a>
+              <a href="{% url transfer_url_name person.pk %}?school_year={{ selected_school_year|urlencode }}">Transferir</a>
             {% endif %}
             {% if delete_url_name %}
               <a href="{% url delete_url_name person.pk %}" class="danger-link">Eliminar</a>

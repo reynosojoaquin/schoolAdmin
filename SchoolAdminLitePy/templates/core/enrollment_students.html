@@ -51,8 +51,8 @@
             {% endif %}
           </td>
           <td class="actions">
-            {% if can_manage_people or can_view_all_people %}
-              <a href="{% url 'core:student_transfer' enrollment.student_id %}?next={{ request.get_full_path|urlencode }}">Transferir</a>
+            {% if can_manage_people %}
+              <a href="{% url 'core:student_transfer' enrollment.student_id %}?school_year={{ selected_school_year|urlencode }}&amp;next={{ request.get_full_path|urlencode }}">Transferir</a>
             {% endif %}
           </td>
         </tr>

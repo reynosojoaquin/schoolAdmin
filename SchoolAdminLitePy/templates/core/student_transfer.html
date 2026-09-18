@@ -14,7 +14,7 @@
   <h2>{{ student }}</h2>
   <p style="color: var(--muted); margin-bottom: 18px;">
     Cedula: {{ student.document_id|default:"-" }} |
-    Actualmente en: <strong>{{ enrollment }}</strong>
+    Actualmente en: <strong>{{ enrollment|default:"Sin inscripcion activa" }}</strong>
   </p>
 
   {% if form.non_field_errors %}
@@ -23,6 +23,7 @@
 
   <form method="post">
     {% csrf_token %}
+    <input type="hidden" name="school_year" value="{{ school_year }}">
     {% if next_url %}
       <input type="hidden" name="next" value="{{ next_url }}">
     {% endif %}

@@ -338,6 +338,23 @@ class StudentTransferTests(TestCase):
         self.assertTrue(new_enrollment.active)
         self.assertEqual(new_enrollment.section, self.section_2a)
 
+    def test_student_without_active_enrollment_can_choose_course_and_section(self):
+        student = Student.objects.create(first_name="Nuevo", last_name="Ingreso")
+        url = reverse("core:student_transfer", args=[student.pk])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Sin inscripcion activa")
+
+        response = self.client.post(url, {
+            "course": self.course_2.pk,
+            "section": self.section_2a.pk,
+            "school_year": self.school_year,
+        })
+        self.assertRedirects(response, reverse("core:student_list"))
+        enrollment = Enrollment.objects.get(student=student, school_year=self.school_year)
+        self.assertTrue(enrollment.active)
+        self.assertEqual(enrollment.section, self.section_2a)
+
     def test_transfer_same_section_shows_warning(self):
         url = reverse("core:student_transfer", args=[self.student.pk])
         response = self.client.post(url, {
