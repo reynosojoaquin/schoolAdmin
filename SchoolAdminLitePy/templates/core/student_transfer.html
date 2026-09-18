@@ -23,6 +23,9 @@
 
   <form method="post">
     {% csrf_token %}
+    {% if next_url %}
+      <input type="hidden" name="next" value="{{ next_url }}">
+    {% endif %}
 
     <div class="form-grid">
       <div class="field">
@@ -44,7 +47,7 @@
 
     <div class="form-actions">
       <button type="submit">Transferir</button>
-      <a class="btn-secondary" href="{% url 'core:student_list' %}">Cancelar</a>
+      <a class="btn-secondary" href="{{ next_url|default:cancel_url|default:'/estudiantes/' }}">Cancelar</a>
     </div>
   </form>
 </section>
@@ -55,22 +58,27 @@
     const sectionSelect = document.querySelector('#id_section');
     if (!courseSelect || !sectionSelect) return;
 
-    courseSelect.addEventListener('change', async function () {
-      sectionSelect.disabled = true;
-      sectionSelect.innerHTML = '<option value="">Cargando...</option>';
+    const schoolYear = encodeURIComponent('{{ enrollment.school_year }}');
+
+    async function updateSections(selectedId) {
       if (!courseSelect.value) {
         sectionSelect.innerHTML = '<option value="">-- Seleccionar seccion --</option>';
         sectionSelect.disabled = false;
         return;
       }
+      sectionSelect.disabled = true;
+      sectionSelect.innerHTML = '<option value="">Cargando...</option>';
       try {
-        const response = await fetch(`/cursos/secciones/opciones/?course=${courseSelect.value}&school_year={{ enrollment.school_year }}`);
+        const response = await fetch(`/cursos/secciones/opciones/?course=${encodeURIComponent(courseSelect.value)}&school_year=${schoolYear}`);
         const data = await response.json();
         sectionSelect.innerHTML = '<option value="">-- Seleccionar seccion --</option>';
         (data.sections || []).forEach(function (section) {
           const option = document.createElement('option');
           option.value = section.id;
           option.textContent = section.text;
+          if (selectedId && String(section.id) === String(selectedId)) {
+            option.selected = true;
+          }
           sectionSelect.appendChild(option);
         });
       } catch (e) {
@@ -78,7 +86,15 @@
       } finally {
         sectionSelect.disabled = false;
       }
+    }
+
+    courseSelect.addEventListener('change', function () {
+      updateSections();
     });
+
+    if (courseSelect.value && sectionSelect.options.length <= 1) {
+      updateSections('{{ form.section.value|default:"" }}');
+    }
   })();
 </script>
 {% endblock %}

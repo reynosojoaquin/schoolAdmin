@@ -24,17 +24,20 @@
   <table>
     <thead>
       <tr>
+        <th>N.o</th>
         <th>Estudiante</th>
         <th>Cedula</th>
         <th>Curso</th>
         <th>Seccion</th>
         <th>Ano escolar</th>
         <th>Estado</th>
+        <th></th>
       </tr>
     </thead>
     <tbody>
       {% for enrollment in object_list %}
         <tr>
+          <td>{{ enrollment.order_number|default:"-" }}</td>
           <td><strong>{{ enrollment.student.last_name }}, {{ enrollment.student.first_name }}</strong></td>
           <td>{{ enrollment.student.document_id|default:"-" }}</td>
           <td>{{ enrollment.course|default:"-" }}</td>
@@ -47,10 +50,15 @@
               <span class="status inactive">Inactivo</span>
             {% endif %}
           </td>
+          <td class="actions">
+            {% if can_manage_people or can_view_all_people %}
+              <a href="{% url 'core:student_transfer' enrollment.student_id %}?next={{ request.get_full_path|urlencode }}">Transferir</a>
+            {% endif %}
+          </td>
         </tr>
       {% empty %}
         <tr>
-          <td colspan="6" class="empty">No hay estudiantes inscritos en este grupo.</td>
+          <td colspan="8" class="empty">No hay estudiantes inscritos en este grupo.</td>
         </tr>
       {% endfor %}
     </tbody>

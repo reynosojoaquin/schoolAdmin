@@ -1,13 +1,27 @@
 import shutil
 import tempfile
+from datetime import date
 
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from .forms import AdministrativeEmployeeForm
-from .models import AdministrativeEmployee, City, Course, EmployeePosition, EmployeeType, Enrollment, Province, Section, Student, SystemConfiguration
+from .forms import AdministrativeEmployeeForm, StudentTransferForm
+from .models import (
+    AdministrativeEmployee,
+    City,
+    Course,
+    EmployeePosition,
+    EmployeeType,
+    Enrollment,
+    Grade,
+    Province,
+    Section,
+    Student,
+    Subject,
+    SystemConfiguration,
+)
 
 
 TEST_MEDIA_ROOT = tempfile.mkdtemp()
@@ -37,6 +51,7 @@ class SystemConfigurationTests(TestCase):
             reverse("core:system_configuration"),
             {
                 "institution_name": "Centro Educativo de Prueba",
+                "current_school_year": "2026-2027",
                 "logo": SimpleUploadedFile("logo.png", b"fake-png-content", content_type="image/png"),
             },
         )
@@ -134,6 +149,22 @@ class AdministrativeEmployeeCatalogTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(employee.phones.get().number, "809-555-0102")
 
+    def test_employee_birth_date_is_shown_and_saved_on_edit(self):
+        employee = AdministrativeEmployee.objects.create(
+            first_name="Ana", last_name="Perez", birth_date=date(1985, 4, 12)
+        )
+        url = reverse("core:employee_update", args=[employee.pk])
+        response = self.client.get(url)
+        self.assertContains(response, 'type="date"')
+        self.assertContains(response, 'value="1985-04-12"')
+
+        response = self.client.post(url, {
+            "first_name": "Ana", "last_name": "Perez", "birth_date": "1986-05-13",
+        })
+        self.assertRedirects(response, reverse("core:employee_list"))
+        employee.refresh_from_db()
+        self.assertEqual(employee.birth_date, date(1986, 5, 13))
+
 
     def test_form_rejects_city_or_position_from_another_parent(self):
         form = AdministrativeEmployeeForm(
@@ -171,3 +202,126 @@ class SectionEnrollmentTests(TestCase):
         self.assertEqual(enrollment.section, self.section)
         self.student.refresh_from_db()
         self.assertFalse(self.student.new_admission)
+
+
+class StudentSectionOrderTests(TestCase):
+    def setUp(self):
+        self.client.force_login(User.objects.create_superuser("order-admin", "admin@example.com", "password"))
+        configuration = SystemConfiguration.get_solo()
+        configuration.current_school_year = "2026-2027"
+        configuration.save(update_fields=["current_school_year"])
+        course = Course.objects.create(name="Curso orden pruebas")
+        self.section_a = Section.objects.create(course=course, name="A", school_year="2026-2027")
+        self.section_b = Section.objects.create(course=course, name="B", school_year="2026-2027")
+        self.zeta = Student.objects.create(first_name="Zoe", last_name="Zapata Cruz")
+        self.alba = Student.objects.create(first_name="Ana", last_name="Alba Diaz")
+        self.brito = Student.objects.create(first_name="Bea", last_name="Brito Santos")
+        for student, section in ((self.zeta, self.section_a), (self.alba, self.section_a), (self.brito, self.section_b)):
+            Enrollment.objects.create(student=student, course=course, section=section, school_year="2026-2027")
+
+    def test_section_numbers_follow_first_surname_and_restart_per_section(self):
+        response = self.client.get(reverse("core:section_students", args=[self.section_a.pk]))
+        self.assertEqual([(item.student, item.order_number) for item in response.context["object_list"]], [
+            (self.alba, 1), (self.zeta, 2),
+        ])
+        response = self.client.get(reverse("core:section_students", args=[self.section_b.pk]))
+        self.assertEqual(response.context["object_list"][0].order_number, 1)
+
+    def test_search_keeps_section_number_in_student_index(self):
+        response = self.client.get(reverse("core:student_list"), {"q": "Zapata"})
+        self.assertEqual(response.context["object_list"][0].order_number, 2)
+        self.assertEqual(response.context["object_list"][0].current_section, self.section_a)
+
+    def test_course_index_groups_section_numbers(self):
+        response = self.client.get(reverse("core:course_students", args=[self.section_a.course_id]))
+        self.assertEqual(
+            [(item.section.name, item.order_number) for item in response.context["object_list"]],
+            [("A", 1), ("A", 2), ("B", 1)],
+        )
+
+
+class StudentTransferTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser("transfer-admin", "admin@example.com", "password")
+        self.client.force_login(self.admin)
+        self.school_year = "2026-2027"
+        configuration = SystemConfiguration.get_solo()
+        configuration.current_school_year = self.school_year
+        configuration.save(update_fields=["current_school_year"])
+
+        self.course_1 = Course.objects.create(name="1ro")
+        self.section_1a = Section.objects.create(course=self.course_1, name="A", school_year=self.school_year)
+        self.section_1b = Section.objects.create(course=self.course_1, name="B", school_year=self.school_year)
+
+        self.course_2 = Course.objects.create(name="2do")
+        self.section_2a = Section.objects.create(course=self.course_2, name="A", school_year=self.school_year)
+
+        self.student = Student.objects.create(first_name="Carlos", last_name="Santana")
+        self.enrollment = Enrollment.objects.create(
+            student=self.student,
+            course=self.course_1,
+            section=self.section_1a,
+            school_year=self.school_year,
+            active=True,
+        )
+
+    def test_form_binds_and_validates_section_correctly(self):
+        form = StudentTransferForm(
+            data={"course": self.course_1.pk, "section": self.section_1b.pk},
+            school_year=self.school_year,
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["course"], self.course_1)
+        self.assertEqual(form.cleaned_data["section"], self.section_1b)
+
+    def test_transfer_between_sections_in_same_course(self):
+        subject_a = Subject.objects.create(section=self.section_1a, name="Matematicas")
+        subject_b = Subject.objects.create(section=self.section_1b, name="Matematicas")
+        grade = Grade.objects.create(enrollment=self.enrollment, subject=subject_a, period_1=90)
+
+        url = reverse("core:student_transfer", args=[self.student.pk])
+        next_url = reverse("core:section_students", args=[self.section_1a.pk])
+        response = self.client.post(f"{url}?next={next_url}", {
+            "course": self.course_1.pk,
+            "section": self.section_1b.pk,
+            "next": next_url,
+        })
+        self.assertRedirects(response, next_url)
+
+        self.enrollment.refresh_from_db()
+        self.assertTrue(self.enrollment.active)
+        self.assertEqual(self.enrollment.section, self.section_1b)
+        self.assertEqual(self.enrollment.course, self.course_1)
+
+        grade.refresh_from_db()
+        self.assertEqual(grade.subject, subject_b)
+
+    def test_transfer_to_different_course(self):
+        url = reverse("core:student_transfer", args=[self.student.pk])
+        response = self.client.post(url, {
+            "course": self.course_2.pk,
+            "section": self.section_2a.pk,
+        })
+        self.assertRedirects(response, reverse("core:student_list"))
+
+        self.enrollment.refresh_from_db()
+        self.assertFalse(self.enrollment.active)
+
+        new_enrollment = Enrollment.objects.get(
+            student=self.student,
+            course=self.course_2,
+            school_year=self.school_year,
+        )
+        self.assertTrue(new_enrollment.active)
+        self.assertEqual(new_enrollment.section, self.section_2a)
+
+    def test_transfer_same_section_shows_warning(self):
+        url = reverse("core:student_transfer", args=[self.student.pk])
+        response = self.client.post(url, {
+            "course": self.course_1.pk,
+            "section": self.section_1a.pk,
+        })
+        self.assertRedirects(response, reverse("core:student_list"))
+        self.enrollment.refresh_from_db()
+        self.assertTrue(self.enrollment.active)
+        self.assertEqual(self.enrollment.section, self.section_1a)

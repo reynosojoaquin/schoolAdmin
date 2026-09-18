@@ -184,12 +184,27 @@ class StudentTransferForm(forms.Form):
     def __init__(self, *args, school_year=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.school_year = school_year
-        if self.initial.get("course_id"):
-            course = Course.objects.filter(pk=self.initial["course_id"]).first()
-            if course:
-                self.fields["section"].queryset = Section.objects.filter(
-                    course=course, school_year=school_year, active=True
-                )
+        course_id = None
+        if self.is_bound:
+            course_id = self.data.get("course")
+        elif "course" in self.initial:
+            val = self.initial.get("course")
+            course_id = getattr(val, "pk", val)
+        elif "course_id" in self.initial:
+            val = self.initial.get("course_id")
+            course_id = getattr(val, "pk", val)
+
+        if course_id:
+            try:
+                course_id = int(course_id)
+            except (ValueError, TypeError):
+                course_id = None
+
+        if course_id:
+            qs = Section.objects.filter(course_id=course_id, active=True)
+            if school_year:
+                qs = qs.filter(school_year=school_year)
+            self.fields["section"].queryset = qs.order_by("name")
 
     def clean(self):
         cleaned_data = super().clean()
@@ -197,6 +212,14 @@ class StudentTransferForm(forms.Form):
         section = cleaned_data.get("section")
         if course and section and section.course_id != course.pk:
             raise forms.ValidationError("La seccion debe pertenecer al curso seleccionado.")
+        if section and self.school_year and section.school_year and section.school_year != self.school_year:
+            raise forms.ValidationError("La seccion debe corresponder al ano escolar actual.")
+        if course and not section:
+            has_sections = Section.objects.filter(course=course, active=True)
+            if self.school_year:
+                has_sections = has_sections.filter(school_year=self.school_year)
+            if has_sections.exists():
+                self.add_error("section", "Debe seleccionar una seccion para este curso.")
         return cleaned_data
 
 
@@ -220,7 +243,7 @@ class AdministrativeEmployeeForm(PersonFormMixin, forms.ModelForm):
         model = AdministrativeEmployee
         fields = PersonFormMixin.common_fields + ["employee_type", "position"]
         widgets = {
-            "birth_date": forms.DateInput(attrs={"type": "date"}),
+            "birth_date": forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"}),
         }
 
     def __init__(self, *args, **kwargs):

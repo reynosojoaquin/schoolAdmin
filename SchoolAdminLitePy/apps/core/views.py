@@ -1,5 +1,6 @@
 from datetime import date
 from decimal import Decimal, InvalidOperation
+import unicodedata
 
 from django import forms
 from django.contrib.auth.decorators import login_required
@@ -12,7 +13,8 @@ from django.db.models.deletion import ProtectedError
 from django.db.models import Q
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 from openpyxl import Workbook, load_workbook
@@ -513,6 +515,31 @@ class PersonListView(PeopleAccessMixin, ListView):
         return context
 
 
+def student_order_key(student):
+    surname = (student.last_name or "").strip().split(" ", 1)[0]
+
+    def normalize(value):
+        return "".join(
+            char for char in unicodedata.normalize("NFKD", value.casefold())
+            if not unicodedata.combining(char)
+        )
+    return normalize(surname), normalize(student.last_name), normalize(student.first_name), student.pk
+
+
+def section_order_numbers(school_year):
+    enrollments = Enrollment.objects.filter(
+        school_year=school_year, active=True, section__isnull=False,
+    ).select_related("student")
+    by_section = {}
+    for enrollment in enrollments:
+        by_section.setdefault(enrollment.section_id, []).append(enrollment)
+    numbers = {}
+    for members in by_section.values():
+        for number, enrollment in enumerate(sorted(members, key=lambda item: student_order_key(item.student)), 1):
+            numbers[enrollment.pk] = number
+    return numbers
+
+
 class PersonCreateView(PeopleAccessMixin, CreateView):
     template_name = "core/person_form.html"
 
@@ -746,12 +773,25 @@ class StudentListView(PersonListView):
     def get_queryset(self):
         queryset = super().get_queryset()
         if not can_view_all_people(self.request.user):
-            return queryset.filter(enrollments__school_year=selected_school_year(self.request), enrollments__active=True).distinct()
-        return queryset
+            queryset = queryset.filter(enrollments__school_year=selected_school_year(self.request), enrollments__active=True).distinct()
+        return sorted(queryset, key=student_order_key)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["show_school_year_filter"] = True
+        students = context["object_list"]
+        numbers = section_order_numbers(selected_school_year(self.request))
+        enrollments = Enrollment.objects.filter(
+            student_id__in=[student.pk for student in students],
+            school_year=selected_school_year(self.request), active=True, section__isnull=False,
+        ).select_related("section", "section__course").order_by("section__course__name", "section__name")
+        by_student = {}
+        for enrollment in enrollments:
+            by_student.setdefault(enrollment.student_id, enrollment)
+        for student in students:
+            enrollment = by_student.get(student.pk)
+            student.order_number = numbers.get(enrollment.pk) if enrollment else None
+            student.current_section = enrollment.section if enrollment else None
         return context
 
 
@@ -816,23 +856,35 @@ class StudentTransferView(PeopleAccessMixin, View):
             active=True,
         ).select_related("course", "section").first()
 
+    def get_redirect_target(self):
+        next_url = self.request.POST.get("next") or self.request.GET.get("next")
+        if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={self.request.get_host()}):
+            return next_url
+        return reverse("core:student_list")
+
     def get(self, request, *args, **kwargs):
         student = self.get_student()
         enrollment = self.get_current_enrollment(student)
         school_year = selected_school_year(request)
+        redirect_url = self.get_redirect_target()
 
         if not enrollment:
             messages.error(request, "El estudiante no tiene inscripcion activa en este ano escolar.")
-            return redirect("core:student_list")
+            return redirect(redirect_url)
 
         form = StudentTransferForm(
             school_year=school_year,
-            initial={"course_id": enrollment.course_id},
+            initial={
+                "course": enrollment.course_id,
+                "section": enrollment.section_id,
+            },
         )
         return render(request, self.template_name, {
             "student": student,
             "enrollment": enrollment,
             "form": form,
+            "next_url": request.GET.get("next", ""),
+            "cancel_url": redirect_url,
         })
 
     @transaction.atomic
@@ -840,10 +892,11 @@ class StudentTransferView(PeopleAccessMixin, View):
         student = self.get_student()
         enrollment = self.get_current_enrollment(student)
         school_year = selected_school_year(request)
+        redirect_url = self.get_redirect_target()
 
         if not enrollment:
             messages.error(request, "El estudiante no tiene inscripcion activa en este ano escolar.")
-            return redirect("core:student_list")
+            return redirect(redirect_url)
 
         form = StudentTransferForm(request.POST, school_year=school_year)
 
@@ -853,33 +906,71 @@ class StudentTransferView(PeopleAccessMixin, View):
 
             if new_course.pk == enrollment.course_id and (new_section or None) == enrollment.section:
                 messages.warning(request, "El estudiante ya esta inscrito en ese curso/seccion.")
-                return redirect("core:student_list")
+                return redirect(redirect_url)
 
-            new_enrollment, created = Enrollment.objects.get_or_create(
+            old_label = str(enrollment.section or enrollment.course)
+
+            if new_course.pk == enrollment.course_id:
+                enrollment.section = new_section
+                enrollment.active = True
+                enrollment.save(update_fields=["section", "active", "updated_at"])
+                target_enrollment = enrollment
+            else:
+                new_enrollment, created = Enrollment.objects.get_or_create(
+                    student=student,
+                    course=new_course,
+                    school_year=school_year,
+                    defaults={"section": new_section, "active": True},
+                )
+                if not created:
+                    new_enrollment.section = new_section
+                    new_enrollment.active = True
+                    new_enrollment.save(update_fields=["section", "active", "updated_at"])
+
+                enrollment.active = False
+                enrollment.save(update_fields=["active", "updated_at"])
+                target_enrollment = new_enrollment
+
+            Enrollment.objects.filter(
                 student=student,
-                course=new_course,
                 school_year=school_year,
-                defaults={"section": new_section, "active": True},
-            )
-            if not created:
-                new_enrollment.section = new_section
-                new_enrollment.active = True
-                new_enrollment.save(update_fields=["section", "active", "updated_at"])
+            ).exclude(pk=target_enrollment.pk).update(active=False)
 
-            enrollment.active = False
-            enrollment.save(update_fields=["active", "updated_at"])
+            if new_section and new_course.pk == enrollment.course_id:
+                new_subjects = {s.name.strip().lower(): s for s in Subject.objects.filter(section=new_section)}
+                for grade in target_enrollment.grades.select_related("subject"):
+                    if grade.subject and grade.subject.section_id != new_section.pk:
+                        matching = new_subjects.get(grade.subject.name.strip().lower())
+                        if matching and not Grade.objects.filter(
+                            enrollment=target_enrollment,
+                            subject=matching,
+                            subject_competency=grade.subject_competency,
+                        ).exists():
+                            grade.subject = matching
+                            grade.save(update_fields=["subject", "updated_at"])
+                for gc in target_enrollment.grade_completions.select_related("subject"):
+                    if gc.subject and gc.subject.section_id != new_section.pk:
+                        matching = new_subjects.get(gc.subject.name.strip().lower())
+                        if matching and not GradeCompletion.objects.filter(
+                            enrollment=target_enrollment,
+                            subject=matching,
+                        ).exists():
+                            gc.subject = matching
+                            gc.save(update_fields=["subject", "updated_at"])
 
-            group_label = f"{new_course}{new_section}" if new_section else str(new_course)
+            target_label = str(new_section or new_course)
             messages.success(
                 request,
-                f"{student} transferido de {enrollment} a {group_label} ({school_year}).",
+                f"{student} transferido de {old_label} a {target_label}.",
             )
-            return redirect("core:student_list")
+            return redirect(redirect_url)
 
         return render(request, self.template_name, {
             "student": student,
             "enrollment": enrollment,
             "form": form,
+            "next_url": request.POST.get("next") or request.GET.get("next", ""),
+            "cancel_url": redirect_url,
         })
 
 
@@ -1021,10 +1112,16 @@ class CourseStudentsView(AcademicSetupAccessMixin, ListView):
                 | Q(student__document_id__icontains=query)
                 | Q(section__name__icontains=query)
             )
-        return queryset
+        return sorted(queryset, key=lambda enrollment: (
+            enrollment.section.name if enrollment.section else "\uffff",
+            student_order_key(enrollment.student),
+        ))
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        numbers = section_order_numbers(selected_school_year(self.request))
+        for enrollment in context["object_list"]:
+            enrollment.order_number = numbers.get(enrollment.pk)
         context["query"] = self.request.GET.get("q", "").strip()
         context.update(school_year_context(self.request))
         context["title"] = f"Estudiantes del curso {self.course}"
@@ -1134,10 +1231,13 @@ class SectionStudentsView(AcademicSetupAccessMixin, ListView):
                 | Q(student__last_name__icontains=query)
                 | Q(student__document_id__icontains=query)
             )
-        return queryset
+        return sorted(queryset, key=lambda enrollment: student_order_key(enrollment.student))
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        numbers = section_order_numbers(selected_school_year(self.request))
+        for enrollment in context["object_list"]:
+            enrollment.order_number = numbers.get(enrollment.pk)
         context["query"] = self.request.GET.get("q", "").strip()
         context.update(school_year_context(self.request))
         context["title"] = f"Estudiantes de la seccion {self.section}"
