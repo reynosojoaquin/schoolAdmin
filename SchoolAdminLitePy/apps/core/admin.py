@@ -68,15 +68,16 @@ class AccessRuleAdmin(admin.ModelAdmin):
 
 @admin.register(Province)
 class ProvinceAdmin(admin.ModelAdmin):
-    search_fields = ["name"]
-    list_display = ["name"]
+    search_fields = ["name", "nationality__name"]
+    list_display = ["name", "nationality"]
+    list_filter = ["nationality"]
 
 
 @admin.register(City)
 class CityAdmin(admin.ModelAdmin):
-    search_fields = ["name", "province__name"]
+    search_fields = ["name", "province__name", "province__nationality__name"]
     list_display = ["name", "province"]
-    list_filter = ["province"]
+    list_filter = ["province__nationality", "province"]
 
 
 @admin.register(Sector)

@@ -54,6 +54,7 @@ urlpatterns = [
     path("docentes/<int:pk>/editar/", views.TeacherUpdateView.as_view(), name="teacher_update"),
     path("personal/", views.AdministrativeEmployeeListView.as_view(), name="employee_list"),
     path("personal/ciudades/opciones/", views.birth_cities_options, name="birth_cities_options"),
+    path("personal/provincias/opciones/", views.birth_provinces_options, name="birth_provinces_options"),
     path("personal/posiciones/opciones/", views.employee_positions_options, name="employee_positions_options"),
     path("personal/nuevo/", views.AdministrativeEmployeeCreateView.as_view(), name="employee_create"),
     path("personal/<int:pk>/editar/", views.AdministrativeEmployeeUpdateView.as_view(), name="employee_update"),

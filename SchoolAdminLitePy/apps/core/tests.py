@@ -16,6 +16,7 @@ from .models import (
     EmployeeType,
     Enrollment,
     Grade,
+    Nationality,
     Province,
     Section,
     Student,
@@ -78,8 +79,10 @@ class AdministrativeEmployeeCatalogTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.admin = User.objects.create_superuser("catalog-admin", "admin@example.com", "password")
-        cls.province = Province.objects.create(name="Provincia de prueba")
-        cls.other_province = Province.objects.create(name="Otra provincia de prueba")
+        cls.nationality = Nationality.objects.create(name="Nacionalidad de prueba")
+        cls.other_nationality = Nationality.objects.create(name="Otra nacionalidad de prueba")
+        cls.province = Province.objects.create(name="Provincia de prueba", nationality=cls.nationality)
+        cls.other_province = Province.objects.create(name="Otra provincia de prueba", nationality=cls.other_nationality)
         cls.city = City.objects.create(province=cls.province, name="Ciudad de prueba")
         cls.other_city = City.objects.create(province=cls.other_province, name="Otra ciudad")
         cls.employee_type = EmployeeType.objects.create(name="Tipo de prueba")
@@ -105,6 +108,14 @@ class AdministrativeEmployeeCatalogTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["cities"], [{"id": self.city.pk, "text": self.city.name}])
 
+    def test_province_endpoint_filters_by_nationality(self):
+        response = self.client.get(
+            reverse("core:birth_provinces_options"),
+            {"nationality": self.nationality.pk},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["provinces"], [{"id": self.province.pk, "text": self.province.name}])
+
     def test_position_endpoint_filters_by_employee_type(self):
         response = self.client.get(
             reverse("core:employee_positions_options"),
@@ -120,11 +131,13 @@ class AdministrativeEmployeeCatalogTests(TestCase):
     def test_form_limits_dependent_catalogs(self):
         form = AdministrativeEmployeeForm(
             data={
+                "nationality": self.nationality.pk,
                 "birth_province": self.province.pk,
                 "employee_type": self.employee_type.pk,
             }
         )
 
+        self.assertQuerySetEqual(form.fields["birth_province"].queryset, [self.province])
         self.assertQuerySetEqual(form.fields["birthplace"].queryset, [self.city])
         self.assertQuerySetEqual(form.fields["position"].queryset, [self.position])
 
@@ -171,6 +184,7 @@ class AdministrativeEmployeeCatalogTests(TestCase):
             data={
                 "first_name": "Ana",
                 "last_name": "Pérez",
+                "nationality": self.nationality.pk,
                 "birth_province": self.province.pk,
                 "birthplace": self.other_city.pk,
                 "employee_type": self.employee_type.pk,
@@ -181,6 +195,15 @@ class AdministrativeEmployeeCatalogTests(TestCase):
         self.assertFalse(form.is_valid())
         self.assertIn("birthplace", form.errors)
         self.assertIn("position", form.errors)
+
+    def test_form_rejects_province_from_another_nationality(self):
+        form = AdministrativeEmployeeForm(data={
+            "first_name": "Ana", "last_name": "Perez",
+            "nationality": self.nationality.pk,
+            "birth_province": self.other_province.pk,
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn("birth_province", form.errors)
 
 
 class SectionEnrollmentTests(TestCase):

@@ -96,6 +96,12 @@
       }
 
       source.addEventListener("change", async function () {
+        if (sourceSelector === '[data-dependent-source="nationality"]') {
+          const city = document.querySelector('[data-dependent-target="birth-city"]');
+          if (city) {
+            city.innerHTML = '<option value="">Seleccione primero una provincia o estado</option>';
+          }
+        }
         target.disabled = true;
         target.innerHTML = `<option value="">${source.value ? "Cargando..." : emptyText}</option>`;
         if (!source.value) {
@@ -128,12 +134,20 @@
     }
 
     connectDependentSelect(
+      '[data-dependent-source="nationality"]',
+      '[data-dependent-target="birth-province"]',
+      "{% url 'core:birth_provinces_options' %}",
+      "nationality",
+      "provinces",
+      "Seleccione primero una nacionalidad"
+    );
+    connectDependentSelect(
       '[data-dependent-source="birth-province"]',
       '[data-dependent-target="birth-city"]',
       "{% url 'core:birth_cities_options' %}",
       "province",
       "cities",
-      "Seleccione primero una provincia"
+      "Seleccione primero una provincia o estado"
     );
     connectDependentSelect(
       '[data-dependent-source="employee-type"]',

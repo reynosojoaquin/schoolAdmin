@@ -23,6 +23,7 @@ from .models import (
     GuidanceFollowUp,
     JournalEntry,
     Phone,
+    Province,
     Section,
     StaffAssignment,
     Student,
@@ -127,9 +128,26 @@ class PersonFormMixin:
             self.fields["photo_url"].widget.attrs["accept"] = "image/*"
         if "nationality" in self.fields:
             self.fields["nationality"].empty_label = "Seleccione una nacionalidad"
+            self.fields["nationality"].widget.attrs["data-dependent-source"] = "nationality"
         if "birth_province" in self.fields:
-            self.fields["birth_province"].empty_label = "Seleccione una provincia"
+            self.fields["birth_province"].empty_label = "Seleccione primero una nacionalidad"
             self.fields["birth_province"].widget.attrs["data-dependent-source"] = "birth-province"
+            self.fields["birth_province"].widget.attrs["data-dependent-target"] = "birth-province"
+            nationality_id = self.data.get("nationality") if self.is_bound else None
+            if not nationality_id and not self.is_bound and getattr(self.instance, "pk", None):
+                nationality_id = self.instance.nationality_id
+                province = self.instance.birth_province or (
+                    self.instance.birthplace.province if self.instance.birthplace_id else None
+                )
+                if not nationality_id and province:
+                    nationality_id = province.nationality_id
+                    self.initial["nationality"] = nationality_id
+            try:
+                self.fields["birth_province"].queryset = Province.objects.filter(
+                    nationality_id=int(nationality_id)
+                ) if nationality_id else Province.objects.none()
+            except (TypeError, ValueError):
+                self.fields["birth_province"].queryset = Province.objects.none()
         if "birthplace" in self.fields:
             self.fields["birthplace"].empty_label = "Seleccione primero una provincia"
             self.fields["birthplace"].widget.attrs["data-dependent-target"] = "birth-city"
@@ -148,10 +166,15 @@ class PersonFormMixin:
 
     def clean(self):
         cleaned_data = super().clean()
+        nationality = cleaned_data.get("nationality")
         province = cleaned_data.get("birth_province")
         city = cleaned_data.get("birthplace")
+        if province and (not nationality or province.nationality_id != nationality.pk):
+            self.add_error("birth_province", "La provincia o estado no pertenece a la nacionalidad seleccionada.")
         if city and province and city.province_id != province.pk:
             self.add_error("birthplace", "La ciudad no pertenece a la provincia seleccionada.")
+        if city and not province:
+            self.add_error("birthplace", "Selecciona la provincia o estado de esta ciudad.")
         return cleaned_data
 
 

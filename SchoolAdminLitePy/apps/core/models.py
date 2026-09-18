@@ -44,12 +44,19 @@ class SystemConfiguration(TimeStampedModel):
 
 
 class Province(TimeStampedModel):
-    name = models.CharField("nombre", max_length=120, unique=True)
+    nationality = models.ForeignKey(
+        "Nationality",
+        on_delete=models.PROTECT,
+        related_name="provinces",
+        verbose_name="nacionalidad",
+    )
+    name = models.CharField("nombre", max_length=120)
 
     class Meta:
-        ordering = ["name"]
-        verbose_name = "provincia"
-        verbose_name_plural = "provincias"
+        ordering = ["nationality__name", "name"]
+        unique_together = [("nationality", "name")]
+        verbose_name = "provincia o estado"
+        verbose_name_plural = "provincias o estados"
 
     def __str__(self):
         return self.name

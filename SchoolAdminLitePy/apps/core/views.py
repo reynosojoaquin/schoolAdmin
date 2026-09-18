@@ -76,6 +76,7 @@ from .models import (
     GuidanceCase,
     GuidanceFollowUp,
     JournalEntry,
+    Province,
     Section,
     StaffAssignment,
     Student,
@@ -354,12 +355,26 @@ def course_sections_options(request):
 
 
 @login_required
+def birth_provinces_options(request):
+    if not can_manage_people(request.user):
+        return JsonResponse({"detail": "No autorizado."}, status=403)
+    nationality_id = request.GET.get("nationality")
+    provinces = []
+    if nationality_id and nationality_id.isdigit():
+        provinces = [
+            {"id": province.id, "text": province.name}
+            for province in Province.objects.filter(nationality_id=nationality_id).order_by("name")
+        ]
+    return JsonResponse({"provinces": provinces})
+
+
+@login_required
 def birth_cities_options(request):
     if not can_manage_people(request.user):
         return JsonResponse({"detail": "No autorizado."}, status=403)
     province_id = request.GET.get("province")
     cities = []
-    if province_id:
+    if province_id and province_id.isdigit():
         cities = [
             {"id": city.id, "text": city.name}
             for city in City.objects.filter(province_id=province_id).order_by("name")
