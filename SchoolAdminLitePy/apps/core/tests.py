@@ -22,6 +22,7 @@ from .models import (
     Student,
     Subject,
     SystemConfiguration,
+    Teacher,
 )
 
 
@@ -260,6 +261,23 @@ class StudentSectionOrderTests(TestCase):
         self.assertEqual(
             [(item.section.name, item.order_number) for item in response.context["object_list"]],
             [("A", 1), ("A", 2), ("B", 1)],
+        )
+
+
+class TeacherListOrderTests(TestCase):
+    def setUp(self):
+        self.client.force_login(User.objects.create_superuser("teacher-order-admin", "teacher-admin@example.com", "password"))
+
+    def test_teacher_list_numbers_follow_name_order(self):
+        alpha = Teacher.objects.create(first_name="Ordenado", last_name="Alfa")
+        bravo = Teacher.objects.create(first_name="Ordenado", last_name="Bravo")
+        charlie = Teacher.objects.create(first_name="Ordenado", last_name="Charlie")
+
+        response = self.client.get(reverse("core:teacher_list"), {"q": "Ordenado"})
+
+        self.assertEqual(
+            [(teacher, teacher.order_number) for teacher in response.context["object_list"]],
+            [(alpha, 1), (bravo, 2), (charlie, 3)],
         )
 
 

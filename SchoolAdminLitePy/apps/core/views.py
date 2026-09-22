@@ -541,6 +541,17 @@ def student_order_key(student):
     return normalize(surname), normalize(student.last_name), normalize(student.first_name), student.pk
 
 
+def teacher_order_key(teacher):
+    surname = (teacher.last_name or "").strip().split(" ", 1)[0]
+
+    def normalize(value):
+        return "".join(
+            char for char in unicodedata.normalize("NFKD", value.casefold())
+            if not unicodedata.combining(char)
+        )
+    return normalize(surname), normalize(teacher.last_name), normalize(teacher.first_name), teacher.pk
+
+
 def section_order_numbers(school_year):
     enrollments = Enrollment.objects.filter(
         school_year=school_year, active=True, section__isnull=False,
@@ -3377,6 +3388,16 @@ class TeacherListView(PersonListView):
     create_url_name = "core:teacher_create"
     edit_url_name = "core:teacher_update"
     search_placeholder = "Buscar por nombre, cedula o correo"
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return sorted(queryset, key=teacher_order_key)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        for order_number, teacher in enumerate(context["object_list"], start=1):
+            teacher.order_number = order_number
+        return context
 
 
 class TeacherCreateView(PersonCreateView):

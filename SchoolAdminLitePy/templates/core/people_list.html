@@ -35,7 +35,7 @@
   <table>
     <thead>
       <tr>
-        {% if title == "Estudiantes" %}<th>N.o</th>{% endif %}
+        {% if title == "Estudiantes" or title == "Docentes" %}<th>N.o</th>{% endif %}
         <th>Nombre</th>
         {% if title == "Estudiantes" %}<th>Seccion</th>{% endif %}
         <th>Cedula</th>
@@ -47,7 +47,7 @@
     <tbody>
       {% for person in object_list %}
         <tr>
-          {% if title == "Estudiantes" %}<td>{{ person.order_number|default:"-" }}</td>{% endif %}
+          {% if title == "Estudiantes" or title == "Docentes" %}<td>{{ person.order_number|default:"-" }}</td>{% endif %}
           <td>
             <div class="person-cell">
               {% if person.photo_display_url %}
@@ -80,7 +80,7 @@
         </tr>
       {% empty %}
         <tr>
-          <td colspan="{% if title == 'Estudiantes' %}7{% else %}5{% endif %}" class="empty">No hay registros para mostrar.</td>
+          <td colspan="{% if title == 'Estudiantes' %}7{% elif title == 'Docentes' %}6{% else %}5{% endif %}" class="empty">No hay registros para mostrar.</td>
         </tr>
       {% endfor %}
     </tbody>
