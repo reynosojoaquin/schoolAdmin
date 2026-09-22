@@ -502,6 +502,8 @@ class PersonListView(PeopleAccessMixin, ListView):
 
     def get_queryset(self):
         queryset = super().get_queryset()
+        if not is_admin_user(self.request.user):
+            queryset = queryset.filter(active=True)
         if can_view_all_people(self.request.user):
             pass
         elif not can_manage_people(self.request.user):

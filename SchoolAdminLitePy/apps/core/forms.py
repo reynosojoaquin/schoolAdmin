@@ -182,6 +182,7 @@ class StudentForm(PersonFormMixin, forms.ModelForm):
     class Meta:
         model = Student
         fields = PersonFormMixin.common_fields + ["sigerd_id", "phone", "promoted", "new_admission", "sector"]
+        labels = {"active": "Estudiante habilitado"}
         widgets = {
             "birth_date": forms.DateInput(attrs={"type": "date"}),
         }
@@ -250,6 +251,7 @@ class TeacherForm(PersonFormMixin, forms.ModelForm):
     class Meta:
         model = Teacher
         fields = PersonFormMixin.common_fields + ["is_guidance_counselor", "user"]
+        labels = {"active": "Docente habilitado"}
         widgets = {
             "birth_date": forms.DateInput(attrs={"type": "date"}),
         }

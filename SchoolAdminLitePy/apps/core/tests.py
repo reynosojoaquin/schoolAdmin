@@ -2,7 +2,7 @@ import shutil
 import tempfile
 from datetime import date
 
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Permission, User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -319,6 +319,34 @@ class UserCrudTests(TestCase):
         self.assertRedirects(response, reverse("core:user_access_list"))
         self.assertFalse(User.objects.filter(pk=user.pk).exists())
         self.assertEqual(self.client.post(reverse("core:user_delete", args=[self.admin.pk])).status_code, 404)
+
+
+class InactivePeopleVisibilityTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser("people-admin", "people-admin@example.com", "password")
+        self.viewer = User.objects.create_user("people-viewer", password="password")
+        permission = Permission.objects.get(codename="view_all_people")
+        self.viewer.user_permissions.add(permission)
+        self.active_teacher = Teacher.objects.create(first_name="Activo", last_name="Docente", active=True)
+        self.inactive_teacher = Teacher.objects.create(first_name="Inactivo", last_name="Docente", active=False)
+        self.active_student = Student.objects.create(first_name="Activo", last_name="Estudiante", active=True)
+        self.inactive_student = Student.objects.create(first_name="Inactivo", last_name="Estudiante", active=False)
+
+    def test_non_admin_users_do_not_see_inactive_people(self):
+        self.client.force_login(self.viewer)
+        teacher_response = self.client.get(reverse("core:teacher_list"))
+        student_response = self.client.get(reverse("core:student_list"))
+
+        self.assertIn(self.active_teacher, teacher_response.context["object_list"])
+        self.assertNotIn(self.inactive_teacher, teacher_response.context["object_list"])
+        self.assertIn(self.active_student, student_response.context["object_list"])
+        self.assertNotIn(self.inactive_student, student_response.context["object_list"])
+
+    def test_administrators_can_see_inactive_people(self):
+        self.client.force_login(self.admin)
+
+        self.assertIn(self.inactive_teacher, self.client.get(reverse("core:teacher_list")).context["object_list"])
+        self.assertIn(self.inactive_student, self.client.get(reverse("core:student_list")).context["object_list"])
 
 
 class StudentTransferTests(TestCase):
