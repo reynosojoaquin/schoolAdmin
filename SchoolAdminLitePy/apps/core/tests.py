@@ -281,6 +281,46 @@ class TeacherListOrderTests(TestCase):
         )
 
 
+class UserCrudTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser("user-admin", "user-admin@example.com", "password")
+        self.client.force_login(self.admin)
+
+    def test_user_list_assigns_order_numbers(self):
+        User.objects.create_user("alpha-user", password="password123")
+        User.objects.create_user("bravo-user", password="password123")
+
+        response = self.client.get(reverse("core:user_access_list"), {"q": "-user"})
+
+        self.assertEqual(
+            [(user.username, user.order_number) for user in response.context["object_list"]],
+            [("alpha-user", 1), ("bravo-user", 2)],
+        )
+
+    def test_user_can_be_created_with_password(self):
+        response = self.client.post(reverse("core:user_create"), {
+            "username": "created-user",
+            "first_name": "Usuario",
+            "last_name": "Creado",
+            "email": "created@example.com",
+            "password1": "strong-pass-123",
+            "password2": "strong-pass-123",
+        })
+
+        self.assertRedirects(response, reverse("core:user_access_list"))
+        created_user = User.objects.get(username="created-user")
+        self.assertTrue(created_user.check_password("strong-pass-123"))
+
+    def test_user_can_be_deleted_but_not_self(self):
+        user = User.objects.create_user("deletable-user", password="password123")
+
+        response = self.client.post(reverse("core:user_delete", args=[user.pk]))
+
+        self.assertRedirects(response, reverse("core:user_access_list"))
+        self.assertFalse(User.objects.filter(pk=user.pk).exists())
+        self.assertEqual(self.client.post(reverse("core:user_delete", args=[self.admin.pk])).status_code, 404)
+
+
 class StudentTransferTests(TestCase):
     def setUp(self):
         self.admin = User.objects.create_superuser("transfer-admin", "admin@example.com", "password")

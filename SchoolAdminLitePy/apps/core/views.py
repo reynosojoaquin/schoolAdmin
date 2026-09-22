@@ -52,6 +52,7 @@ from .forms import (
     TeacherForm,
     TeachingAssignmentForm,
     UserAccessForm,
+    UserCreateForm,
 )
 from .importers import commit_student_import, read_student_rows_from_excel
 from .models import (
@@ -1664,6 +1665,24 @@ class UserAccessListView(ManagementAccessMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["query"] = self.request.GET.get("q", "").strip()
+        first_number = context["page_obj"].start_index() if context.get("is_paginated") else 1
+        for order_number, user in enumerate(context["object_list"], start=first_number):
+            user.order_number = order_number
+        return context
+
+
+class UserCreateView(ManagementAccessMixin, CreateView):
+    model = User
+    form_class = UserCreateForm
+    template_name = "core/academic_form.html"
+    title = "Nuevo usuario"
+    success_url = reverse_lazy("core:user_access_list")
+    cancel_url_name = "core:user_access_list"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["title"] = self.title
+        context["cancel_url_name"] = self.cancel_url_name
         return context
 
 
@@ -1701,9 +1720,26 @@ class UserAccessUpdateView(ManagementAccessMixin, UpdateView):
     model = User
     form_class = UserAccessForm
     template_name = "core/academic_form.html"
-    title = "Editar acceso de usuario"
+    title = "Editar usuario"
     success_url = reverse_lazy("core:user_access_list")
     cancel_url_name = "core:user_access_list"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["title"] = self.title
+        context["cancel_url_name"] = self.cancel_url_name
+        return context
+
+
+class UserDeleteView(ManagementAccessMixin, DeleteView):
+    model = User
+    template_name = "core/confirm_delete.html"
+    success_url = reverse_lazy("core:user_access_list")
+    cancel_url_name = "core:user_access_list"
+    title = "Eliminar usuario"
+
+    def get_queryset(self):
+        return super().get_queryset().exclude(pk=self.request.user.pk)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

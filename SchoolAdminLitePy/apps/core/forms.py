@@ -874,6 +874,17 @@ class TeachingAssignmentForm(AcademicFormMixin, forms.ModelForm):
 
 
 class UserAccessForm(forms.ModelForm):
+    password1 = forms.CharField(
+        label="Nueva contrasena",
+        required=False,
+        widget=forms.PasswordInput,
+        help_text="Dejalo vacio para conservar la contrasena actual.",
+    )
+    password2 = forms.CharField(
+        label="Confirmar contrasena",
+        required=False,
+        widget=forms.PasswordInput,
+    )
     groups = forms.ModelMultipleChoiceField(
         label="Roles",
         queryset=Group.objects.all().order_by("name"),
@@ -905,8 +916,24 @@ class UserAccessForm(forms.ModelForm):
         self.fields["is_active"].widget.attrs["class"] = "form-check-input"
         self.fields["is_staff"].widget.attrs["class"] = "form-check-input"
 
+    def clean(self):
+        cleaned_data = super().clean()
+        password1 = cleaned_data.get("password1")
+        password2 = cleaned_data.get("password2")
+        if password1 or password2:
+            if password1 != password2:
+                raise forms.ValidationError("Las contrasenas no coinciden.")
+            if len(password1) < 8:
+                raise forms.ValidationError("La contrasena debe tener al menos 8 caracteres.")
+        return cleaned_data
+
     def save(self, commit=True):
         user = super().save(commit=commit)
+        password = self.cleaned_data.get("password1")
+        if password:
+            user.set_password(password)
+            if commit:
+                user.save(update_fields=["password"])
         if commit:
             selected_teacher = self.cleaned_data.get("teacher")
             Teacher.objects.filter(user=user).exclude(pk=getattr(selected_teacher, "pk", None)).update(user=None)
@@ -914,6 +941,20 @@ class UserAccessForm(forms.ModelForm):
                 selected_teacher.user = user
                 selected_teacher.save(update_fields=["user", "updated_at"])
         return user
+
+
+class UserCreateForm(UserAccessForm):
+    password1 = forms.CharField(
+        label="Contrasena",
+        required=True,
+        widget=forms.PasswordInput,
+        help_text="Debe tener al menos 8 caracteres.",
+    )
+    password2 = forms.CharField(
+        label="Confirmar contrasena",
+        required=True,
+        widget=forms.PasswordInput,
+    )
 
 
 class RoleForm(forms.ModelForm):

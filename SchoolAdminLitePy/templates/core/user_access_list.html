@@ -8,6 +8,9 @@
     <p class="eyebrow">Sistema</p>
     <h1>Usuarios y roles</h1>
   </div>
+  <div class="header-actions">
+    <a class="btn" href="{% url 'core:user_create' %}">Nuevo usuario</a>
+  </div>
 </section>
 
 <form class="toolbar" method="get">
@@ -20,6 +23,7 @@
   <table>
     <thead>
       <tr>
+        <th>N.o</th>
         <th>Usuario</th>
         <th>Nombre</th>
         <th>Correo</th>
@@ -31,17 +35,35 @@
     <tbody>
       {% for item in object_list %}
         <tr>
+          <td>{{ item.order_number }}</td>
           <td><strong>{{ item.username }}</strong></td>
           <td>{{ item.get_full_name|default:"-" }}</td>
           <td>{{ item.email|default:"-" }}</td>
           <td>{% for group in item.groups.all %}{{ group.name }}{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}</td>
           <td>{% if item.is_active %}<span class="status active">Activo</span>{% else %}<span class="status inactive">Inactivo</span>{% endif %}</td>
-          <td class="actions"><a href="{% url 'core:user_access_update' item.pk %}">Editar acceso</a></td>
+          <td class="actions">
+            <a href="{% url 'core:user_access_update' item.pk %}">Editar</a>
+            {% if item.pk != request.user.pk %}
+              <a href="{% url 'core:user_delete' item.pk %}" class="danger-link">Eliminar</a>
+            {% endif %}
+          </td>
         </tr>
       {% empty %}
-        <tr><td colspan="6" class="empty">No hay usuarios para mostrar.</td></tr>
+        <tr><td colspan="7" class="empty">No hay usuarios para mostrar.</td></tr>
       {% endfor %}
     </tbody>
   </table>
 </section>
+
+{% if is_paginated %}
+  <nav class="pagination">
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query|urlencode }}{% endif %}">Anterior</a>
+    {% endif %}
+    <span>Pagina {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query|urlencode }}{% endif %}">Siguiente</a>
+    {% endif %}
+  </nav>
+{% endif %}
 {% endblock %}
