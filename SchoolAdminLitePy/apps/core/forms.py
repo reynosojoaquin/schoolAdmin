@@ -267,6 +267,9 @@ class AdministrativeEmployeeForm(PersonFormMixin, forms.ModelForm):
     class Meta:
         model = AdministrativeEmployee
         fields = PersonFormMixin.common_fields + ["employee_type", "position"]
+        labels = {
+            "active": "Personal administrativo habilitado",
+        }
         widgets = {
             "birth_date": forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"}),
         }

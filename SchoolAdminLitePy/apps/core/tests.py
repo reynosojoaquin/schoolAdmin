@@ -149,6 +149,51 @@ class AdministrativeEmployeeCatalogTests(TestCase):
             list(form.fields["gender"].choices),
             [("", "---------"), ("Masculino", "Masculino"), ("Femenino", "Femenino")],
         )
+        self.assertEqual(form.fields["active"].label, "Personal administrativo habilitado")
+
+    def test_inactive_employee_is_visible_only_to_administrator(self):
+        inactive_employee = AdministrativeEmployee.objects.create(
+            first_name="Empleado",
+            last_name="Inactivo",
+            active=False,
+        )
+        regular_user = User.objects.create_user("people-viewer", password="password")
+        regular_user.user_permissions.add(
+            Permission.objects.get(codename="manage_people", content_type__app_label="core")
+        )
+
+        self.client.force_login(self.admin)
+        admin_response = self.client.get(reverse("core:employee_list"))
+        self.assertContains(admin_response, "Inactivo, Empleado")
+
+        self.client.force_login(regular_user)
+        regular_response = self.client.get(reverse("core:employee_list"))
+        self.assertNotContains(regular_response, str(inactive_employee))
+
+    def test_employee_active_field_can_disable_employee(self):
+        response = self.client.post(
+            reverse("core:employee_create"),
+            {
+                "first_name": "Empleado",
+                "last_name": "Deshabilitado",
+                "active": "",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        employee = AdministrativeEmployee.objects.get(first_name="Empleado")
+        self.assertFalse(employee.active)
+
+    def test_employee_list_assigns_order_numbers(self):
+        first = AdministrativeEmployee.objects.create(first_name="Ana", last_name="Alba")
+        second = AdministrativeEmployee.objects.create(first_name="Bea", last_name="Bravo")
+
+        response = self.client.get(reverse("core:employee_list"))
+
+        self.assertEqual(
+            [(employee, employee.order_number) for employee in response.context["object_list"]],
+            [(first, 1), (second, 2)],
+        )
 
     def test_employee_phone_is_saved_and_can_be_updated(self):
         response = self.client.post(reverse("core:employee_create"), {
@@ -226,6 +271,18 @@ class SectionEnrollmentTests(TestCase):
         self.assertEqual(enrollment.section, self.section)
         self.student.refresh_from_db()
         self.assertFalse(self.student.new_admission)
+
+    def test_section_delete_identifies_protected_relationship(self):
+        Subject.objects.create(section=self.section, name="Asignatura protegida")
+
+        response = self.client.post(
+            reverse("core:section_delete", args=[self.section.pk]),
+            follow=True,
+        )
+
+        self.assertRedirects(response, reverse("core:section_list"))
+        self.assertTrue(Section.objects.filter(pk=self.section.pk).exists())
+        self.assertContains(response, "asignatura")
 
 
 class StudentSectionOrderTests(TestCase):

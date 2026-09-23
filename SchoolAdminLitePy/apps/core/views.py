@@ -1,5 +1,6 @@
 from datetime import date
 from decimal import Decimal, InvalidOperation
+from collections import Counter
 import unicodedata
 
 from django import forms
@@ -663,8 +664,18 @@ class AcademicDeleteView(AcademicSetupAccessMixin, DeleteView):
         self.object = self.get_object()
         try:
             self.object.delete()
-        except ProtectedError:
-            messages.error(request, self.protected_message)
+        except ProtectedError as error:
+            related_types = Counter(
+                related_object._meta.verbose_name
+                for related_object in error.protected_objects
+            )
+            related_detail = ", ".join(
+                f"{label}: {count}" for label, count in sorted(related_types.items())
+            )
+            messages.error(
+                request,
+                f"{self.protected_message} Relaciones que lo impiden: {related_detail}.",
+            )
             return redirect(self.success_url)
         messages.success(request, "Registro eliminado correctamente.")
         return redirect(self.success_url)
@@ -1232,6 +1243,7 @@ class SectionDeleteView(AcademicDeleteView):
 
     def get_related_summary(self):
         return [
+            ("Asignaturas", self.object.subjects.count()),
             ("Estudiantes inscritos", self.object.enrollments.count()),
             ("Asignaciones docentes", self.object.teaching_assignments.count()),
         ]
@@ -3461,6 +3473,12 @@ class AdministrativeEmployeeListView(PersonListView):
     create_url_name = "core:employee_create"
     edit_url_name = "core:employee_update"
     search_placeholder = "Buscar por nombre, cedula o correo"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        for order_number, employee in enumerate(context["object_list"], start=1):
+            employee.order_number = order_number
+        return context
 
 
 class AdministrativeEmployeeCreateView(PersonCreateView):
