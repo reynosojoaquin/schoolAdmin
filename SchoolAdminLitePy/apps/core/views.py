@@ -327,7 +327,7 @@ def section_students_options(request):
                 {"id": student.id, "text": str(student)}
                 for student in Student.objects.filter(
                     active=True,
-                    enrollments__course=section.course,
+                    enrollments__section=section,
                     enrollments__school_year=section.school_year or default_school_year(),
                     enrollments__active=True,
                 )
@@ -418,7 +418,7 @@ def visible_grades_for_user(user):
     assignments = visible_assignments_for_user(user)
     grade_filter = None
     for assignment in assignments:
-        condition = Q(enrollment__course=assignment.section.course, subject=assignment.subject)
+        condition = Q(enrollment__section=assignment.section, subject=assignment.subject)
         grade_filter = condition if grade_filter is None else grade_filter | condition
     if grade_filter is None:
         return Grade.objects.none()
@@ -1429,13 +1429,18 @@ class SectionAttendanceView(AcademicAccessMixin, View):
 
     def get_enrollments(self, section):
         return (
-            Enrollment.objects.filter(course=section.course, active=True)
+            Enrollment.objects.filter(
+                section=section,
+                school_year=section.school_year,
+                active=True,
+            )
             .select_related("student")
             .order_by("student__last_name", "student__first_name", "student__id")
         )
 
     def build_rows(self, section, attendance_date):
         enrollments = self.get_enrollments(section)
+        order_numbers = section_order_numbers(section.school_year)
         attendance_by_enrollment = {
             attendance.enrollment_id: attendance
             for attendance in Attendance.objects.filter(enrollment__in=enrollments, date=attendance_date)
@@ -1446,6 +1451,7 @@ class SectionAttendanceView(AcademicAccessMixin, View):
             rows.append(
                 {
                     "enrollment": enrollment,
+                    "order_number": order_numbers.get(enrollment.pk),
                     "attendance": attendance,
                     "status": attendance.status if attendance else Attendance.PRESENT,
                     "note": attendance.note if attendance else "",
@@ -1864,7 +1870,8 @@ class GradeBookView(AcademicAccessMixin, View):
 
     def get_rows(self, assignment, create_missing=False):
         enrollments = Enrollment.objects.filter(
-            course=assignment.section.course,
+            section=assignment.section,
+            school_year=assignment.section.school_year,
             active=True,
         ).select_related("student").order_by("student__last_name", "student__first_name")
         rows = []
@@ -2173,10 +2180,15 @@ class GradeImportView(AcademicAccessMixin, View):
                 skipped += 1
                 continue
             try:
-                enrollment = Enrollment.objects.select_related("student").get(pk=enrollment_id, course=assignment.section.course, active=True)
+                enrollment = Enrollment.objects.select_related("student").get(
+                    pk=enrollment_id,
+                    section=assignment.section,
+                    school_year=assignment.section.school_year,
+                    active=True,
+                )
             except Enrollment.DoesNotExist:
                 skipped += 1
-                errors.append(f"Fila {row_number}: estudiante no pertenece a este curso.")
+                errors.append(f"Fila {row_number}: estudiante no pertenece a esta seccion.")
                 continue
             try:
                 competencies = []
@@ -2239,7 +2251,12 @@ class GradeImportView(AcademicAccessMixin, View):
         errors = []
         for row in rows:
             try:
-                enrollment = Enrollment.objects.get(pk=row["enrollment_id"], course=assignment.section.course, active=True)
+                enrollment = Enrollment.objects.get(
+                    pk=row["enrollment_id"],
+                    section=assignment.section,
+                    school_year=assignment.section.school_year,
+                    active=True,
+                )
             except Enrollment.DoesNotExist:
                 skipped += 1
                 continue
@@ -2439,7 +2456,11 @@ class GradeTemplateDownloadView(AcademicAccessMixin, View):
             cell.font = Font(color="FFFFFF", bold=True)
             cell.border = thin_border
 
-        enrollments = Enrollment.objects.filter(course=assignment.section.course, active=True).select_related("student").order_by(
+        enrollments = Enrollment.objects.filter(
+            section=assignment.section,
+            school_year=assignment.section.school_year,
+            active=True,
+        ).select_related("student").order_by(
             "student__last_name",
             "student__first_name",
         )
@@ -2690,7 +2711,11 @@ class RegistryReportView(AcademicAccessMixin, View):
         scope = form.cleaned_data["scope"]
         student = form.cleaned_data.get("student")
         enrollments = (
-            Enrollment.objects.filter(course=section.course, active=True)
+            Enrollment.objects.filter(
+                section=section,
+                school_year=section.school_year,
+                active=True,
+            )
             .select_related("student", "course", "section")
             .order_by("student__last_name", "student__first_name")
         )

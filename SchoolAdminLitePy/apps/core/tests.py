@@ -10,6 +10,7 @@ from django.urls import reverse
 from .forms import AdministrativeEmployeeForm, StudentTransferForm
 from .models import (
     AdministrativeEmployee,
+    Attendance,
     City,
     Course,
     EmployeePosition,
@@ -23,6 +24,7 @@ from .models import (
     Subject,
     SystemConfiguration,
     Teacher,
+    TeachingAssignment,
 )
 
 
@@ -319,6 +321,49 @@ class StudentSectionOrderTests(TestCase):
             [(item.section.name, item.order_number) for item in response.context["object_list"]],
             [("A", 1), ("A", 2), ("B", 1)],
         )
+
+    def test_attendance_only_lists_selected_section_with_order_numbers(self):
+        response = self.client.get(reverse("core:section_attendance", args=[self.section_a.pk]))
+
+        self.assertEqual(
+            [(row["enrollment"].student, row["order_number"]) for row in response.context["rows"]],
+            [(self.alba, 1), (self.zeta, 2)],
+        )
+        self.assertNotContains(response, self.brito.first_name)
+        self.assertContains(response, "No. 1")
+
+    def test_attendance_post_does_not_create_records_for_another_section(self):
+        enrollment_a = Enrollment.objects.get(student=self.alba)
+        enrollment_b = Enrollment.objects.get(student=self.brito)
+
+        self.client.post(
+            reverse("core:section_attendance", args=[self.section_a.pk]),
+            {
+                "date": "2026-10-01",
+                f"status_{enrollment_a.pk}": Attendance.ABSENT,
+                f"status_{enrollment_b.pk}": Attendance.LATE,
+            },
+        )
+
+        self.assertTrue(Attendance.objects.filter(enrollment=enrollment_a, date="2026-10-01").exists())
+        self.assertFalse(Attendance.objects.filter(enrollment=enrollment_b, date="2026-10-01").exists())
+
+    def test_gradebook_only_lists_students_from_assignment_section(self):
+        teacher = Teacher.objects.create(first_name="Pablo", last_name="Martinez")
+        subject = Subject.objects.create(section=self.section_a, name="Matematicas")
+        assignment = TeachingAssignment.objects.create(
+            section=self.section_a,
+            subject=subject,
+            teacher=teacher,
+        )
+
+        response = self.client.get(reverse("core:gradebook", args=[assignment.pk]))
+
+        self.assertEqual(
+            [row["enrollment"].student for row in response.context["rows"]],
+            [self.alba, self.zeta],
+        )
+        self.assertNotContains(response, self.brito.first_name)
 
 
 class TeacherListOrderTests(TestCase):
