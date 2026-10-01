@@ -352,7 +352,10 @@ class GuidanceFollowUpAdmin(admin.ModelAdmin):
 @admin.register(Grade)
 class GradeAdmin(admin.ModelAdmin):
     search_fields = ["enrollment__student__first_name", "enrollment__student__last_name", "subject__name"]
-    list_display = ["enrollment", "subject", "subject_competency", "period_1", "period_2", "period_3", "period_4", "average"]
+    list_display = [
+        "enrollment", "subject", "subject_competency",
+        "period_1", "period_2", "recovery_1", "period_3", "period_4", "recovery_2", "average",
+    ]
     list_filter = ["subject", "subject_competency", "enrollment__school_year"]
 
 

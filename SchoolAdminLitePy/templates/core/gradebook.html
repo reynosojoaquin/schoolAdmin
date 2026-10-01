@@ -36,6 +36,7 @@
         <p>Resultados por competencia y periodo.</p>
       </div>
     </div>
+    <p class="table-scroll-hint">Desplaza la tabla horizontalmente para ver todas las competencias y recuperaciones.</p>
     <div class="gradebook-panel">
       <table>
         <thead>
@@ -43,15 +44,17 @@
             <th rowspan="2">No.</th>
             <th rowspan="2">Estudiante</th>
             {% for subject_competency in subject_competencies %}
-              <th colspan="5">Competencia {{ forloop.counter }}</th>
+              <th colspan="7">Competencia {{ forloop.counter }}</th>
             {% endfor %}
           </tr>
           <tr>
             {% for subject_competency in subject_competencies %}
               <th>P1</th>
               <th>P2</th>
+              <th>R1</th>
               <th>P3</th>
               <th>P4</th>
+              <th>R2</th>
               <th>Prom.</th>
             {% endfor %}
           </tr>
@@ -64,8 +67,10 @@
               {% for competency_cell in row.competency_cells %}
                 <td>{{ competency_cell.grade.period_1|floatformat:0|default:"-" }}</td>
                 <td>{{ competency_cell.grade.period_2|floatformat:0|default:"-" }}</td>
+                <td>{{ competency_cell.grade.recovery_1|floatformat:0|default:"-" }}</td>
                 <td>{{ competency_cell.grade.period_3|floatformat:0|default:"-" }}</td>
                 <td>{{ competency_cell.grade.period_4|floatformat:0|default:"-" }}</td>
+                <td>{{ competency_cell.grade.recovery_2|floatformat:0|default:"-" }}</td>
                 <td><strong>{{ competency_cell.average|floatformat:0|default:"-" }}</strong></td>
               {% endfor %}
             </tr>

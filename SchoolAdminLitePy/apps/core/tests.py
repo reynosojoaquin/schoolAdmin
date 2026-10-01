@@ -1,11 +1,14 @@
 import shutil
 import tempfile
 from datetime import date
+from decimal import Decimal
+from io import BytesIO
 
 from django.contrib.auth.models import Permission, User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from openpyxl import load_workbook
 
 from .forms import AdministrativeEmployeeForm, StudentTransferForm
 from .models import (
@@ -364,6 +367,100 @@ class StudentSectionOrderTests(TestCase):
             [self.alba, self.zeta],
         )
         self.assertNotContains(response, self.brito.first_name)
+
+
+class GradeRecoveryTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser("recovery-admin", "recovery@example.com", "password")
+        self.client.force_login(self.admin)
+        configuration = SystemConfiguration.get_solo()
+        configuration.current_school_year = "2026-2027"
+        configuration.save(update_fields=["current_school_year"])
+        self.course = Course.objects.create(name="Curso recuperacion")
+        self.section = Section.objects.create(course=self.course, name="A", school_year="2026-2027")
+        self.student = Student.objects.create(first_name="Ana", last_name="Alba")
+        self.enrollment = Enrollment.objects.create(
+            student=self.student,
+            course=self.course,
+            section=self.section,
+            school_year="2026-2027",
+        )
+        self.teacher = Teacher.objects.create(first_name="Docente", last_name="Prueba")
+        self.subject = Subject.objects.create(section=self.section, name="Matematicas")
+        self.assignment = TeachingAssignment.objects.create(
+            section=self.section,
+            subject=self.subject,
+            teacher=self.teacher,
+        )
+
+    def test_recovery_replaces_only_the_lowest_grade_when_pair_average_is_below_70(self):
+        grade = Grade.objects.create(
+            enrollment=self.enrollment,
+            subject=self.subject,
+            period_1=50,
+            period_2=80,
+            recovery_1=75,
+            period_3=65,
+            period_4=60,
+            recovery_2=55,
+        )
+
+        self.assertEqual(grade.effective_periods, [Decimal("75"), Decimal("80"), Decimal("65"), Decimal("60")])
+        self.assertEqual(grade.average, Decimal("70"))
+
+    def test_recovery_is_not_applied_when_pair_average_is_at_least_70(self):
+        grade = Grade.objects.create(
+            enrollment=self.enrollment,
+            subject=self.subject,
+            period_1=60,
+            period_2=80,
+            recovery_1=95,
+        )
+
+        self.assertEqual(grade.effective_periods[:2], [Decimal("60"), Decimal("80")])
+
+    def test_template_contains_recovery_columns_and_imports_them(self):
+        response = self.client.get(reverse("core:grade_template", args=[self.assignment.pk]))
+        workbook = load_workbook(BytesIO(response.content))
+        sheet = workbook["Calificaciones"]
+        headers = {cell.value: cell.column for cell in sheet[11] if cell.value}
+
+        self.assertIn("c1_r1", headers)
+        self.assertIn("c1_r2", headers)
+        self.assertIn("<70", sheet.cell(row=12, column=29).value)
+
+        sheet.cell(row=12, column=headers["c1_p1"]).value = 50
+        sheet.cell(row=12, column=headers["c1_p2"]).value = 80
+        sheet.cell(row=12, column=headers["c1_r1"]).value = 75
+        output = BytesIO()
+        workbook.save(output)
+        upload = SimpleUploadedFile(
+            "calificaciones.xlsx",
+            output.getvalue(),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+
+        preview_response = self.client.post(
+            reverse("core:grade_import"),
+            {
+                "teaching_assignment": self.assignment.pk,
+                "excel_file": upload,
+                "action": "preview",
+            },
+        )
+        self.assertEqual(preview_response.status_code, 200)
+        self.client.post(
+            reverse("core:grade_import"),
+            {"teaching_assignment": self.assignment.pk, "action": "confirm"},
+        )
+
+        grade = Grade.objects.get(
+            enrollment=self.enrollment,
+            subject=self.subject,
+            subject_competency__isnull=False,
+            recovery_1=75,
+        )
+        self.assertEqual(grade.recovery_1, Decimal("75"))
 
 
 class TeacherListOrderTests(TestCase):

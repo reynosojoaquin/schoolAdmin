@@ -786,7 +786,31 @@ tr:last-child td {
 }
 
 .gradebook-panel {
+  max-width: 100%;
   overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  width: 100%;
+}
+
+.grade-tabs,
+.grade-tab-panels,
+.grade-tab-card {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.gradebook-panel table {
+  min-width: max-content;
+  width: max-content;
+}
+
+.table-scroll-hint {
+  background: #eef6ff;
+  border-bottom: 1px solid var(--line);
+  color: #24527a;
+  font-size: 13px;
+  margin: 0;
+  padding: 8px 16px;
 }
 
 .grade-tabs {

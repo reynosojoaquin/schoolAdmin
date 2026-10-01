@@ -93,8 +93,8 @@ def _subject_grade_matrix(enrollment, section=None):
     for subject in subjects:
         subject_grades = by_subject.get(subject.pk, [])
         period_values = []
-        for period in ("period_1", "period_2", "period_3", "period_4"):
-            period_values.append(_avg([getattr(grade, period) for grade in subject_grades]))
+        for period_index in range(4):
+            period_values.append(_avg([grade.effective_periods[period_index] for grade in subject_grades]))
         final_average = _avg(period_values)
         rows.append(
             {
@@ -258,13 +258,11 @@ def build_rcf_report_pdf(enrollment, section=None):
             label = ""
             if grade and grade.subject_competency:
                 label = grade.subject_competency.competency.description[:18]
+            effective_periods = grade.effective_periods if grade else [None, None, None, None]
             line.extend(
                 [
                     label,
-                    _fmt(grade.period_1 if grade else None),
-                    _fmt(grade.period_2 if grade else None),
-                    _fmt(grade.period_3 if grade else None),
-                    _fmt(grade.period_4 if grade else None),
+                    *[_fmt(value) for value in effective_periods],
                 ]
             )
         line.extend([_fmt(row["final"]), "X" if row["approved"] else "", "" if row["approved"] else "X"])
