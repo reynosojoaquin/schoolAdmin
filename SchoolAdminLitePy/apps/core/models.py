@@ -1201,8 +1201,10 @@ class Grade(TimeStampedModel):
     period_2 = models.DecimalField("p2", max_digits=5, decimal_places=2, null=True, blank=True)
     period_3 = models.DecimalField("p3", max_digits=5, decimal_places=2, null=True, blank=True)
     period_4 = models.DecimalField("p4", max_digits=5, decimal_places=2, null=True, blank=True)
-    recovery_1 = models.DecimalField("recuperacion p1-p2", max_digits=5, decimal_places=2, null=True, blank=True)
-    recovery_2 = models.DecimalField("recuperacion p3-p4", max_digits=5, decimal_places=2, null=True, blank=True)
+    recovery_1 = models.DecimalField("recuperacion p1", max_digits=5, decimal_places=2, null=True, blank=True)
+    recovery_2 = models.DecimalField("recuperacion p2", max_digits=5, decimal_places=2, null=True, blank=True)
+    recovery_3 = models.DecimalField("recuperacion p3", max_digits=5, decimal_places=2, null=True, blank=True)
+    recovery_4 = models.DecimalField("recuperacion p4", max_digits=5, decimal_places=2, null=True, blank=True)
 
     class Meta:
         ordering = ["enrollment", "subject__name"]
@@ -1212,20 +1214,17 @@ class Grade(TimeStampedModel):
 
     @property
     def effective_periods(self):
-        def apply_recovery(first, second, recovery):
-            if first is None or second is None or recovery is None:
-                return first, second
-            if (first + second) / 2 >= 70:
-                return first, second
-            if first <= second and recovery > first:
-                return recovery, second
-            if second < first and recovery > second:
-                return first, recovery
-            return first, second
+        def apply_recovery(period, recovery):
+            if period is not None and period < 70 and recovery is not None:
+                return recovery
+            return period
 
-        first, second = apply_recovery(self.period_1, self.period_2, self.recovery_1)
-        third, fourth = apply_recovery(self.period_3, self.period_4, self.recovery_2)
-        return [first, second, third, fourth]
+        return [
+            apply_recovery(self.period_1, self.recovery_1),
+            apply_recovery(self.period_2, self.recovery_2),
+            apply_recovery(self.period_3, self.recovery_3),
+            apply_recovery(self.period_4, self.recovery_4),
+        ]
 
     @property
     def average(self):

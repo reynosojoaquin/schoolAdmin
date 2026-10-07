@@ -1932,11 +1932,14 @@ class GradeBookView(AcademicAccessMixin, View):
         return rows
 
 
-GRADE_TEMPLATE_VERSION = "2.0"
+GRADE_TEMPLATE_VERSION = "3.0"
 GRADE_PERIOD_FIELDS = ("period_1", "period_2", "period_3", "period_4")
 GRADE_PERIOD_HEADERS = ("p1", "p2", "p3", "p4")
-GRADE_COMPETENCY_FIELDS = ("period_1", "period_2", "recovery_1", "period_3", "period_4", "recovery_2")
-GRADE_COMPETENCY_HEADERS = ("p1", "p2", "r1", "p3", "p4", "r2")
+GRADE_COMPETENCY_FIELDS = (
+    "period_1", "recovery_1", "period_2", "recovery_2",
+    "period_3", "recovery_3", "period_4", "recovery_4",
+)
+GRADE_COMPETENCY_HEADERS = ("p1", "rp1", "p2", "rp2", "p3", "rp3", "p4", "rp4")
 COMPLETION_FIELDS = (
     "cf",
     "cf_50",
@@ -2195,6 +2198,13 @@ class GradeImportView(AcademicAccessMixin, View):
                         column_index = header_map.get(f"c{competency_index}_{header}")
                         raw_value = row[column_index] if column_index is not None and len(row) > column_index else None
                         values[field_name] = self.clean_decimal_for_session(parse_grade_value(raw_value))
+                    for period_number in range(1, 5):
+                        period = parse_grade_value(values[f"period_{period_number}"])
+                        recovery = parse_grade_value(values[f"recovery_{period_number}"])
+                        if period is not None and period < 70 and recovery is None:
+                            raise ValueError(
+                                f"Competencia {competency_index}: P{period_number} es menor de 70 y requiere RP{period_number}."
+                            )
                     competencies.append(
                         {
                             "subject_competency_id": subject_competency.pk,
@@ -2350,7 +2360,7 @@ class GradeTemplateDownloadView(AcademicAccessMixin, View):
                 cell.alignment = Alignment(vertical="center")
 
         sheet.merge_cells(f"A7:{last_column_letter}7")
-        sheet["A7"] = "Cada asignatura trabaja 4 competencias. Complete P1, P2, P3 y P4 dentro de cada competencia. Para completivo edite CEF, CEEX, CF Esp. y CE Esp. cuando aplique. Use valores de 0 a 100. No elimine filas ni cambie los encabezados."
+        sheet["A7"] = "Cada periodo P1, P2, P3 y P4 tiene su recuperacion RP1, RP2, RP3 y RP4. Si una P es menor de 70, complete su RP; ese valor sustituye la P en el promedio. Use valores de 0 a 100. No elimine filas ni cambie los encabezados."
         sheet["A7"].fill = PatternFill("solid", fgColor="E2F0D9")
         sheet["A7"].font = Font(color="375623", bold=True)
         sheet["A7"].alignment = Alignment(wrap_text=True)
@@ -2367,7 +2377,7 @@ class GradeTemplateDownloadView(AcademicAccessMixin, View):
         visible_headers = identity_headers[:]
         technical_headers = identity_headers[:]
         for index, subject_competency in enumerate(subject_competencies, start=1):
-            visible_headers.extend(["P1", "P2", "R1", "P3", "P4", "R2"])
+            visible_headers.extend(["P1", "RP1", "P2", "RP2", "P3", "RP3", "P4", "RP4"])
             technical_headers.extend([f"c{index}_{header}" for header in GRADE_COMPETENCY_HEADERS])
         visible_headers.extend(["PC1", "PC2", "PC3", "PC4"])
         technical_headers.extend(["pc1", "pc2", "pc3", "pc4"])
@@ -2479,30 +2489,23 @@ class GradeTemplateDownloadView(AcademicAccessMixin, View):
                 row_values.extend(
                     [
                         grade.period_1 if grade else "",
-                        grade.period_2 if grade else "",
                         grade.recovery_1 if grade else "",
-                        grade.period_3 if grade else "",
-                        grade.period_4 if grade else "",
+                        grade.period_2 if grade else "",
                         grade.recovery_2 if grade else "",
+                        grade.period_3 if grade else "",
+                        grade.recovery_3 if grade else "",
+                        grade.period_4 if grade else "",
+                        grade.recovery_4 if grade else "",
                     ]
                 )
 
             def effective_period_formula(competency_index, period_index):
                 start = first_grade_column + competency_index * columns_per_competency
-                offsets = {
-                    0: (0, 1, 2, "<="),
-                    1: (1, 0, 2, "<"),
-                    2: (3, 4, 5, "<="),
-                    3: (4, 3, 5, "<"),
-                }
-                target_offset, other_offset, recovery_offset, comparison = offsets[period_index]
+                target_offset = period_index * 2
+                recovery_offset = target_offset + 1
                 target = f"{get_column_letter(start + target_offset)}{row_number}"
-                other = f"{get_column_letter(start + other_offset)}{row_number}"
                 recovery = f"{get_column_letter(start + recovery_offset)}{row_number}"
-                return (
-                    f"IF(AND(COUNT({target},{other})=2,AVERAGE({target},{other})<70,"
-                    f"ISNUMBER({recovery}),{recovery}>{target},{target}{comparison}{other}),{recovery},{target})"
-                )
+                return f"IF(AND(ISNUMBER({target}),{target}<70,ISNUMBER({recovery})),{recovery},{target})"
 
             period_average_formulas = []
             for period_index in range(len(GRADE_PERIOD_HEADERS)):
@@ -2516,7 +2519,7 @@ class GradeTemplateDownloadView(AcademicAccessMixin, View):
             row_values.extend(
                 [
                     f'=IF(COUNT({get_column_letter(first_period_average_column)}{row_number}:{get_column_letter(last_period_average_column)}{row_number})=0,"",ROUND(AVERAGE({get_column_letter(first_period_average_column)}{row_number}:{get_column_letter(last_period_average_column)}{row_number}),0))',
-                    f'=IF(COUNT({",".join(f"{get_column_letter(first_grade_column + competency_index * columns_per_competency + offset)}{row_number}" for competency_index in range(len(subject_competencies)) for offset in (0, 1, 3, 4))})=0,"Pendiente",IF(COUNT({",".join(f"{get_column_letter(first_grade_column + competency_index * columns_per_competency + offset)}{row_number}" for competency_index in range(len(subject_competencies)) for offset in (0, 1, 3, 4))})={len(subject_competencies) * len(GRADE_PERIOD_HEADERS)},"Completo","Parcial"))',
+                    f'=IF(COUNT({",".join(f"{get_column_letter(first_grade_column + competency_index * columns_per_competency + offset)}{row_number}" for competency_index in range(len(subject_competencies)) for offset in (0, 2, 4, 6))})=0,"Pendiente",IF(COUNT({",".join(f"{get_column_letter(first_grade_column + competency_index * columns_per_competency + offset)}{row_number}" for competency_index in range(len(subject_competencies)) for offset in (0, 2, 4, 6))})={len(subject_competencies) * len(GRADE_PERIOD_HEADERS)},"Completo","Parcial"))',
                 ]
             )
             completion = GradeCompletion.objects.filter(enrollment=enrollment, subject=assignment.subject).first()

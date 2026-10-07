@@ -393,7 +393,7 @@ class GradeRecoveryTests(TestCase):
             teacher=self.teacher,
         )
 
-    def test_recovery_replaces_only_the_lowest_grade_when_pair_average_is_below_70(self):
+    def test_each_recovery_replaces_its_failed_period(self):
         grade = Grade.objects.create(
             enrollment=self.enrollment,
             subject=self.subject,
@@ -402,22 +402,23 @@ class GradeRecoveryTests(TestCase):
             recovery_1=75,
             period_3=65,
             period_4=60,
-            recovery_2=55,
+            recovery_3=72,
+            recovery_4=71,
         )
 
-        self.assertEqual(grade.effective_periods, [Decimal("75"), Decimal("80"), Decimal("65"), Decimal("60")])
-        self.assertEqual(grade.average, Decimal("70"))
+        self.assertEqual(grade.effective_periods, [Decimal("75"), Decimal("80"), Decimal("72"), Decimal("71")])
+        self.assertEqual(grade.average, Decimal("74.5"))
 
-    def test_recovery_is_not_applied_when_pair_average_is_at_least_70(self):
+    def test_recovery_is_not_applied_when_period_is_at_least_70(self):
         grade = Grade.objects.create(
             enrollment=self.enrollment,
             subject=self.subject,
-            period_1=60,
+            period_1=70,
             period_2=80,
             recovery_1=95,
         )
 
-        self.assertEqual(grade.effective_periods[:2], [Decimal("60"), Decimal("80")])
+        self.assertEqual(grade.effective_periods[:2], [Decimal("70"), Decimal("80")])
 
     def test_template_contains_recovery_columns_and_imports_them(self):
         response = self.client.get(reverse("core:grade_template", args=[self.assignment.pk]))
@@ -425,13 +426,13 @@ class GradeRecoveryTests(TestCase):
         sheet = workbook["Calificaciones"]
         headers = {cell.value: cell.column for cell in sheet[11] if cell.value}
 
-        self.assertIn("c1_r1", headers)
-        self.assertIn("c1_r2", headers)
-        self.assertIn("<70", sheet.cell(row=12, column=29).value)
+        self.assertIn("c1_rp1", headers)
+        self.assertIn("c1_rp4", headers)
+        self.assertIn("<70", sheet.cell(row=12, column=37).value)
 
         sheet.cell(row=12, column=headers["c1_p1"]).value = 50
         sheet.cell(row=12, column=headers["c1_p2"]).value = 80
-        sheet.cell(row=12, column=headers["c1_r1"]).value = 75
+        sheet.cell(row=12, column=headers["c1_rp1"]).value = 75
         output = BytesIO()
         workbook.save(output)
         upload = SimpleUploadedFile(
