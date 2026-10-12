@@ -37,6 +37,7 @@ from .models import (
     Phone,
     PhoneType,
     Province,
+    RegistryReportConfiguration,
     Sector,
     Section,
     StaffAssignment,
@@ -58,6 +59,12 @@ class SystemConfigurationAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+@admin.register(RegistryReportConfiguration)
+class RegistryReportConfigurationAdmin(admin.ModelAdmin):
+    list_display = ["course", "school_year", "center_name", "annual_phrase", "updated_at"]
+    list_filter = ["school_year", "course"]
 
 
 @admin.register(AccessRule)

@@ -1,5 +1,6 @@
 import shutil
 import tempfile
+import base64
 from datetime import date
 from decimal import Decimal
 from io import BytesIO
@@ -22,6 +23,7 @@ from .models import (
     Grade,
     Nationality,
     Province,
+    RegistryReportConfiguration,
     Section,
     Student,
     Subject,
@@ -29,6 +31,7 @@ from .models import (
     Teacher,
     TeachingAssignment,
 )
+from .report_pdfs import _attendance_counts, _subject_grade_matrix, build_periodic_report_pdf
 
 
 TEST_MEDIA_ROOT = tempfile.mkdtemp()
@@ -79,6 +82,144 @@ class SystemConfigurationTests(TestCase):
 
         self.assertContains(response, "/media/branding/custom-logo.jpg")
         self.assertContains(response, reverse("core:system_configuration"))
+
+
+class RegistryReportCustomizationTests(TestCase):
+    def setUp(self):
+        self.school_year = "2026-2027"
+        self.admin = User.objects.create_superuser("report-admin", "reports@example.com", "password")
+        self.client.force_login(self.admin)
+        configuration = SystemConfiguration.get_solo()
+        configuration.current_school_year = self.school_year
+        configuration.save(update_fields=["current_school_year"])
+        self.course = Course.objects.create(name="Reporte 1ro")
+        self.section = Section.objects.create(course=self.course, name="A", school_year=self.school_year)
+        self.student = Student.objects.create(first_name="Ana", last_name="Prueba")
+        self.enrollment = Enrollment.objects.create(
+            student=self.student,
+            course=self.course,
+            section=self.section,
+            school_year=self.school_year,
+        )
+        Subject.objects.create(section=self.section, name="Lengua Espanola")
+
+    def test_report_page_displays_personalization_fields(self):
+        response = self.client.get(reverse("core:registry_reports"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Personalizacion del reporte")
+        self.assertContains(response, 'name="center_name"')
+        self.assertContains(response, 'name="annual_phrase"')
+        self.assertContains(response, 'name="report_logo"')
+        self.assertContains(response, 'name="remove_report_logo"')
+        self.assertContains(response, "Vista previa del nuevo logo")
+        self.assertContains(response, 'id="report-logo-preview-image"')
+
+    def test_report_saves_phrase_for_course_and_school_year(self):
+        response = self.client.post(
+            reverse("core:registry_reports"),
+            {
+                "report_type": "periodic",
+                "section": self.section.pk,
+                "scope": "group",
+                "annual_phrase": "Aprender para transformar",
+                "center_name": "Centro Educativo Personalizado",
+                "school_year": self.school_year,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/pdf")
+        configuration = RegistryReportConfiguration.objects.get(course=self.course, school_year=self.school_year)
+        self.assertEqual(configuration.annual_phrase, "Aprender para transformar")
+        self.assertEqual(configuration.center_name, "Centro Educativo Personalizado")
+
+    def test_report_saves_uploaded_course_logo(self):
+        png = base64.b64decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+        )
+        response = self.client.post(
+            reverse("core:registry_reports"),
+            {
+                "report_type": "periodic",
+                "section": self.section.pk,
+                "scope": "group",
+                "annual_phrase": "Logo de prueba",
+                "school_year": self.school_year,
+                "report_logo": SimpleUploadedFile("grado.png", png, content_type="image/png"),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/pdf")
+        configuration = RegistryReportConfiguration.objects.get(course=self.course, school_year=self.school_year)
+        self.assertTrue(configuration.logo.name.startswith("registry_reports/grado"))
+
+    def test_logo_can_be_saved_and_previewed_before_generating_pdf(self):
+        png = base64.b64decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+        )
+        response = self.client.post(
+            reverse("core:registry_reports"),
+            {
+                "report_type": "periodic",
+                "section": self.section.pk,
+                "scope": "group",
+                "annual_phrase": "Logo visible",
+                "school_year": self.school_year,
+                "report_logo": SimpleUploadedFile("vista.png", png, content_type="image/png"),
+                "action": "save_configuration",
+            },
+        )
+
+        self.assertRedirects(response, f"{reverse('core:registry_reports')}?section={self.section.pk}")
+        response = self.client.get(response.url)
+        self.assertContains(response, "Logo del grado guardado actualmente")
+        self.assertContains(response, "/media/registry_reports/vista")
+
+    def test_logo_save_does_not_require_student_for_individual_report(self):
+        png = base64.b64decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+        )
+        response = self.client.post(
+            reverse("core:registry_reports"),
+            {
+                "report_type": "rcf",
+                "section": self.section.pk,
+                "scope": "student",
+                "student": "",
+                "annual_phrase": "Configuracion independiente",
+                "school_year": self.school_year,
+                "report_logo": SimpleUploadedFile("independiente.png", png, content_type="image/png"),
+                "action": "save_configuration",
+            },
+        )
+
+        self.assertRedirects(response, f"{reverse('core:registry_reports')}?section={self.section.pk}")
+        configuration = RegistryReportConfiguration.objects.get(course=self.course, school_year=self.school_year)
+        self.assertTrue(configuration.logo.name.startswith("registry_reports/independiente"))
+
+    def test_attendance_totals_and_pdf_chart_support_empty_or_recorded_data(self):
+        Attendance.objects.create(enrollment=self.enrollment, date=date(2026, 9, 1), status=Attendance.PRESENT)
+        Attendance.objects.create(enrollment=self.enrollment, date=date(2026, 9, 2), status=Attendance.ABSENT)
+        Attendance.objects.create(enrollment=self.enrollment, date=date(2026, 9, 3), status=Attendance.LATE)
+        Attendance.objects.create(enrollment=self.enrollment, date=date(2026, 9, 4), status=Attendance.PRESENT)
+
+        counts = _attendance_counts([self.enrollment])
+        self.assertEqual(counts, {Attendance.PRESENT: 2, Attendance.ABSENT: 1, Attendance.LATE: 1})
+        pdf = build_periodic_report_pdf(self.section, [self.enrollment])
+        self.assertTrue(pdf.startswith(b"%PDF"))
+
+    def test_report_only_uses_subjects_enabled_for_registry(self):
+        Subject.objects.create(
+            section=self.section,
+            name="Taller no incluido",
+            include_in_registry_reports=False,
+        )
+
+        subject_names = [row["subject"].name for row in _subject_grade_matrix(self.enrollment, self.section)]
+
+        self.assertEqual(subject_names, ["Lengua Espanola"])
 
 
 class AdministrativeEmployeeCatalogTests(TestCase):

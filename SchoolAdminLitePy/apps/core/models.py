@@ -43,6 +43,48 @@ class SystemConfiguration(TimeStampedModel):
         return self.institution_name
 
 
+class RegistryReportConfiguration(TimeStampedModel):
+    course = models.ForeignKey(
+        "Course",
+        on_delete=models.CASCADE,
+        related_name="registry_report_configurations",
+        verbose_name="grado",
+    )
+    school_year = models.CharField("ano escolar", max_length=20)
+    center_name = models.CharField(
+        "nombre del centro en el reporte",
+        max_length=180,
+        blank=True,
+        help_text="Si se deja vacio, se usa el nombre institucional general.",
+    )
+    annual_phrase = models.CharField(
+        "frase del ano",
+        max_length=240,
+        default="APRENDAMOS JUNTOS",
+        blank=True,
+    )
+    logo = models.FileField(
+        "logo del grado",
+        upload_to="registry_reports/",
+        blank=True,
+        validators=[FileExtensionValidator(["png", "jpg", "jpeg", "webp"])],
+    )
+
+    class Meta:
+        ordering = ["-school_year", "course__name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["course", "school_year"],
+                name="unique_registry_report_configuration",
+            )
+        ]
+        verbose_name = "personalizacion de reporte de registro"
+        verbose_name_plural = "personalizaciones de reportes de registro"
+
+    def __str__(self):
+        return f"{self.course} - {self.school_year}"
+
+
 class Province(TimeStampedModel):
     nationality = models.ForeignKey(
         "Nationality",
@@ -352,6 +394,11 @@ class Subject(TimeStampedModel):
     )
     name = models.CharField("nombre", max_length=120)
     weekly_hours = models.PositiveSmallIntegerField("horas semanales", default=0)
+    include_in_registry_reports = models.BooleanField(
+        "mostrar en reportes de registro",
+        default=True,
+        help_text="Desactiva esta opcion para ocultar la asignatura de boletines, RCF y actas finales.",
+    )
     responsible = models.ForeignKey(
         "Teacher",
         on_delete=models.SET_NULL,

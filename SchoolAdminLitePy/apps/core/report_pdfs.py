@@ -2,13 +2,13 @@ from collections import defaultdict
 from io import BytesIO
 from xml.sax.saxutils import escape
 
-from django.db.models import Prefetch
+from django.db.models import Count, Prefetch
+from django.contrib.staticfiles import finders
 
-from .models import Enrollment, Grade, Subject
+from .models import Attendance, Enrollment, Grade, Subject, SystemConfiguration
 
 
 INSTITUTION_NAME = "LICEO CORONEL RAFAEL TOMAS FERNANDEZ DOMINGUEZ"
-INSTITUTION_SUBTITLE = "EDUCACION CON CONCIENCIA Y SOLIDARIDAD"
 INSTITUTION_MOTTO = "APRENDAMOS JUNTOS"
 COMPETENCY_LABELS = [
     "Comunicativa",
@@ -24,7 +24,7 @@ def _reportlab():
     from reportlab.lib.pagesizes import landscape, letter
     from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
     from reportlab.lib.units import inch
-    from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+    from reportlab.platypus import Image, KeepTogether, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
     return {
         "colors": colors,
@@ -34,6 +34,8 @@ def _reportlab():
         "getSampleStyleSheet": getSampleStyleSheet,
         "ParagraphStyle": ParagraphStyle,
         "inch": inch,
+        "Image": Image,
+        "KeepTogether": KeepTogether,
         "PageBreak": PageBreak,
         "Paragraph": Paragraph,
         "SimpleDocTemplate": SimpleDocTemplate,
@@ -79,7 +81,7 @@ def _avg(values):
 
 def _subject_grade_matrix(enrollment, section=None):
     section = section or enrollment.section
-    subjects = Subject.objects.filter(section=section).order_by("name")
+    subjects = Subject.objects.filter(section=section, include_in_registry_reports=True).order_by("name")
     grades = (
         Grade.objects.filter(enrollment=enrollment, subject__section=section)
         .select_related("subject", "subject_competency", "subject_competency__competency")
@@ -108,7 +110,7 @@ def _subject_grade_matrix(enrollment, section=None):
     return rows
 
 
-def _header_elements(rl, section, title, horizontal=False):
+def _header_elements(rl, section, title, horizontal=False, report_configuration=None):
     styles = rl["getSampleStyleSheet"]()
     center = rl["ParagraphStyle"](
         "centered",
@@ -125,35 +127,163 @@ def _header_elements(rl, section, title, horizontal=False):
         textColor=rl["colors"].darkgreen,
         leading=16,
     )
-    return [
-        rl["Paragraph"](INSTITUTION_NAME, center),
-        rl["Paragraph"](INSTITUTION_SUBTITLE, center),
-        rl["Paragraph"](f'"{INSTITUTION_MOTTO}"', center),
+    system_configuration = SystemConfiguration.get_solo()
+    institution_name = (
+        report_configuration.center_name
+        if report_configuration and report_configuration.center_name
+        else system_configuration.institution_name or INSTITUTION_NAME
+    )
+    annual_phrase = (
+        report_configuration.annual_phrase
+        if report_configuration and report_configuration.annual_phrase
+        else INSTITUTION_MOTTO
+    )
+    heading = [
+        rl["Paragraph"](_text(institution_name).upper(), center),
+        rl["Paragraph"](f'"{_text(annual_phrase)}"', center),
         rl["Spacer"](1, 8),
         rl["Paragraph"](title, title_style),
         rl["Paragraph"](f"Ano escolar: {_school_year_label(section.school_year)}", center),
-        rl["Spacer"](1, 14),
     ]
+    def logo_image(logo, fallback_static=None, width=1.1, height=None):
+        path = None
+        if logo:
+            try:
+                path = logo.path
+            except (AttributeError, NotImplementedError, ValueError):
+                path = None
+        if not path and fallback_static:
+            path = finders.find(fallback_static)
+        if not path:
+            return ""
+        try:
+            return rl["Image"](
+                path,
+                width=width * rl["inch"],
+                height=(height or width) * rl["inch"],
+                kind="proportional",
+            )
+        except (OSError, ValueError):
+            return ""
+
+    ministry_logo = logo_image(None, "img/logo-minerd.png", width=2.15, height=0.85)
+    grade_logo = logo_image(report_configuration.logo if report_configuration else None, width=1.8)
+    school_logo = logo_image(system_configuration.logo, "img/logo-centro-default.jpeg", width=1.35)
+    ministry_header = rl["Table"]([[ministry_logo]], colWidths=[2.3 * rl["inch"]])
+    ministry_header.hAlign = "CENTER"
+    ministry_header.setStyle(rl["TableStyle"]([("ALIGN", (0, 0), (-1, -1), "CENTER"), ("BOTTOMPADDING", (0, 0), (-1, -1), 6)]))
+    side_width = 1.9 * rl["inch"]
+    center_width = 6.7 * rl["inch"] if horizontal else 4.0 * rl["inch"]
+    header = rl["Table"](
+        [[grade_logo, heading, school_logo]],
+        colWidths=[side_width, center_width, side_width],
+    )
+    header.hAlign = "CENTER"
+    header.setStyle(
+        rl["TableStyle"](
+            [
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("ALIGN", (0, 0), (0, 0), "LEFT"),
+                ("ALIGN", (2, 0), (2, 0), "RIGHT"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ]
+        )
+    )
+    return [ministry_header, header, rl["Spacer"](1, 14)]
+
+
+def _attendance_counts(enrollments):
+    enrollment_ids = [enrollment.pk for enrollment in enrollments]
+    counts = {Attendance.PRESENT: 0, Attendance.ABSENT: 0, Attendance.LATE: 0}
+    if not enrollment_ids:
+        return counts
+    rows = (
+        Attendance.objects.filter(enrollment_id__in=enrollment_ids)
+        .values("status")
+        .annotate(total=Count("id"))
+    )
+    for row in rows:
+        if row["status"] in counts:
+            counts[row["status"]] = row["total"]
+    return counts
+
+
+def _attendance_summary(rl, enrollments, title="ASISTENCIA A CLASE"):
+    from reportlab.graphics.charts.piecharts import Pie
+    from reportlab.graphics.shapes import Drawing, String
+
+    counts = _attendance_counts(enrollments)
+    labels = ["Presencias", "Ausencias", "Tardanzas"]
+    values = [counts[Attendance.PRESENT], counts[Attendance.ABSENT], counts[Attendance.LATE]]
+    colors = [rl["colors"].HexColor("#2e7d32"), rl["colors"].HexColor("#c62828"), rl["colors"].HexColor("#f9a825")]
+
+    metric_data = [[title, "Total"], *[[label, value] for label, value in zip(labels, values)]]
+    metrics = rl["Table"](metric_data, colWidths=[1.55 * rl["inch"], 0.65 * rl["inch"]])
+    metrics.setStyle(
+        rl["TableStyle"](
+            [
+                ("GRID", (0, 0), (-1, -1), 0.45, rl["colors"].HexColor("#9ca3af")),
+                ("BACKGROUND", (0, 0), (-1, 0), rl["colors"].HexColor("#dcead7")),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("ALIGN", (1, 0), (1, -1), "CENTER"),
+                ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ]
+        )
+    )
+
+    drawing = Drawing(250, 125)
+    drawing.add(String(125, 112, "Distribucion de asistencia", textAnchor="middle", fontName="Helvetica-Bold", fontSize=8))
+    pie = Pie()
+    pie.x = 10
+    pie.y = 8
+    pie.width = 100
+    pie.height = 95
+    pie.data = values if sum(values) else [1]
+    pie.labels = [f"{label}: {value}" for label, value in zip(labels, values)] if sum(values) else ["Sin registros"]
+    pie.slices.strokeWidth = 0.5
+    pie.slices.strokeColor = rl["colors"].white
+    if sum(values):
+        for index, color in enumerate(colors):
+            pie.slices[index].fillColor = color
+    else:
+        pie.slices[0].fillColor = rl["colors"].HexColor("#d1d5db")
+    drawing.add(pie)
+    return rl["KeepTogether"]([rl["Table"]([[metrics, drawing]], colWidths=[2.35 * rl["inch"], 3.5 * rl["inch"]])])
 
 
 def _student_line(rl, enrollment, section=None):
     section = section or enrollment.section
+    styles = rl["getSampleStyleSheet"]()
+    student_style = rl["ParagraphStyle"](
+        "student_data",
+        parent=styles["Normal"],
+        fontName="Helvetica-Bold",
+        fontSize=9,
+        leading=12,
+    )
     table = rl["Table"](
         [
             [
-                f"Nombre(s) y Apellido(s): {enrollment.student}",
-                f"Grado: {enrollment.course.name}",
-                f"Seccion: {section.name if section else '-'}",
-            ]
+                rl["Paragraph"](f"Nombre(s) y Apellido(s): {_text(enrollment.student)}", student_style),
+                "",
+            ],
+            [
+                rl["Paragraph"](f"Grado: {_text(enrollment.course.name)}", student_style),
+                rl["Paragraph"](f"Seccion: {_text(section.name if section else '-')}", student_style),
+            ],
         ],
-        colWidths=[3.8 * rl["inch"], 1.4 * rl["inch"], 1.6 * rl["inch"]],
+        colWidths=[3.4 * rl["inch"], 3.4 * rl["inch"]],
     )
     table.setStyle(
         rl["TableStyle"](
             [
-                ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
-                ("FONTSIZE", (0, 0), (-1, -1), 10),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+                ("SPAN", (0, 0), (1, 0)),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
+                ("BOTTOMPADDING", (0, 1), (-1, 1), 4),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 8),
             ]
         )
     )
@@ -204,7 +334,7 @@ def _signature_block(rl):
     return table
 
 
-def build_periodic_report_pdf(section, enrollments):
+def build_periodic_report_pdf(section, enrollments, report_configuration=None):
     rl = _reportlab()
     buffer = BytesIO()
     doc = rl["SimpleDocTemplate"](
@@ -219,17 +349,19 @@ def build_periodic_report_pdf(section, enrollments):
     for index, enrollment in enumerate(enrollments):
         if index:
             story.append(rl["PageBreak"]())
-        story.extend(_header_elements(rl, section, "BOLETIN DE CALIFICACIONES"))
+        story.extend(_header_elements(rl, section, "BOLETIN DE CALIFICACIONES", report_configuration=report_configuration))
         story.append(_student_line(rl, enrollment, section))
         story.append(rl["Spacer"](1, 10))
         story.append(_periodic_table(rl, enrollment, section))
-        story.append(rl["Spacer"](1, 70))
+        story.append(rl["Spacer"](1, 16))
+        story.append(_attendance_summary(rl, [enrollment]))
+        story.append(rl["Spacer"](1, 28))
         story.append(_signature_block(rl))
     doc.build(story)
     return buffer.getvalue()
 
 
-def build_rcf_report_pdf(enrollment, section=None):
+def build_rcf_report_pdf(enrollment, section=None, report_configuration=None):
     section = section or enrollment.section
     rl = _reportlab()
     colors = rl["colors"]
@@ -242,7 +374,7 @@ def build_rcf_report_pdf(enrollment, section=None):
         topMargin=0.25 * rl["inch"],
         bottomMargin=0.25 * rl["inch"],
     )
-    story = _header_elements(rl, section, "BOLETIN DE CALIFICACIONES", horizontal=True)
+    story = _header_elements(rl, section, "BOLETIN DE CALIFICACIONES", horizontal=True, report_configuration=report_configuration)
     story.append(_student_line(rl, enrollment, section))
     story.append(rl["Spacer"](1, 6))
     header = ["ASIGNATURA"]
@@ -283,13 +415,15 @@ def build_rcf_report_pdf(enrollment, section=None):
         )
     )
     story.append(table)
-    story.append(rl["Spacer"](1, 28))
+    story.append(rl["Spacer"](1, 12))
+    story.append(_attendance_summary(rl, [enrollment]))
+    story.append(rl["Spacer"](1, 18))
     story.append(_signature_block(rl))
     doc.build(story)
     return buffer.getvalue()
 
 
-def build_final_act_pdf(section):
+def build_final_act_pdf(section, report_configuration=None):
     rl = _reportlab()
     colors = rl["colors"]
     buffer = BytesIO()
@@ -301,15 +435,15 @@ def build_final_act_pdf(section):
         topMargin=0.2 * rl["inch"],
         bottomMargin=0.2 * rl["inch"],
     )
-    story = _header_elements(rl, section, "ACTA FINAL DE CALIFICACIONES", horizontal=True)
+    story = _header_elements(rl, section, "ACTA FINAL DE CALIFICACIONES", horizontal=True, report_configuration=report_configuration)
     data = [["NO", "APELLIDOS", "NOMBRE(S)"]]
-    subjects = list(Subject.objects.filter(section=section).order_by("name")[:9])
+    subjects = list(Subject.objects.filter(section=section, include_in_registry_reports=True).order_by("name")[:9])
     for subject in subjects:
         data[0].extend([subject.name[:14], "Final", "Comp.", "Ext.", "Esp."])
     data[0].extend(["Prom.", "A", "R"])
 
     enrollments = (
-        Enrollment.objects.filter(course=section.course, active=True)
+        Enrollment.objects.filter(section=section, school_year=section.school_year, active=True)
         .select_related("student", "course", "section")
         .prefetch_related(Prefetch("grades", queryset=Grade.objects.select_related("subject", "subject_competency")))
         .order_by("student__last_name", "student__first_name")
@@ -347,6 +481,8 @@ def build_final_act_pdf(section):
         )
     )
     story.append(table)
+    story.append(rl["Spacer"](1, 10))
+    story.append(_attendance_summary(rl, list(enrollments), title="ASISTENCIA DE LA SECCION"))
     doc.build(story)
     return buffer.getvalue()
 

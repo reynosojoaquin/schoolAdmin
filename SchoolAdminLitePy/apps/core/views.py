@@ -79,6 +79,7 @@ from .models import (
     GuidanceFollowUp,
     JournalEntry,
     Province,
+    RegistryReportConfiguration,
     Section,
     StaffAssignment,
     Student,
@@ -1214,6 +1215,49 @@ class SectionCreateView(AcademicCreateView):
     success_url = reverse_lazy("core:section_list")
     cancel_url_name = "core:section_list"
 
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        section = self.object
+        if not section.subjects.exists():
+            source_section = (
+                Section.objects.filter(course=section.course, name=section.name, subjects__isnull=False)
+                .exclude(pk=section.pk)
+                .distinct()
+                .order_by("-school_year", "-pk")
+                .first()
+            )
+            if not source_section:
+                source_section = (
+                    Section.objects.filter(course=section.course, subjects__isnull=False)
+                    .exclude(pk=section.pk)
+                    .distinct()
+                    .order_by("-school_year", "name", "-pk")
+                    .first()
+                )
+            if source_section:
+                copied = 0
+                for source_subject in source_section.subjects.prefetch_related("subject_competencies").all():
+                    subject = Subject.objects.create(
+                        section=section,
+                        name=source_subject.name,
+                        weekly_hours=source_subject.weekly_hours,
+                        responsible=source_subject.responsible,
+                        include_in_registry_reports=source_subject.include_in_registry_reports,
+                    )
+                    SubjectCompetency.objects.bulk_create(
+                        [
+                            SubjectCompetency(subject=subject, competency=item.competency)
+                            for item in source_subject.subject_competencies.all()
+                        ],
+                        ignore_conflicts=True,
+                    )
+                    copied += 1
+                messages.success(
+                    self.request,
+                    f"Se copiaron {copied} materias desde {source_section.school_year} para mantener el plan del curso.",
+                )
+        return response
+
 
 class SectionUpdateView(AcademicUpdateView):
     model = Section
@@ -1551,6 +1595,7 @@ class SubjectListView(AcademicListView):
         ("section", "Seccion"),
         ("weekly_hours", "Horas"),
         ("responsible", "Responsable"),
+        ("include_in_registry_reports", "En reportes"),
     ]
     row_actions = [
         ("Editar", "core:subject_update"),
@@ -2714,13 +2759,36 @@ class RegistryReportView(AcademicAccessMixin, View):
         return super().dispatch(request, *args, **kwargs)
 
     def get(self, request):
-        form = RegistryReportForm(school_year=selected_school_year(request))
-        context = {"form": form, "title": "Reportes de registro"}
+        report_configuration = None
+        selected_section = None
+        section_id = request.GET.get("section")
+        if section_id:
+            selected_section = Section.objects.filter(
+                pk=section_id,
+                school_year=selected_school_year(request),
+                active=True,
+            ).select_related("course").first()
+        initial = {}
+        if selected_section:
+            report_configuration = RegistryReportConfiguration.objects.filter(
+                course=selected_section.course,
+                school_year=selected_section.school_year,
+            ).first()
+            initial["section"] = selected_section
+            if report_configuration:
+                initial["center_name"] = report_configuration.center_name
+                initial["annual_phrase"] = report_configuration.annual_phrase
+        form = RegistryReportForm(school_year=selected_school_year(request), initial=initial)
+        context = {
+            "form": form,
+            "title": "Reportes de registro",
+            "report_configuration": report_configuration,
+        }
         context.update(school_year_context(request))
         return render(request, self.template_name, context)
 
     def post(self, request):
-        form = RegistryReportForm(request.POST, school_year=selected_school_year(request))
+        form = RegistryReportForm(request.POST, request.FILES, school_year=selected_school_year(request))
         if not form.is_valid():
             context = {"form": form, "title": "Reportes de registro"}
             context.update(school_year_context(request))
@@ -2730,6 +2798,27 @@ class RegistryReportView(AcademicAccessMixin, View):
         report_type = form.cleaned_data["report_type"]
         scope = form.cleaned_data["scope"]
         student = form.cleaned_data.get("student")
+        if not section.subjects.exists() and request.POST.get("action") != "save_configuration":
+            form.add_error("section", "Esta seccion no tiene materias registradas para el ano escolar seleccionado.")
+            context = {"form": form, "title": "Reportes de registro"}
+            context.update(school_year_context(request))
+            return render(request, self.template_name, context)
+        report_configuration, _ = RegistryReportConfiguration.objects.get_or_create(
+            course=section.course,
+            school_year=section.school_year,
+        )
+        annual_phrase = form.cleaned_data.get("annual_phrase", "").strip()
+        report_configuration.center_name = form.cleaned_data.get("center_name", "").strip()
+        if annual_phrase:
+            report_configuration.annual_phrase = annual_phrase
+        if form.cleaned_data.get("remove_report_logo"):
+            report_configuration.logo = ""
+        elif form.cleaned_data.get("report_logo"):
+            report_configuration.logo = form.cleaned_data["report_logo"]
+        report_configuration.save()
+        if request.POST.get("action") == "save_configuration":
+            messages.success(request, f"La personalizacion de {section.course} se guardo correctamente.")
+            return redirect(f"{reverse('core:registry_reports')}?section={section.pk}")
         enrollments = (
             Enrollment.objects.filter(
                 section=section,
@@ -2743,7 +2832,7 @@ class RegistryReportView(AcademicAccessMixin, View):
             enrollments = enrollments.filter(student=student)
 
         if report_type == RegistryReportForm.REPORT_FINAL_ACT:
-            content = build_final_act_pdf(section)
+            content = build_final_act_pdf(section, report_configuration=report_configuration)
             filename = f"acta_final_{section.course.name}_{section.name}.pdf"
         elif report_type == RegistryReportForm.REPORT_RCF:
             enrollment = enrollments.first()
@@ -2752,7 +2841,7 @@ class RegistryReportView(AcademicAccessMixin, View):
                 context = {"form": form, "title": "Reportes de registro"}
                 context.update(school_year_context(request))
                 return render(request, self.template_name, context)
-            content = build_rcf_report_pdf(enrollment, section)
+            content = build_rcf_report_pdf(enrollment, section, report_configuration=report_configuration)
             filename = f"rcf_{enrollment.student.last_name}_{enrollment.student.first_name}.pdf"
         else:
             enrollment_list = list(enrollments)
@@ -2761,7 +2850,7 @@ class RegistryReportView(AcademicAccessMixin, View):
                 context = {"form": form, "title": "Reportes de registro"}
                 context.update(school_year_context(request))
                 return render(request, self.template_name, context)
-            content = build_periodic_report_pdf(section, enrollment_list)
+            content = build_periodic_report_pdf(section, enrollment_list, report_configuration=report_configuration)
             suffix = "individual" if scope == RegistryReportForm.SCOPE_STUDENT else "colectivo"
             filename = f"boletin_periodo_{section.course.name}_{section.name}_{suffix}.pdf"
 

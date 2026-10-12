@@ -799,16 +799,18 @@ class SectionResponsibleForm(AcademicFormMixin, forms.ModelForm):
 class SubjectForm(AcademicFormMixin, forms.ModelForm):
     class Meta:
         model = Subject
-        fields = ["section", "name", "weekly_hours", "responsible"]
+        fields = ["section", "name", "weekly_hours", "responsible", "include_in_registry_reports"]
         labels = {
             "section": "Seccion",
             "weekly_hours": "Horas semanales",
             "responsible": "Docente responsable de la asignatura",
+            "include_in_registry_reports": "Mostrar en reportes de registro",
         }
         help_texts = {
             "section": "La asignatura queda disponible solo para esta seccion.",
             "weekly_hours": "Cantidad de horas de esta asignatura en la seccion.",
             "responsible": "Docente responsable general de esta asignatura en la seccion.",
+            "include_in_registry_reports": "Controla si aparece en boletines, RCF y actas finales.",
         }
 
     def __init__(self, *args, **kwargs):
@@ -1023,6 +1025,30 @@ class RegistryReportForm(forms.Form):
         required=False,
         help_text="Solo requerido para reportes individuales.",
     )
+    annual_phrase = forms.CharField(
+        label="Frase del ano",
+        max_length=240,
+        required=False,
+        initial="APRENDAMOS JUNTOS",
+        help_text="Se guarda para el grado y ano escolar seleccionados. Si se deja vacia, conserva la frase existente.",
+    )
+    center_name = forms.CharField(
+        label="Nombre del centro",
+        max_length=180,
+        required=False,
+        help_text="Nombre que aparecera en el encabezado. Si se deja vacio, se usa el nombre institucional general.",
+    )
+    report_logo = forms.FileField(
+        label="Logo del grado",
+        required=False,
+        help_text="PNG, JPG, JPEG o WebP, hasta 4 MB. Aparece arriba a la izquierda junto al logo institucional.",
+        widget=forms.FileInput(attrs={"accept": "image/png,image/jpeg,image/webp"}),
+    )
+    remove_report_logo = forms.BooleanField(
+        label="Quitar el logo del grado",
+        required=False,
+        help_text="El logo institucional se mantiene siempre en el reporte.",
+    )
 
     def __init__(self, *args, school_year=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1041,8 +1067,20 @@ class RegistryReportForm(forms.Form):
         for field in self.fields.values():
             field.widget.attrs.setdefault("class", "form-control")
 
+    def clean_report_logo(self):
+        logo = self.cleaned_data.get("report_logo")
+        if not logo:
+            return logo
+        if logo.size > 4 * 1024 * 1024:
+            raise forms.ValidationError("El archivo supera el limite de 4 MB.")
+        if getattr(logo, "content_type", "") not in {"image/png", "image/jpeg", "image/webp"}:
+            raise forms.ValidationError("Selecciona una imagen PNG, JPG, JPEG o WebP valida.")
+        return logo
+
     def clean(self):
         cleaned_data = super().clean()
+        if self.data.get("action") == "save_configuration":
+            return cleaned_data
         report_type = cleaned_data.get("report_type")
         scope = cleaned_data.get("scope")
         section = cleaned_data.get("section")

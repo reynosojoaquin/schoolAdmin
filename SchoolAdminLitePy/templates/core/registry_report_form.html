@@ -21,7 +21,7 @@
   </form>
 {% endif %}
 
-<form class="form-panel" method="post">
+<form class="form-panel" method="post" enctype="multipart/form-data">
   {% csrf_token %}
   <input type="hidden" name="school_year" value="{{ selected_school_year }}">
 
@@ -29,8 +29,10 @@
     <div class="form-errors">{{ form.non_field_errors }}</div>
   {% endif %}
 
+  <h2>Datos del reporte</h2>
   <div class="form-grid">
     {% for field in form %}
+      {% if field.name != "center_name" and field.name != "annual_phrase" and field.name != "report_logo" and field.name != "remove_report_logo" %}
       <div class="field">
         <label for="{{ field.id_for_label }}">{{ field.label }}</label>
         {{ field }}
@@ -41,12 +43,104 @@
           <small class="error">{{ error }}</small>
         {% endfor %}
       </div>
+      {% endif %}
     {% endfor %}
   </div>
 
+  <section class="panel report-personalization">
+    <p class="eyebrow">Configuracion del encabezado</p>
+    <h2>Personalizacion del reporte</h2>
+    <p>Estas opciones se guardan para el grado y el ano escolar seleccionados.</p>
+    {% if report_configuration and report_configuration.logo %}
+      <div class="report-logo-current">
+        <span>Logo del grado guardado actualmente</span>
+        <img src="{{ report_configuration.logo.url }}" alt="Logo de {{ report_configuration.course }}">
+      </div>
+    {% else %}
+      <p class="muted">Todavia no hay un logo de grado guardado para la seleccion actual.</p>
+    {% endif %}
+    <div class="form-grid">
+      <div class="field">
+        <label for="{{ form.center_name.id_for_label }}">{{ form.center_name.label }}</label>
+        {{ form.center_name }}
+        <small>{{ form.center_name.help_text }}</small>
+        {% for error in form.center_name.errors %}<small class="error">{{ error }}</small>{% endfor %}
+      </div>
+      <div class="field">
+        <label for="{{ form.annual_phrase.id_for_label }}">{{ form.annual_phrase.label }}</label>
+        {{ form.annual_phrase }}
+        <small>{{ form.annual_phrase.help_text }}</small>
+        {% for error in form.annual_phrase.errors %}<small class="error">{{ error }}</small>{% endfor %}
+      </div>
+      <div class="field">
+        <label for="{{ form.report_logo.id_for_label }}">{{ form.report_logo.label }}</label>
+        {{ form.report_logo }}
+        <small>{{ form.report_logo.help_text }}</small>
+        {% for error in form.report_logo.errors %}<small class="error">{{ error }}</small>{% endfor %}
+        <div class="report-logo-preview" id="report-logo-preview" hidden>
+          <span>Vista previa del nuevo logo</span>
+          <img id="report-logo-preview-image" src="" alt="Vista previa del logo seleccionado">
+          <small id="report-logo-preview-name"></small>
+        </div>
+      </div>
+      <div class="field checkbox-field">
+        <label for="{{ form.remove_report_logo.id_for_label }}">{{ form.remove_report_logo }} {{ form.remove_report_logo.label }}</label>
+        <small>{{ form.remove_report_logo.help_text }}</small>
+        {% for error in form.remove_report_logo.errors %}<small class="error">{{ error }}</small>{% endfor %}
+      </div>
+    </div>
+  </section>
+
   <div class="form-actions">
-    <button type="submit">Generar PDF</button>
+    <button type="submit" name="action" value="generate_pdf">Generar PDF</button>
+    <button class="btn-secondary" type="submit" name="action" value="save_configuration">Guardar personalizacion</button>
     <a class="btn-secondary" href="{% url 'core:dashboard' %}">Cancelar</a>
   </div>
 </form>
+
+<section class="panel">
+  <h2>Contenido del PDF</h2>
+  <p>El logo del grado aparece en la esquina superior izquierda y coexiste con el logo institucional.</p>
+  <p>Los PDF incluyen los valores numericos de presencias, ausencias y tardanzas, junto con un grafico circular.</p>
+</section>
+
+<script>
+  (() => {
+    const input = document.getElementById("{{ form.report_logo.id_for_label }}");
+    const preview = document.getElementById("report-logo-preview");
+    const image = document.getElementById("report-logo-preview-image");
+    const fileName = document.getElementById("report-logo-preview-name");
+    const removeLogo = document.getElementById("{{ form.remove_report_logo.id_for_label }}");
+    if (!input || !preview || !image) return;
+
+    input.addEventListener("change", () => {
+      const file = input.files && input.files[0];
+      if (!file) {
+        preview.hidden = true;
+        image.removeAttribute("src");
+        fileName.textContent = "";
+        return;
+      }
+      const reader = new FileReader();
+      reader.addEventListener("load", () => {
+        image.src = reader.result;
+        fileName.textContent = file.name;
+        preview.hidden = false;
+        if (removeLogo) removeLogo.checked = false;
+      });
+      reader.readAsDataURL(file);
+    });
+
+    if (removeLogo) {
+      removeLogo.addEventListener("change", () => {
+        if (removeLogo.checked) {
+          input.value = "";
+          preview.hidden = true;
+          image.removeAttribute("src");
+          fileName.textContent = "";
+        }
+      });
+    }
+  })();
+</script>
 {% endblock %}
