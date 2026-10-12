@@ -7,6 +7,7 @@
   <div>
     <p class="eyebrow">Gestion academica</p>
     <h1>{{ title }}</h1>
+    {% if can_filter_school_year %}<p>Ano escolar de trabajo: <strong>{{ selected_school_year }}</strong></p>{% endif %}
   </div>
 </section>
 

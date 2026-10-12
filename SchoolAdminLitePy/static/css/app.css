@@ -435,6 +435,11 @@ button {
   margin-bottom: 16px;
 }
 
+.toolbar-label {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .toolbar input {
   background: #fff;
   border: 1px solid var(--line);

@@ -290,7 +290,14 @@ def can_manage_registry_reports(user):
 def selected_school_year(request):
     current_year = default_school_year()
     if can_filter_school_year(request.user):
-        return request.GET.get("school_year") or request.POST.get("school_year") or current_year
+        options = available_school_years()
+        requested_year = (request.GET.get("school_year") or request.POST.get("school_year") or "").strip()
+        if requested_year in options:
+            request.session["selected_school_year"] = requested_year
+            return requested_year
+        saved_year = request.session.get("selected_school_year")
+        if saved_year in options:
+            return saved_year
     return current_year
 
 
@@ -628,8 +635,14 @@ class AcademicListView(AcademicSetupAccessMixin, ListView):
 class AcademicCreateView(AcademicSetupAccessMixin, CreateView):
     template_name = "core/academic_form.html"
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["school_year"] = selected_school_year(self.request)
+        return kwargs
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context.update(school_year_context(self.request))
         context["title"] = self.title
         context["cancel_url_name"] = self.cancel_url_name
         return context
@@ -638,8 +651,14 @@ class AcademicCreateView(AcademicSetupAccessMixin, CreateView):
 class AcademicUpdateView(AcademicSetupAccessMixin, UpdateView):
     template_name = "core/academic_form.html"
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["school_year"] = selected_school_year(self.request)
+        return kwargs
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context.update(school_year_context(self.request))
         context["title"] = self.title
         context["cancel_url_name"] = self.cancel_url_name
         return context

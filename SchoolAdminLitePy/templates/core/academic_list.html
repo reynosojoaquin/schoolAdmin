@@ -11,9 +11,9 @@
   {% if create_url_name %}
     <div class="header-actions">
       {% if create_url_args %}
-        <a class="btn" href="{% url create_url_name create_url_args.0 %}">Nuevo</a>
+        <a class="btn" href="{% url create_url_name create_url_args.0 %}?school_year={{ selected_school_year|urlencode }}">Nuevo</a>
       {% else %}
-        <a class="btn" href="{% url create_url_name %}">Nuevo</a>
+        <a class="btn" href="{% url create_url_name %}?school_year={{ selected_school_year|urlencode }}">Nuevo</a>
       {% endif %}
     </div>
   {% endif %}
@@ -21,7 +21,8 @@
 
 <form class="toolbar" method="get">
   {% if can_filter_school_year %}
-    <select name="school_year" class="form-control">
+    <label class="toolbar-label" for="school-year-filter">Ano escolar</label>
+    <select id="school-year-filter" name="school_year" class="form-control">
       {% for year in school_year_options %}
         <option value="{{ year }}" {% if year == selected_school_year %}selected{% endif %}>{{ year }}</option>
       {% endfor %}

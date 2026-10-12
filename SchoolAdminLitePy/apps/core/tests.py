@@ -222,6 +222,55 @@ class RegistryReportCustomizationTests(TestCase):
         self.assertEqual(subject_names, ["Lengua Espanola"])
 
 
+class SchoolYearSelectionTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser("year-admin", "year-admin@example.com", "password")
+        self.client.force_login(self.admin)
+        configuration = SystemConfiguration.get_solo()
+        configuration.current_school_year = "2026-2027"
+        configuration.save(update_fields=["current_school_year"])
+        self.course = Course.objects.create(name="Curso selector de periodo")
+        self.teacher = Teacher.objects.create(first_name="Docente", last_name="Periodo")
+        self.old_section = Section.objects.create(
+            course=self.course,
+            name="A",
+            school_year="2025-2026",
+            responsible=self.teacher,
+        )
+        self.current_section = Section.objects.create(
+            course=self.course,
+            name="B",
+            school_year="2026-2027",
+            responsible=self.teacher,
+        )
+        Subject.objects.create(section=self.old_section, name="Materia anterior")
+        Subject.objects.create(section=self.current_section, name="Materia actual")
+
+    def test_admin_school_year_selection_persists_between_queries(self):
+        response = self.client.get(
+            reverse("core:subject_list"),
+            {"school_year": "2025-2026", "q": "Materia anterior"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Materia anterior")
+        self.assertNotContains(response, "Materia actual")
+
+        response = self.client.get(reverse("core:teaching_assignment_list"))
+        self.assertEqual(response.context["selected_school_year"], "2025-2026")
+        self.assertEqual(self.client.session["selected_school_year"], "2025-2026")
+
+    def test_subject_create_uses_selected_school_year(self):
+        self.client.get(reverse("core:subject_list"), {"school_year": "2025-2026"})
+
+        response = self.client.get(reverse("core:subject_create"))
+
+        self.assertEqual(response.status_code, 200)
+        section_ids = set(response.context["form"].fields["section"].queryset.values_list("pk", flat=True))
+        self.assertIn(self.old_section.pk, section_ids)
+        self.assertNotIn(self.current_section.pk, section_ids)
+        self.assertContains(response, "Ano escolar de trabajo: <strong>2025-2026</strong>", html=True)
+
+
 class AdministrativeEmployeeCatalogTests(TestCase):
     @classmethod
     def setUpTestData(cls):

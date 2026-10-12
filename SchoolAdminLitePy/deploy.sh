@@ -4,6 +4,8 @@ set -e
 SERVER="joaquin@192.168.60.3"
 REMOTE_BASE="/srv/centro/schooladmin"
 SERVICE="schooladmin"
+SERVICE_USER="centroapp"
+ENV_FILE="/etc/schooladmin.env"
 VENV="/srv/centro/schooladmin/venv"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 COMMIT=$(git -C "$SCRIPT_DIR" rev-parse --short HEAD)
@@ -39,11 +41,11 @@ ssh "$SERVER" "sudo ln -sfn ${REMOTE_BASE}/releases/${RELEASE} ${REMOTE_BASE}/cu
 echo "OK"
 
 echo "[5/7] Migraciones..."
-ssh "$SERVER" "sudo bash -c 'cd ${REMOTE_BASE}/current && ${VENV}/bin/python manage.py migrate --noinput'"
+ssh "$SERVER" "sudo bash -c 'set -a; . ${ENV_FILE}; set +a; cd ${REMOTE_BASE}/current && runuser -u ${SERVICE_USER} --preserve-environment -- ${VENV}/bin/python manage.py migrate --noinput'"
 echo "OK"
 
 echo "[6/7] Static files..."
-ssh "$SERVER" "sudo bash -c 'cd ${REMOTE_BASE}/current && ${VENV}/bin/python manage.py collectstatic --noinput 2>&1 | tail -1'"
+ssh "$SERVER" "sudo bash -c 'set -a; . ${ENV_FILE}; set +a; cd ${REMOTE_BASE}/current && runuser -u ${SERVICE_USER} --preserve-environment -- ${VENV}/bin/python manage.py collectstatic --noinput 2>&1 | tail -1'"
 echo "OK"
 
 echo "[7/7] Reiniciando servicio..."

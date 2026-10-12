@@ -318,6 +318,10 @@ class AdministrativeEmployeeForm(PersonFormMixin, forms.ModelForm):
 
 
 class AcademicFormMixin:
+    def __init__(self, *args, school_year=None, **kwargs):
+        self.school_year = school_year or configured_school_year()
+        super().__init__(*args, **kwargs)
+
     def apply_widgets(self):
         for field in self.fields.values():
             field.widget.attrs.setdefault("class", "form-control")
@@ -774,7 +778,7 @@ class SectionForm(AcademicFormMixin, forms.ModelForm):
         self.fields["responsible"].queryset = Teacher.objects.filter(active=True)
         self.fields["responsible"].required = True
         if not self.instance.pk:
-            self.fields["school_year"].initial = configured_school_year()
+            self.fields["school_year"].initial = self.school_year
         self.apply_widgets()
 
 
@@ -817,7 +821,7 @@ class SubjectForm(AcademicFormMixin, forms.ModelForm):
         super().__init__(*args, **kwargs)
         section_queryset = Section.objects.filter(
             active=True,
-            school_year=configured_school_year(),
+            school_year=self.school_year,
         ).select_related("course", "responsible")
         if self.instance and self.instance.pk:
             section_queryset = (section_queryset | Section.objects.filter(pk=self.instance.section_id)).distinct()
@@ -845,7 +849,7 @@ class TeachingAssignmentForm(AcademicFormMixin, forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["section"].queryset = Section.objects.filter(
             active=True,
-            school_year=configured_school_year(),
+            school_year=self.school_year,
         ).select_related("course", "responsible")
         self.fields["subject"].queryset = self.get_subject_queryset()
         self.fields["teacher"].queryset = Teacher.objects.filter(active=True)
