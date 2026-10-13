@@ -107,6 +107,52 @@
 
 <script>
   (() => {
+    const sectionField = document.getElementById("{{ form.section.id_for_label }}");
+    const studentField = document.getElementById("{{ form.student.id_for_label }}");
+    if (!sectionField || !studentField) return;
+
+    const studentsUrl = "{% url 'core:section_students_options' %}";
+    const initialStudent = studentField.value;
+
+    const resetStudents = (label) => {
+      studentField.innerHTML = "";
+      const option = document.createElement("option");
+      option.value = "";
+      option.textContent = label;
+      studentField.appendChild(option);
+    };
+
+    const loadStudents = async (selectedStudent = "") => {
+      if (!sectionField.value) {
+        resetStudents("Selecciona primero una seccion");
+        return;
+      }
+      resetStudents("Cargando estudiantes...");
+      try {
+        const response = await fetch(`${studentsUrl}?section=${encodeURIComponent(sectionField.value)}`, {
+          headers: {"X-Requested-With": "XMLHttpRequest"},
+        });
+        if (!response.ok) throw new Error("No fue posible cargar los estudiantes.");
+        const data = await response.json();
+        resetStudents(data.students.length ? "Selecciona un estudiante" : "No hay estudiantes en esta seccion");
+        data.students.forEach((student) => {
+          const option = document.createElement("option");
+          option.value = student.id;
+          option.textContent = student.text;
+          option.selected = String(student.id) === String(selectedStudent);
+          studentField.appendChild(option);
+        });
+      } catch (error) {
+        resetStudents("No se pudieron cargar los estudiantes");
+      }
+    };
+
+    sectionField.addEventListener("change", () => loadStudents());
+    if (sectionField.value && studentField.options.length <= 1) loadStudents(initialStudent);
+    if (!sectionField.value) resetStudents("Selecciona primero una seccion");
+  })();
+
+  (() => {
     const input = document.getElementById("{{ form.report_logo.id_for_label }}");
     const preview = document.getElementById("report-logo-preview");
     const image = document.getElementById("report-logo-preview-image");

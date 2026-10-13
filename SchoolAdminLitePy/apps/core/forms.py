@@ -1063,11 +1063,22 @@ class RegistryReportForm(forms.Form):
             "school_year",
         )
         self.fields["section"].queryset = self.fields["section"].queryset.filter(school_year=school_year)
-        self.fields["student"].queryset = Student.objects.filter(
-            active=True,
-            enrollments__school_year=school_year,
-            enrollments__active=True,
-        ).distinct().order_by("last_name", "first_name")
+        section_value = self.data.get("section") if self.is_bound else self.initial.get("section")
+        section_id = getattr(section_value, "pk", section_value)
+        student_queryset = Student.objects.none()
+        if section_id:
+            try:
+                selected_section = self.fields["section"].queryset.get(pk=section_id)
+            except (Section.DoesNotExist, ValueError, TypeError):
+                selected_section = None
+            if selected_section:
+                student_queryset = Student.objects.filter(
+                    active=True,
+                    enrollments__section=selected_section,
+                    enrollments__school_year=selected_section.school_year,
+                    enrollments__active=True,
+                ).distinct().order_by("last_name", "first_name")
+        self.fields["student"].queryset = student_queryset
         for field in self.fields.values():
             field.widget.attrs.setdefault("class", "form-control")
 
@@ -1098,9 +1109,13 @@ class RegistryReportForm(forms.Form):
         if report_type == self.REPORT_FINAL_ACT and scope == self.SCOPE_STUDENT:
             raise forms.ValidationError("El acta final se genera de forma colectiva por seccion.")
         if section and student:
-            is_enrolled = student.enrollments.filter(course=section.course, active=True).exists()
+            is_enrolled = student.enrollments.filter(
+                section=section,
+                school_year=section.school_year,
+                active=True,
+            ).exists()
             if not is_enrolled:
-                raise forms.ValidationError("El estudiante seleccionado no esta inscrito activamente en el curso de esa seccion.")
+                raise forms.ValidationError("El estudiante seleccionado no esta inscrito activamente en esa seccion.")
         return cleaned_data
 
 

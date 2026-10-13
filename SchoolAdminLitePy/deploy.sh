@@ -32,6 +32,7 @@ set -e
 sudo mkdir -p ${REMOTE_BASE}/releases/${RELEASE}
 sudo tar -xzf /tmp/schooladmin-release.tar.gz -C ${REMOTE_BASE}/releases/${RELEASE}
 echo ${RELEASE} | sudo tee ${REMOTE_BASE}/releases/${RELEASE}/RELEASE_COMMIT > /dev/null
+sudo chown -R ${SERVICE_USER}:${SERVICE_USER} ${REMOTE_BASE}/releases/${RELEASE}
 rm -f /tmp/schooladmin-release.tar.gz
 REMOTE
 echo "OK"
@@ -45,7 +46,7 @@ ssh "$SERVER" "sudo bash -c 'set -a; . ${ENV_FILE}; set +a; cd ${REMOTE_BASE}/cu
 echo "OK"
 
 echo "[6/7] Static files..."
-ssh "$SERVER" "sudo bash -c 'set -a; . ${ENV_FILE}; set +a; cd ${REMOTE_BASE}/current && runuser -u ${SERVICE_USER} --preserve-environment -- ${VENV}/bin/python manage.py collectstatic --noinput 2>&1 | tail -1'"
+ssh "$SERVER" "sudo bash -o pipefail -c 'set -a; . ${ENV_FILE}; set +a; cd ${REMOTE_BASE}/current && runuser -u ${SERVICE_USER} --preserve-environment -- ${VENV}/bin/python manage.py collectstatic --noinput 2>&1 | tail -1'"
 echo "OK"
 
 echo "[7/7] Reiniciando servicio..."

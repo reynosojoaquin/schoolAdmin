@@ -330,7 +330,7 @@ def section_students_options(request):
     students = []
     if section_id:
         section = get_object_or_404(Section, pk=section_id, active=True)
-        if can_user_work_in_section(request.user, section):
+        if can_user_work_in_section(request.user, section) or can_manage_registry_reports(request.user):
             students = [
                 {"id": student.id, "text": str(student)}
                 for student in Student.objects.filter(

@@ -114,6 +114,34 @@ class RegistryReportCustomizationTests(TestCase):
         self.assertContains(response, 'name="remove_report_logo"')
         self.assertContains(response, "Vista previa del nuevo logo")
         self.assertContains(response, 'id="report-logo-preview-image"')
+        self.assertContains(response, reverse("core:section_students_options"))
+
+    def test_report_students_are_filtered_by_selected_section(self):
+        other_section = Section.objects.create(course=self.course, name="B", school_year=self.school_year)
+        other_student = Student.objects.create(first_name="Berta", last_name="Otra")
+        Enrollment.objects.create(
+            student=other_student,
+            course=self.course,
+            section=other_section,
+            school_year=self.school_year,
+        )
+
+        response = self.client.get(reverse("core:section_students_options"), {"section": self.section.pk})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["students"], [{"id": self.student.pk, "text": str(self.student)}])
+
+        response = self.client.post(
+            reverse("core:registry_reports"),
+            {
+                "report_type": "periodic",
+                "section": self.section.pk,
+                "scope": "student",
+                "student": other_student.pk,
+                "school_year": self.school_year,
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["form"].errors["student"])
 
     def test_report_saves_phrase_for_course_and_school_year(self):
         response = self.client.post(
