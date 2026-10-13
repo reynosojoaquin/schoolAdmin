@@ -114,7 +114,7 @@ class RegistryReportCustomizationTests(TestCase):
         self.assertContains(response, 'name="remove_report_logo"')
         self.assertContains(response, "Vista previa del nuevo logo")
         self.assertContains(response, 'id="report-logo-preview-image"')
-        self.assertContains(response, reverse("core:section_students_options"))
+        self.assertContains(response, "reloadForSection")
 
     def test_report_students_are_filtered_by_selected_section(self):
         other_section = Section.objects.create(course=self.course, name="B", school_year=self.school_year)
@@ -129,6 +129,19 @@ class RegistryReportCustomizationTests(TestCase):
         response = self.client.get(reverse("core:section_students_options"), {"section": self.section.pk})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["students"], [{"id": self.student.pk, "text": str(self.student)}])
+
+        response = self.client.get(
+            reverse("core:registry_reports"),
+            {
+                "section": self.section.pk,
+                "report_type": "rcf",
+                "scope": "student",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(list(response.context["form"].fields["student"].queryset), [self.student])
+        self.assertEqual(response.context["form"].initial["report_type"], "rcf")
+        self.assertEqual(response.context["form"].initial["scope"], "student")
 
         response = self.client.post(
             reverse("core:registry_reports"),

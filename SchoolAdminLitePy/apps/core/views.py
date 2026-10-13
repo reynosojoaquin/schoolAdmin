@@ -2788,6 +2788,10 @@ class RegistryReportView(AcademicAccessMixin, View):
                 active=True,
             ).select_related("course").first()
         initial = {}
+        if request.GET.get("report_type"):
+            initial["report_type"] = request.GET["report_type"]
+        if request.GET.get("scope"):
+            initial["scope"] = request.GET["scope"]
         if selected_section:
             report_configuration = RegistryReportConfiguration.objects.filter(
                 course=selected_section.course,

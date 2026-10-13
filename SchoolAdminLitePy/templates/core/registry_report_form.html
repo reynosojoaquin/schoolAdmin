@@ -111,8 +111,9 @@
     const studentField = document.getElementById("{{ form.student.id_for_label }}");
     if (!sectionField || !studentField) return;
 
-    const studentsUrl = "{% url 'core:section_students_options' %}";
-    const initialStudent = studentField.value;
+    const reportTypeField = document.getElementById("{{ form.report_type.id_for_label }}");
+    const scopeField = document.getElementById("{{ form.scope.id_for_label }}");
+    const schoolYearField = document.querySelector('input[name="school_year"]');
 
     const resetStudents = (label) => {
       studentField.innerHTML = "";
@@ -122,33 +123,22 @@
       studentField.appendChild(option);
     };
 
-    const loadStudents = async (selectedStudent = "") => {
+    const reloadForSection = () => {
       if (!sectionField.value) {
         resetStudents("Selecciona primero una seccion");
         return;
       }
       resetStudents("Cargando estudiantes...");
-      try {
-        const response = await fetch(`${studentsUrl}?section=${encodeURIComponent(sectionField.value)}`, {
-          headers: {"X-Requested-With": "XMLHttpRequest"},
-        });
-        if (!response.ok) throw new Error("No fue posible cargar los estudiantes.");
-        const data = await response.json();
-        resetStudents(data.students.length ? "Selecciona un estudiante" : "No hay estudiantes en esta seccion");
-        data.students.forEach((student) => {
-          const option = document.createElement("option");
-          option.value = student.id;
-          option.textContent = student.text;
-          option.selected = String(student.id) === String(selectedStudent);
-          studentField.appendChild(option);
-        });
-      } catch (error) {
-        resetStudents("No se pudieron cargar los estudiantes");
-      }
+      const url = new URL(window.location.href);
+      url.searchParams.set("section", sectionField.value);
+      if (schoolYearField && schoolYearField.value) url.searchParams.set("school_year", schoolYearField.value);
+      if (reportTypeField && reportTypeField.value) url.searchParams.set("report_type", reportTypeField.value);
+      if (scopeField && scopeField.value) url.searchParams.set("scope", scopeField.value);
+      url.searchParams.delete("student");
+      window.location.assign(url.toString());
     };
 
-    sectionField.addEventListener("change", () => loadStudents());
-    if (sectionField.value && studentField.options.length <= 1) loadStudents(initialStudent);
+    sectionField.addEventListener("change", reloadForSection);
     if (!sectionField.value) resetStudents("Selecciona primero una seccion");
   })();
 
