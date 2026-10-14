@@ -110,22 +110,22 @@ def _subject_grade_matrix(enrollment, section=None):
     return rows
 
 
-def _header_elements(rl, section, title, horizontal=False, report_configuration=None):
+def _header_elements(rl, section, title, horizontal=False, report_configuration=None, compact=False):
     styles = rl["getSampleStyleSheet"]()
     center = rl["ParagraphStyle"](
         "centered",
         parent=styles["Normal"],
         alignment=rl["TA_CENTER"],
         fontName="Helvetica-Bold",
-        fontSize=10,
-        leading=12,
+        fontSize=8 if compact else 10,
+        leading=9 if compact else 12,
     )
     title_style = rl["ParagraphStyle"](
         "title",
         parent=center,
-        fontSize=14 if horizontal else 13,
+        fontSize=11 if compact else (14 if horizontal else 13),
         textColor=rl["colors"].darkgreen,
-        leading=16,
+        leading=12 if compact else 16,
     )
     system_configuration = SystemConfiguration.get_solo()
     institution_name = (
@@ -141,7 +141,7 @@ def _header_elements(rl, section, title, horizontal=False, report_configuration=
     heading = [
         rl["Paragraph"](_text(institution_name).upper(), center),
         rl["Paragraph"](f'"{_text(annual_phrase)}"', center),
-        rl["Spacer"](1, 8),
+        rl["Spacer"](1, 3 if compact else 8),
         rl["Paragraph"](title, title_style),
         rl["Paragraph"](f"Ano escolar: {_school_year_label(section.school_year)}", center),
     ]
@@ -166,14 +166,14 @@ def _header_elements(rl, section, title, horizontal=False, report_configuration=
         except (OSError, ValueError):
             return ""
 
-    ministry_logo = logo_image(None, "img/logo-minerd.png", width=2.15, height=0.85)
-    grade_logo = logo_image(report_configuration.logo if report_configuration else None, width=1.8)
-    school_logo = logo_image(system_configuration.logo, "img/logo-centro-default.jpeg", width=1.35)
-    ministry_header = rl["Table"]([[ministry_logo]], colWidths=[2.3 * rl["inch"]])
+    ministry_logo = logo_image(None, "img/logo-minerd.png", width=1.5 if compact else 2.15, height=0.5 if compact else 0.85)
+    grade_logo = logo_image(report_configuration.logo if report_configuration else None, width=0.72 if compact else 1.8)
+    school_logo = logo_image(system_configuration.logo, "img/logo-centro-default.jpeg", width=0.72 if compact else 1.35)
+    ministry_header = rl["Table"]([[ministry_logo]], colWidths=[1.7 * rl["inch"] if compact else 2.3 * rl["inch"]])
     ministry_header.hAlign = "CENTER"
-    ministry_header.setStyle(rl["TableStyle"]([("ALIGN", (0, 0), (-1, -1), "CENTER"), ("BOTTOMPADDING", (0, 0), (-1, -1), 6)]))
-    side_width = 1.9 * rl["inch"]
-    center_width = 6.7 * rl["inch"] if horizontal else 4.0 * rl["inch"]
+    ministry_header.setStyle(rl["TableStyle"]([("ALIGN", (0, 0), (-1, -1), "CENTER"), ("BOTTOMPADDING", (0, 0), (-1, -1), 2 if compact else 6)]))
+    side_width = (1.2 if compact else 1.9) * rl["inch"]
+    center_width = (8.1 if compact else 6.7) * rl["inch"] if horizontal else 4.0 * rl["inch"]
     header = rl["Table"](
         [[grade_logo, heading, school_logo]],
         colWidths=[side_width, center_width, side_width],
@@ -190,7 +190,7 @@ def _header_elements(rl, section, title, horizontal=False, report_configuration=
             ]
         )
     )
-    return [ministry_header, header, rl["Spacer"](1, 14)]
+    return [ministry_header, header, rl["Spacer"](1, 5 if compact else 14)]
 
 
 def _attendance_counts(enrollments):
@@ -209,7 +209,7 @@ def _attendance_counts(enrollments):
     return counts
 
 
-def _attendance_summary(rl, enrollments, title="ASISTENCIA A CLASE"):
+def _attendance_summary(rl, enrollments, title="ASISTENCIA A CLASE", compact=False):
     from reportlab.graphics.charts.piecharts import Pie
     from reportlab.graphics.shapes import Drawing, String
 
@@ -232,13 +232,13 @@ def _attendance_summary(rl, enrollments, title="ASISTENCIA A CLASE"):
         )
     )
 
-    drawing = Drawing(250, 125)
-    drawing.add(String(125, 112, "Distribucion de asistencia", textAnchor="middle", fontName="Helvetica-Bold", fontSize=8))
+    drawing = Drawing(180 if compact else 250, 78 if compact else 125)
+    drawing.add(String(90 if compact else 125, 68 if compact else 112, "Distribucion de asistencia", textAnchor="middle", fontName="Helvetica-Bold", fontSize=7 if compact else 8))
     pie = Pie()
-    pie.x = 10
-    pie.y = 8
-    pie.width = 100
-    pie.height = 95
+    pie.x = 3 if compact else 10
+    pie.y = 2 if compact else 8
+    pie.width = 62 if compact else 100
+    pie.height = 58 if compact else 95
     pie.data = values if sum(values) else [1]
     pie.labels = [f"{label}: {value}" for label, value in zip(labels, values)] if sum(values) else ["Sin registros"]
     pie.slices.strokeWidth = 0.5
@@ -249,7 +249,7 @@ def _attendance_summary(rl, enrollments, title="ASISTENCIA A CLASE"):
     else:
         pie.slices[0].fillColor = rl["colors"].HexColor("#d1d5db")
     drawing.add(pie)
-    return rl["KeepTogether"]([rl["Table"]([[metrics, drawing]], colWidths=[2.35 * rl["inch"], 3.5 * rl["inch"]])])
+    return rl["KeepTogether"]([rl["Table"]([[metrics, drawing]], colWidths=[2.25 * rl["inch"], (2.6 if compact else 3.5) * rl["inch"]])])
 
 
 def _student_line(rl, enrollment, section=None):
@@ -386,18 +386,31 @@ def build_rcf_reports_pdf(enrollments, section, report_configuration=None):
             _header_elements(
                 rl,
                 section,
-                "BOLETIN DE CALIFICACIONES",
+                "REPORTE DE CALIFICACIONES FINALES (RCF)",
                 horizontal=True,
                 report_configuration=report_configuration,
+                compact=True,
             )
         )
         story.append(_student_line(rl, enrollment, section))
-        story.append(rl["Spacer"](1, 6))
-        header = ["ASIGNATURA"]
+        story.append(rl["Spacer"](1, 3))
+        styles = rl["getSampleStyleSheet"]()
+        competency_style = rl["ParagraphStyle"](
+            "rcf_competency_header",
+            parent=styles["Normal"],
+            alignment=rl["TA_CENTER"],
+            fontName="Helvetica-Bold",
+            fontSize=5.2,
+            leading=5.8,
+        )
+        group_header = ["ASIGNATURA"]
+        detail_header = [""]
         for label in COMPETENCY_LABELS:
-            header.extend([label, "P1", "P2", "P3", "P4"])
-        header.extend(["FINAL", "A", "R"])
-        data = [header]
+            group_header.extend([rl["Paragraph"](label, competency_style), "", "", "", ""])
+            detail_header.extend(["Comp.", "P1", "P2", "P3", "P4"])
+        group_header.extend(["RESULTADO", "", ""])
+        detail_header.extend(["Final", "A", "R"])
+        data = [group_header, detail_header]
         for row in _subject_grade_matrix(enrollment, section):
             line = [row["subject"].name]
             grades = row["grades"][:4]
@@ -411,24 +424,30 @@ def build_rcf_reports_pdf(enrollments, section, report_configuration=None):
             line.extend([_fmt(row["final"]), "X" if row["approved"] else "", "" if row["approved"] else "X"])
             data.append(line)
         widths = [1.55 * rl["inch"]] + [0.38 * rl["inch"]] * 20 + [0.42 * rl["inch"], 0.28 * rl["inch"], 0.28 * rl["inch"]]
-        table = rl["Table"](data, repeatRows=1, colWidths=widths)
+        table = rl["Table"](data, repeatRows=2, colWidths=widths)
+        table_style = [
+            ("GRID", (0, 0), (-1, -1), 0.45, colors.black),
+            ("BACKGROUND", (0, 0), (-1, 1), colors.HexColor("#d9ecf8")),
+            ("FONTNAME", (0, 0), (-1, 1), "Helvetica-Bold"),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("FONTSIZE", (0, 0), (-1, -1), 5.1),
+            ("FONTSIZE", (0, 2), (0, -1), 6),
+            ("SPAN", (0, 0), (0, 1)),
+            ("SPAN", (21, 0), (23, 0)),
+            ("TOPPADDING", (0, 0), (-1, -1), 2),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+        ]
+        for competency_index in range(4):
+            start_column = 1 + competency_index * 5
+            table_style.append(("SPAN", (start_column, 0), (start_column + 4, 0)))
         table.setStyle(
-            rl["TableStyle"](
-                [
-                    ("GRID", (0, 0), (-1, -1), 0.45, colors.black),
-                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#d9ecf8")),
-                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                    ("ALIGN", (1, 1), (-1, -1), "CENTER"),
-                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                    ("FONTSIZE", (0, 0), (-1, -1), 5.3),
-                    ("FONTSIZE", (0, 1), (0, -1), 6.2),
-                ]
-            )
+            rl["TableStyle"](table_style)
         )
         story.append(table)
-        story.append(rl["Spacer"](1, 12))
-        story.append(_attendance_summary(rl, [enrollment]))
-        story.append(rl["Spacer"](1, 18))
+        story.append(rl["Spacer"](1, 5))
+        story.append(_attendance_summary(rl, [enrollment], compact=True))
+        story.append(rl["Spacer"](1, 6))
         story.append(_signature_block(rl))
     doc.build(story)
     return buffer.getvalue()
