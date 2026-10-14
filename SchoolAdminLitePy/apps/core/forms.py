@@ -1006,7 +1006,7 @@ class RegistryReportForm(forms.Form):
     REPORT_FINAL_ACT = "final_act"
     REPORT_CHOICES = [
         (REPORT_PERIODIC, "Boletin de calificaciones por periodo"),
-        (REPORT_RCF, "RCF individual (requiere seleccionar un estudiante)"),
+        (REPORT_RCF, "Reporte de calificaciones finales (RCF)"),
         (REPORT_FINAL_ACT, "Acta final colectiva (seccion completa)"),
     ]
     SCOPE_GROUP = "group"
@@ -1100,11 +1100,7 @@ class RegistryReportForm(forms.Form):
         scope = cleaned_data.get("scope")
         section = cleaned_data.get("section")
         student = cleaned_data.get("student")
-        if report_type == self.REPORT_RCF:
-            cleaned_data["scope"] = self.SCOPE_STUDENT
-            if not student:
-                raise forms.ValidationError("El RCF requiere seleccionar un estudiante.")
-        elif report_type == self.REPORT_FINAL_ACT:
+        if report_type == self.REPORT_FINAL_ACT:
             cleaned_data["scope"] = self.SCOPE_GROUP
             cleaned_data["student"] = None
         elif scope == self.SCOPE_STUDENT and not student:

@@ -117,7 +117,6 @@
 
     const syncReportFields = () => {
       if (!reportTypeField || !scopeField) return;
-      if (reportTypeField.value === "rcf") scopeField.value = "student";
       if (reportTypeField.value === "final_act") scopeField.value = "group";
       const needsStudent = scopeField.value === "student" && reportTypeField.value !== "final_act";
       studentField.disabled = !needsStudent;

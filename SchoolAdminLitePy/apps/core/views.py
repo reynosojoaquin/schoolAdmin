@@ -89,7 +89,7 @@ from .models import (
     Teacher,
     TeachingAssignment,
 )
-from .report_pdfs import build_final_act_pdf, build_guidance_case_pdf, build_periodic_report_pdf, build_rcf_report_pdf
+from .report_pdfs import build_final_act_pdf, build_guidance_case_pdf, build_periodic_report_pdf, build_rcf_reports_pdf
 
 
 ADMIN_ROLE = "Administrador"
@@ -2858,14 +2858,18 @@ class RegistryReportView(AcademicAccessMixin, View):
             content = build_final_act_pdf(section, report_configuration=report_configuration)
             filename = f"acta_final_{section.course.name}_{section.name}.pdf"
         elif report_type == RegistryReportForm.REPORT_RCF:
-            enrollment = enrollments.first()
-            if not enrollment:
-                form.add_error(None, "No se encontro una inscripcion activa para ese estudiante en la seccion.")
+            enrollment_list = list(enrollments)
+            if not enrollment_list:
+                form.add_error(None, "No se encontraron estudiantes inscritos para generar el RCF.")
                 context = {"form": form, "title": "Reportes de registro"}
                 context.update(school_year_context(request))
                 return render(request, self.template_name, context)
-            content = build_rcf_report_pdf(enrollment, section, report_configuration=report_configuration)
-            filename = f"rcf_{enrollment.student.last_name}_{enrollment.student.first_name}.pdf"
+            content = build_rcf_reports_pdf(enrollment_list, section, report_configuration=report_configuration)
+            if scope == RegistryReportForm.SCOPE_STUDENT:
+                enrollment = enrollment_list[0]
+                filename = f"rcf_{enrollment.student.last_name}_{enrollment.student.first_name}.pdf"
+            else:
+                filename = f"rcf_colectivo_{section.course.name}_{section.name}.pdf"
         else:
             enrollment_list = list(enrollments)
             if not enrollment_list:

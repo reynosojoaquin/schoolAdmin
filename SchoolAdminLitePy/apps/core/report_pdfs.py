@@ -362,7 +362,11 @@ def build_periodic_report_pdf(section, enrollments, report_configuration=None):
 
 
 def build_rcf_report_pdf(enrollment, section=None, report_configuration=None):
-    section = section or enrollment.section
+    return build_rcf_reports_pdf([enrollment], section or enrollment.section, report_configuration=report_configuration)
+
+
+def build_rcf_reports_pdf(enrollments, section, report_configuration=None):
+    enrollments = list(enrollments)
     rl = _reportlab()
     colors = rl["colors"]
     buffer = BytesIO()
@@ -374,51 +378,58 @@ def build_rcf_report_pdf(enrollment, section=None, report_configuration=None):
         topMargin=0.25 * rl["inch"],
         bottomMargin=0.25 * rl["inch"],
     )
-    story = _header_elements(rl, section, "BOLETIN DE CALIFICACIONES", horizontal=True, report_configuration=report_configuration)
-    story.append(_student_line(rl, enrollment, section))
-    story.append(rl["Spacer"](1, 6))
-    header = ["ASIGNATURA"]
-    for label in COMPETENCY_LABELS:
-        header.extend([label, "P1", "P2", "P3", "P4"])
-    header.extend(["FINAL", "A", "R"])
-    data = [header]
-    for row in _subject_grade_matrix(enrollment, section):
-        line = [row["subject"].name]
-        grades = row["grades"][:4]
-        for index in range(4):
-            grade = grades[index] if index < len(grades) else None
-            label = ""
-            if grade and grade.subject_competency:
-                label = grade.subject_competency.competency.description[:18]
-            effective_periods = grade.effective_periods if grade else [None, None, None, None]
-            line.extend(
+    story = []
+    for enrollment_index, enrollment in enumerate(enrollments):
+        if enrollment_index:
+            story.append(rl["PageBreak"]())
+        story.extend(
+            _header_elements(
+                rl,
+                section,
+                "BOLETIN DE CALIFICACIONES",
+                horizontal=True,
+                report_configuration=report_configuration,
+            )
+        )
+        story.append(_student_line(rl, enrollment, section))
+        story.append(rl["Spacer"](1, 6))
+        header = ["ASIGNATURA"]
+        for label in COMPETENCY_LABELS:
+            header.extend([label, "P1", "P2", "P3", "P4"])
+        header.extend(["FINAL", "A", "R"])
+        data = [header]
+        for row in _subject_grade_matrix(enrollment, section):
+            line = [row["subject"].name]
+            grades = row["grades"][:4]
+            for index in range(4):
+                grade = grades[index] if index < len(grades) else None
+                label = ""
+                if grade and grade.subject_competency:
+                    label = grade.subject_competency.competency.description[:18]
+                effective_periods = grade.effective_periods if grade else [None, None, None, None]
+                line.extend([label, *[_fmt(value) for value in effective_periods]])
+            line.extend([_fmt(row["final"]), "X" if row["approved"] else "", "" if row["approved"] else "X"])
+            data.append(line)
+        widths = [1.55 * rl["inch"]] + [0.38 * rl["inch"]] * 20 + [0.42 * rl["inch"], 0.28 * rl["inch"], 0.28 * rl["inch"]]
+        table = rl["Table"](data, repeatRows=1, colWidths=widths)
+        table.setStyle(
+            rl["TableStyle"](
                 [
-                    label,
-                    *[_fmt(value) for value in effective_periods],
+                    ("GRID", (0, 0), (-1, -1), 0.45, colors.black),
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#d9ecf8")),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("ALIGN", (1, 1), (-1, -1), "CENTER"),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 5.3),
+                    ("FONTSIZE", (0, 1), (0, -1), 6.2),
                 ]
             )
-        line.extend([_fmt(row["final"]), "X" if row["approved"] else "", "" if row["approved"] else "X"])
-        data.append(line)
-    widths = [1.55 * rl["inch"]] + [0.38 * rl["inch"]] * 20 + [0.42 * rl["inch"], 0.28 * rl["inch"], 0.28 * rl["inch"]]
-    table = rl["Table"](data, repeatRows=1, colWidths=widths)
-    table.setStyle(
-        rl["TableStyle"](
-            [
-                ("GRID", (0, 0), (-1, -1), 0.45, colors.black),
-                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#d9ecf8")),
-                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                ("ALIGN", (1, 1), (-1, -1), "CENTER"),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("FONTSIZE", (0, 0), (-1, -1), 5.3),
-                ("FONTSIZE", (0, 1), (0, -1), 6.2),
-            ]
         )
-    )
-    story.append(table)
-    story.append(rl["Spacer"](1, 12))
-    story.append(_attendance_summary(rl, [enrollment]))
-    story.append(rl["Spacer"](1, 18))
-    story.append(_signature_block(rl))
+        story.append(table)
+        story.append(rl["Spacer"](1, 12))
+        story.append(_attendance_summary(rl, [enrollment]))
+        story.append(rl["Spacer"](1, 18))
+        story.append(_signature_block(rl))
     doc.build(story)
     return buffer.getvalue()
 

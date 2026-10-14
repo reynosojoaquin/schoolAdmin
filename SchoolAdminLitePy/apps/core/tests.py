@@ -190,6 +190,30 @@ class RegistryReportCustomizationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Content-Type"], "application/pdf")
 
+    def test_rcf_can_be_generated_for_the_whole_section(self):
+        second_student = Student.objects.create(first_name="Berta", last_name="Colectiva")
+        Enrollment.objects.create(
+            student=second_student,
+            course=self.course,
+            section=self.section,
+            school_year=self.school_year,
+        )
+
+        response = self.client.post(
+            reverse("core:registry_reports"),
+            {
+                "report_type": "rcf",
+                "section": self.section.pk,
+                "scope": "group",
+                "student": "",
+                "school_year": self.school_year,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/pdf")
+        self.assertIn("rcf_colectivo", response["Content-Disposition"])
+
     def test_report_saves_uploaded_course_logo(self):
         png = base64.b64decode(
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
