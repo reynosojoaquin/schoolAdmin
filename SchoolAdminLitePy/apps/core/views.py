@@ -2838,6 +2838,14 @@ class RegistryReportView(AcademicAccessMixin, View):
             report_configuration.logo = ""
         elif form.cleaned_data.get("report_logo"):
             report_configuration.logo = form.cleaned_data["report_logo"]
+        if form.cleaned_data.get("remove_teacher_signature"):
+            report_configuration.teacher_signature = ""
+        elif form.cleaned_data.get("teacher_signature"):
+            report_configuration.teacher_signature = form.cleaned_data["teacher_signature"]
+        if form.cleaned_data.get("remove_director_signature"):
+            report_configuration.director_signature = ""
+        elif form.cleaned_data.get("director_signature"):
+            report_configuration.director_signature = form.cleaned_data["director_signature"]
         report_configuration.save()
         if request.POST.get("action") == "save_configuration":
             messages.success(request, f"La personalizacion de {section.course} se guardo correctamente.")

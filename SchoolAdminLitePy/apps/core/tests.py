@@ -31,7 +31,7 @@ from .models import (
     Teacher,
     TeachingAssignment,
 )
-from .report_pdfs import _attendance_counts, _subject_grade_matrix, build_periodic_report_pdf
+from .report_pdfs import _attendance_counts, _is_failing_grade, _subject_grade_matrix, build_periodic_report_pdf
 
 
 TEST_MEDIA_ROOT = tempfile.mkdtemp()
@@ -112,6 +112,8 @@ class RegistryReportCustomizationTests(TestCase):
         self.assertContains(response, 'name="annual_phrase"')
         self.assertContains(response, 'name="report_logo"')
         self.assertContains(response, 'name="remove_report_logo"')
+        self.assertContains(response, 'name="teacher_signature"')
+        self.assertContains(response, 'name="director_signature"')
         self.assertContains(response, "Vista previa del nuevo logo")
         self.assertContains(response, 'id="report-logo-preview-image"')
         self.assertContains(response, "reloadForSection")
@@ -256,6 +258,33 @@ class RegistryReportCustomizationTests(TestCase):
         response = self.client.get(response.url)
         self.assertContains(response, "Logo del grado guardado actualmente")
         self.assertContains(response, "/media/registry_reports/vista")
+
+    def test_digital_signatures_can_be_saved_for_reports(self):
+        png = base64.b64decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+        )
+        response = self.client.post(
+            reverse("core:registry_reports"),
+            {
+                "report_type": "periodic",
+                "section": self.section.pk,
+                "scope": "group",
+                "school_year": self.school_year,
+                "teacher_signature": SimpleUploadedFile("maestro.png", png, content_type="image/png"),
+                "director_signature": SimpleUploadedFile("director.png", png, content_type="image/png"),
+                "action": "save_configuration",
+            },
+        )
+
+        self.assertRedirects(response, f"{reverse('core:registry_reports')}?section={self.section.pk}")
+        configuration = RegistryReportConfiguration.objects.get(course=self.course, school_year=self.school_year)
+        self.assertTrue(configuration.teacher_signature.name.startswith("registry_reports/signatures/maestro"))
+        self.assertTrue(configuration.director_signature.name.startswith("registry_reports/signatures/director"))
+
+    def test_grades_below_seventy_are_failing(self):
+        self.assertTrue(_is_failing_grade(Decimal("69.9")))
+        self.assertFalse(_is_failing_grade(Decimal("70")))
+        self.assertFalse(_is_failing_grade(None))
 
     def test_logo_save_does_not_require_student_for_individual_report(self):
         png = base64.b64decode(

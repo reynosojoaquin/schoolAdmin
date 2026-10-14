@@ -66,6 +66,15 @@ def _fmt(value):
     return f"{number:.1f}"
 
 
+def _is_failing_grade(value):
+    if value is None:
+        return False
+    try:
+        return float(value) < 70
+    except (TypeError, ValueError):
+        return False
+
+
 def _text(value):
     if value is None:
         return ""
@@ -293,7 +302,9 @@ def _student_line(rl, enrollment, section=None):
 def _periodic_table(rl, enrollment, section=None):
     colors = rl["colors"]
     data = [["ASIGNATURAS", "P1", "P2", "P3", "P4", "PROM."]]
+    grade_styles = []
     for row in _subject_grade_matrix(enrollment, section):
+        table_row = len(data)
         data.append(
             [
                 row["subject"].name,
@@ -301,6 +312,14 @@ def _periodic_table(rl, enrollment, section=None):
                 _fmt(row["final"]),
             ]
         )
+        for column, value in enumerate([*row["periods"], row["final"]], start=1):
+            if _is_failing_grade(value):
+                grade_styles.extend(
+                    [
+                        ("TEXTCOLOR", (column, table_row), (column, table_row), colors.HexColor("#c62828")),
+                        ("FONTNAME", (column, table_row), (column, table_row), "Helvetica-Bold"),
+                    ]
+                )
     table = rl["Table"](data, repeatRows=1, colWidths=[3.1 * rl["inch"], 0.55 * rl["inch"], 0.55 * rl["inch"], 0.55 * rl["inch"], 0.55 * rl["inch"], 0.7 * rl["inch"]])
     table.setStyle(
         rl["TableStyle"](
@@ -313,21 +332,44 @@ def _periodic_table(rl, enrollment, section=None):
                 ("FONTSIZE", (0, 0), (-1, -1), 8),
                 ("FONTSIZE", (0, 1), (0, -1), 7),
                 ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f4f7fb")]),
+                *grade_styles,
             ]
         )
     )
     return table
 
 
-def _signature_block(rl):
-    data = [["____________________________", "", "____________________________"], ["Profesor(a) responsable", "", "Director(a)"]]
+def _signature_block(rl, report_configuration=None):
+    def signature_image(file_field):
+        if not file_field:
+            return ""
+        try:
+            return rl["Image"](
+                file_field.path,
+                width=1.5 * rl["inch"],
+                height=0.45 * rl["inch"],
+                kind="proportional",
+            )
+        except (AttributeError, NotImplementedError, OSError, ValueError):
+            return ""
+
+    teacher_signature = signature_image(report_configuration.teacher_signature if report_configuration else None)
+    director_signature = signature_image(report_configuration.director_signature if report_configuration else None)
+    data = [
+        [teacher_signature, "", director_signature],
+        ["____________________________", "", "____________________________"],
+        ["Profesor(a) responsable", "", "Director(a)"],
+    ]
     table = rl["Table"](data, colWidths=[2.4 * rl["inch"], 1.5 * rl["inch"], 2.4 * rl["inch"]])
     table.setStyle(
         rl["TableStyle"](
             [
                 ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                ("FONTNAME", (0, 1), (-1, 1), "Helvetica-Bold"),
+                ("FONTNAME", (0, 2), (-1, 2), "Helvetica-Bold"),
                 ("FONTSIZE", (0, 0), (-1, -1), 8),
+                ("VALIGN", (0, 0), (-1, -1), "BOTTOM"),
+                ("TOPPADDING", (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, 0), 1),
             ]
         )
     )
@@ -356,7 +398,7 @@ def build_periodic_report_pdf(section, enrollments, report_configuration=None):
         story.append(rl["Spacer"](1, 16))
         story.append(_attendance_summary(rl, [enrollment]))
         story.append(rl["Spacer"](1, 28))
-        story.append(_signature_block(rl))
+        story.append(_signature_block(rl, report_configuration))
     doc.build(story)
     return buffer.getvalue()
 
@@ -411,7 +453,9 @@ def build_rcf_reports_pdf(enrollments, section, report_configuration=None):
         group_header.extend(["RESULTADO", "", ""])
         detail_header.extend(["Final", "A", "R"])
         data = [group_header, detail_header]
+        grade_styles = []
         for row in _subject_grade_matrix(enrollment, section):
+            table_row = len(data)
             line = [row["subject"].name]
             grades = row["grades"][:4]
             for index in range(4):
@@ -421,7 +465,26 @@ def build_rcf_reports_pdf(enrollments, section, report_configuration=None):
                     label = grade.subject_competency.competency.description[:18]
                 effective_periods = grade.effective_periods if grade else [None, None, None, None]
                 line.extend([label, *[_fmt(value) for value in effective_periods]])
-            line.extend([_fmt(row["final"]), "X" if row["approved"] else "", "" if row["approved"] else "X"])
+                for period_offset, value in enumerate(effective_periods, start=1):
+                    if _is_failing_grade(value):
+                        column = 1 + index * 5 + period_offset
+                        grade_styles.extend(
+                            [
+                                ("TEXTCOLOR", (column, table_row), (column, table_row), colors.HexColor("#c62828")),
+                                ("FONTNAME", (column, table_row), (column, table_row), "Helvetica-Bold"),
+                            ]
+                        )
+            final_value = row["final"]
+            approved_mark = "X" if final_value is not None and final_value >= 70 else ""
+            failed_mark = "X" if _is_failing_grade(final_value) else ""
+            line.extend([_fmt(final_value), approved_mark, failed_mark])
+            if _is_failing_grade(final_value):
+                grade_styles.extend(
+                    [
+                        ("TEXTCOLOR", (21, table_row), (21, table_row), colors.HexColor("#c62828")),
+                        ("FONTNAME", (21, table_row), (21, table_row), "Helvetica-Bold"),
+                    ]
+                )
             data.append(line)
         widths = [1.55 * rl["inch"]] + [0.38 * rl["inch"]] * 20 + [0.42 * rl["inch"], 0.28 * rl["inch"], 0.28 * rl["inch"]]
         table = rl["Table"](data, repeatRows=2, colWidths=widths)
@@ -437,6 +500,7 @@ def build_rcf_reports_pdf(enrollments, section, report_configuration=None):
             ("SPAN", (21, 0), (23, 0)),
             ("TOPPADDING", (0, 0), (-1, -1), 2),
             ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+            *grade_styles,
         ]
         for competency_index in range(4):
             start_column = 1 + competency_index * 5
@@ -448,7 +512,7 @@ def build_rcf_reports_pdf(enrollments, section, report_configuration=None):
         story.append(rl["Spacer"](1, 5))
         story.append(_attendance_summary(rl, [enrollment], compact=True))
         story.append(rl["Spacer"](1, 6))
-        story.append(_signature_block(rl))
+        story.append(_signature_block(rl, report_configuration))
     doc.build(story)
     return buffer.getvalue()
 
@@ -465,12 +529,32 @@ def build_final_act_pdf(section, report_configuration=None):
         topMargin=0.2 * rl["inch"],
         bottomMargin=0.2 * rl["inch"],
     )
-    story = _header_elements(rl, section, "ACTA FINAL DE CALIFICACIONES", horizontal=True, report_configuration=report_configuration)
-    data = [["NO", "APELLIDOS", "NOMBRE(S)"]]
+    story = _header_elements(
+        rl,
+        section,
+        "ACTA FINAL DE CALIFICACIONES",
+        horizontal=True,
+        report_configuration=report_configuration,
+        compact=True,
+    )
+    styles = rl["getSampleStyleSheet"]()
+    subject_header_style = rl["ParagraphStyle"](
+        "final_act_subject_header",
+        parent=styles["Normal"],
+        alignment=rl["TA_CENTER"],
+        fontName="Helvetica-Bold",
+        fontSize=4.8,
+        leading=5.2,
+    )
+    group_header = ["NO", "APELLIDOS", "NOMBRE(S)"]
+    detail_header = ["", "", ""]
     subjects = list(Subject.objects.filter(section=section, include_in_registry_reports=True).order_by("name")[:9])
     for subject in subjects:
-        data[0].extend([subject.name[:14], "Final", "Comp.", "Ext.", "Esp."])
-    data[0].extend(["Prom.", "A", "R"])
+        group_header.extend([rl["Paragraph"](subject.name, subject_header_style), "", "", ""])
+        detail_header.extend(["Final", "Comp.", "Ext.", "Esp."])
+    group_header.extend(["RESULTADO", "", ""])
+    detail_header.extend(["Prom.", "A", "R"])
+    data = [group_header, detail_header]
 
     enrollments = (
         Enrollment.objects.filter(section=section, school_year=section.school_year, active=True)
@@ -478,41 +562,71 @@ def build_final_act_pdf(section, report_configuration=None):
         .prefetch_related(Prefetch("grades", queryset=Grade.objects.select_related("subject", "subject_competency")))
         .order_by("student__last_name", "student__first_name")
     )
+    grade_styles = []
     for index, enrollment in enumerate(enrollments, start=1):
+        table_row = len(data)
         subject_rows = _subject_grade_matrix(enrollment)
         by_subject = {row["subject"].pk: row for row in subject_rows}
         finals = []
         line = [index, enrollment.student.last_name, enrollment.student.first_name]
-        for subject in subjects:
+        for subject_index, subject in enumerate(subjects):
             final = by_subject.get(subject.pk, {}).get("final")
             finals.append(final)
             line.extend([_fmt(final), "", "", ""])
+            if _is_failing_grade(final):
+                final_column = 3 + subject_index * 4
+                grade_styles.extend(
+                    [
+                        ("TEXTCOLOR", (final_column, table_row), (final_column, table_row), colors.HexColor("#c62828")),
+                        ("FONTNAME", (final_column, table_row), (final_column, table_row), "Helvetica-Bold"),
+                    ]
+                )
         overall = _avg(finals)
-        approved = overall is not None and overall >= 70
-        line.extend([_fmt(overall), "X" if approved else "", "" if approved else "X"])
+        approved_mark = "X" if overall is not None and overall >= 70 else ""
+        failed_mark = "X" if _is_failing_grade(overall) else ""
+        line.extend([_fmt(overall), approved_mark, failed_mark])
+        if _is_failing_grade(overall):
+            overall_column = 3 + len(subjects) * 4
+            grade_styles.extend(
+                [
+                    ("TEXTCOLOR", (overall_column, table_row), (overall_column, table_row), colors.HexColor("#c62828")),
+                    ("FONTNAME", (overall_column, table_row), (overall_column, table_row), "Helvetica-Bold"),
+                ]
+            )
         data.append(line)
-    for index in range(len(data), 41):
-        data.append([index, "", ""] + [""] * (len(data[0]) - 3))
-
-    widths = [0.28 * rl["inch"], 1.15 * rl["inch"], 1.15 * rl["inch"]] + [0.34 * rl["inch"]] * (len(data[0]) - 6) + [0.36 * rl["inch"], 0.25 * rl["inch"], 0.25 * rl["inch"]]
-    table = rl["Table"](data, repeatRows=1, colWidths=widths)
+    result_columns = 3
+    detail_columns = len(subjects) * 4 + result_columns
+    detail_width = 8.25 / max(detail_columns, 1)
+    widths = [0.25 * rl["inch"], 1.0 * rl["inch"], 1.0 * rl["inch"]] + [detail_width * rl["inch"]] * detail_columns
+    table = rl["Table"](data, repeatRows=2, colWidths=widths)
+    table_style = [
+        ("GRID", (0, 0), (-1, -1), 0.4, colors.black),
+        ("BACKGROUND", (0, 0), (-1, 1), colors.HexColor("#222222")),
+        ("TEXTCOLOR", (0, 0), (-1, 1), colors.white),
+        ("FONTNAME", (0, 0), (-1, 1), "Helvetica-Bold"),
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("FONTSIZE", (0, 0), (-1, -1), 4.8),
+        ("FONTSIZE", (1, 2), (2, -1), 5.4),
+        ("SPAN", (0, 0), (0, 1)),
+        ("SPAN", (1, 0), (1, 1)),
+        ("SPAN", (2, 0), (2, 1)),
+        ("SPAN", (3 + len(subjects) * 4, 0), (5 + len(subjects) * 4, 0)),
+        ("TOPPADDING", (0, 0), (-1, -1), 2),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+        *grade_styles,
+    ]
+    for subject_index in range(len(subjects)):
+        start_column = 3 + subject_index * 4
+        table_style.append(("SPAN", (start_column, 0), (start_column + 3, 0)))
     table.setStyle(
-        rl["TableStyle"](
-            [
-                ("GRID", (0, 0), (-1, -1), 0.4, colors.black),
-                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#222222")),
-                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("FONTSIZE", (0, 0), (-1, -1), 4.8),
-                ("FONTSIZE", (1, 1), (2, -1), 5.4),
-            ]
-        )
+        rl["TableStyle"](table_style)
     )
     story.append(table)
-    story.append(rl["Spacer"](1, 10))
-    story.append(_attendance_summary(rl, list(enrollments), title="ASISTENCIA DE LA SECCION"))
+    story.append(rl["Spacer"](1, 5))
+    story.append(_attendance_summary(rl, list(enrollments), title="ASISTENCIA DE LA SECCION", compact=True))
+    story.append(rl["Spacer"](1, 5))
+    story.append(_signature_block(rl, report_configuration))
     doc.build(story)
     return buffer.getvalue()
 

@@ -1053,6 +1053,26 @@ class RegistryReportForm(forms.Form):
         required=False,
         help_text="El logo institucional se mantiene siempre en el reporte.",
     )
+    teacher_signature = forms.FileField(
+        label="Firma digital del maestro encargado",
+        required=False,
+        help_text="PNG, JPG, JPEG o WebP, hasta 4 MB. Preferiblemente con fondo transparente.",
+        widget=forms.FileInput(attrs={"accept": "image/png,image/jpeg,image/webp"}),
+    )
+    remove_teacher_signature = forms.BooleanField(
+        label="Quitar firma del maestro",
+        required=False,
+    )
+    director_signature = forms.FileField(
+        label="Firma digital del director",
+        required=False,
+        help_text="PNG, JPG, JPEG o WebP, hasta 4 MB. Preferiblemente con fondo transparente.",
+        widget=forms.FileInput(attrs={"accept": "image/png,image/jpeg,image/webp"}),
+    )
+    remove_director_signature = forms.BooleanField(
+        label="Quitar firma del director",
+        required=False,
+    )
 
     def __init__(self, *args, school_year=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1082,15 +1102,24 @@ class RegistryReportForm(forms.Form):
         for field in self.fields.values():
             field.widget.attrs.setdefault("class", "form-control")
 
-    def clean_report_logo(self):
-        logo = self.cleaned_data.get("report_logo")
-        if not logo:
-            return logo
-        if logo.size > 4 * 1024 * 1024:
+    def _clean_report_image(self, field_name):
+        image = self.cleaned_data.get(field_name)
+        if not image:
+            return image
+        if image.size > 4 * 1024 * 1024:
             raise forms.ValidationError("El archivo supera el limite de 4 MB.")
-        if getattr(logo, "content_type", "") not in {"image/png", "image/jpeg", "image/webp"}:
+        if getattr(image, "content_type", "") not in {"image/png", "image/jpeg", "image/webp"}:
             raise forms.ValidationError("Selecciona una imagen PNG, JPG, JPEG o WebP valida.")
-        return logo
+        return image
+
+    def clean_report_logo(self):
+        return self._clean_report_image("report_logo")
+
+    def clean_teacher_signature(self):
+        return self._clean_report_image("teacher_signature")
+
+    def clean_director_signature(self):
+        return self._clean_report_image("director_signature")
 
     def clean(self):
         cleaned_data = super().clean()

@@ -33,7 +33,7 @@
   <h2>Datos del reporte</h2>
   <div class="form-grid">
     {% for field in form %}
-      {% if field.name != "center_name" and field.name != "annual_phrase" and field.name != "report_logo" and field.name != "remove_report_logo" %}
+      {% if field.name != "center_name" and field.name != "annual_phrase" and field.name != "report_logo" and field.name != "remove_report_logo" and field.name != "teacher_signature" and field.name != "remove_teacher_signature" and field.name != "director_signature" and field.name != "remove_director_signature" %}
       <div class="field">
         <label for="{{ field.id_for_label }}">{{ field.label }}</label>
         {{ field }}
@@ -88,6 +88,38 @@
         <label for="{{ form.remove_report_logo.id_for_label }}">{{ form.remove_report_logo }} {{ form.remove_report_logo.label }}</label>
         <small>{{ form.remove_report_logo.help_text }}</small>
         {% for error in form.remove_report_logo.errors %}<small class="error">{{ error }}</small>{% endfor %}
+      </div>
+      <div class="field">
+        <label for="{{ form.teacher_signature.id_for_label }}">{{ form.teacher_signature.label }}</label>
+        {% if report_configuration and report_configuration.teacher_signature %}
+          <div class="report-logo-current">
+            <span>Firma guardada actualmente</span>
+            <img src="{{ report_configuration.teacher_signature.url }}" alt="Firma del maestro encargado">
+          </div>
+        {% endif %}
+        {{ form.teacher_signature }}
+        <small>{{ form.teacher_signature.help_text }}</small>
+        {% for error in form.teacher_signature.errors %}<small class="error">{{ error }}</small>{% endfor %}
+      </div>
+      <div class="field checkbox-field">
+        <label for="{{ form.remove_teacher_signature.id_for_label }}">{{ form.remove_teacher_signature }} {{ form.remove_teacher_signature.label }}</label>
+        {% for error in form.remove_teacher_signature.errors %}<small class="error">{{ error }}</small>{% endfor %}
+      </div>
+      <div class="field">
+        <label for="{{ form.director_signature.id_for_label }}">{{ form.director_signature.label }}</label>
+        {% if report_configuration and report_configuration.director_signature %}
+          <div class="report-logo-current">
+            <span>Firma guardada actualmente</span>
+            <img src="{{ report_configuration.director_signature.url }}" alt="Firma del director">
+          </div>
+        {% endif %}
+        {{ form.director_signature }}
+        <small>{{ form.director_signature.help_text }}</small>
+        {% for error in form.director_signature.errors %}<small class="error">{{ error }}</small>{% endfor %}
+      </div>
+      <div class="field checkbox-field">
+        <label for="{{ form.remove_director_signature.id_for_label }}">{{ form.remove_director_signature }} {{ form.remove_director_signature.label }}</label>
+        {% for error in form.remove_director_signature.errors %}<small class="error">{{ error }}</small>{% endfor %}
       </div>
     </div>
   </section>

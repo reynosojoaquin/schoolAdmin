@@ -69,6 +69,18 @@ class RegistryReportConfiguration(TimeStampedModel):
         blank=True,
         validators=[FileExtensionValidator(["png", "jpg", "jpeg", "webp"])],
     )
+    teacher_signature = models.FileField(
+        "firma del maestro encargado",
+        upload_to="registry_reports/signatures/",
+        blank=True,
+        validators=[FileExtensionValidator(["png", "jpg", "jpeg", "webp"])],
+    )
+    director_signature = models.FileField(
+        "firma del director",
+        upload_to="registry_reports/signatures/",
+        blank=True,
+        validators=[FileExtensionValidator(["png", "jpg", "jpeg", "webp"])],
+    )
 
     class Meta:
         ordering = ["-school_year", "course__name"]
