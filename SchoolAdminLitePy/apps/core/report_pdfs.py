@@ -167,13 +167,13 @@ def _header_elements(rl, section, title, horizontal=False, report_configuration=
             return ""
 
     ministry_logo = logo_image(None, "img/logo-minerd.png", width=1.5 if compact else 2.15, height=0.5 if compact else 0.85)
-    grade_logo = logo_image(report_configuration.logo if report_configuration else None, width=0.72 if compact else 1.8)
-    school_logo = logo_image(system_configuration.logo, "img/logo-centro-default.jpeg", width=0.72 if compact else 1.35)
+    grade_logo = logo_image(report_configuration.logo if report_configuration else None, width=1.04 if compact else 1.8)
+    school_logo = logo_image(system_configuration.logo, "img/logo-centro-default.jpeg", width=1.04 if compact else 1.35)
     ministry_header = rl["Table"]([[ministry_logo]], colWidths=[1.7 * rl["inch"] if compact else 2.3 * rl["inch"]])
     ministry_header.hAlign = "CENTER"
     ministry_header.setStyle(rl["TableStyle"]([("ALIGN", (0, 0), (-1, -1), "CENTER"), ("BOTTOMPADDING", (0, 0), (-1, -1), 2 if compact else 6)]))
-    side_width = (1.2 if compact else 1.9) * rl["inch"]
-    center_width = (8.1 if compact else 6.7) * rl["inch"] if horizontal else 4.0 * rl["inch"]
+    side_width = (1.35 if compact else 1.9) * rl["inch"]
+    center_width = (7.8 if compact else 6.7) * rl["inch"] if horizontal else 4.0 * rl["inch"]
     header = rl["Table"](
         [[grade_logo, heading, school_logo]],
         colWidths=[side_width, center_width, side_width],
