@@ -175,6 +175,21 @@ class RegistryReportCustomizationTests(TestCase):
         self.assertEqual(configuration.annual_phrase, "Aprender para transformar")
         self.assertEqual(configuration.center_name, "Centro Educativo Personalizado")
 
+    def test_final_act_is_always_collective_and_does_not_require_student(self):
+        response = self.client.post(
+            reverse("core:registry_reports"),
+            {
+                "report_type": "final_act",
+                "section": self.section.pk,
+                "scope": "student",
+                "student": "",
+                "school_year": self.school_year,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/pdf")
+
     def test_report_saves_uploaded_course_logo(self):
         png = base64.b64decode(
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="

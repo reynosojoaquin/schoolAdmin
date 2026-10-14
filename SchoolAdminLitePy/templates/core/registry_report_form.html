@@ -115,6 +115,17 @@
     const scopeField = document.getElementById("{{ form.scope.id_for_label }}");
     const schoolYearField = document.querySelector('input[name="school_year"]');
 
+    const syncReportFields = () => {
+      if (!reportTypeField || !scopeField) return;
+      if (reportTypeField.value === "rcf") scopeField.value = "student";
+      if (reportTypeField.value === "final_act") scopeField.value = "group";
+      const needsStudent = scopeField.value === "student" && reportTypeField.value !== "final_act";
+      studentField.disabled = !needsStudent;
+      if (!needsStudent) studentField.value = "";
+      const studentContainer = studentField.closest(".field");
+      if (studentContainer) studentContainer.hidden = !needsStudent;
+    };
+
     const resetStudents = (label) => {
       studentField.innerHTML = "";
       const option = document.createElement("option");
@@ -139,6 +150,9 @@
     };
 
     sectionField.addEventListener("change", reloadForSection);
+    if (reportTypeField) reportTypeField.addEventListener("change", syncReportFields);
+    if (scopeField) scopeField.addEventListener("change", syncReportFields);
+    syncReportFields();
     if (!sectionField.value) resetStudents("Selecciona primero una seccion");
   })();
 
