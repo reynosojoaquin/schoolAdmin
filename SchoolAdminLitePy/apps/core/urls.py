@@ -22,6 +22,7 @@ urlpatterns = [
     path("secciones/", views.SectionListView.as_view(), name="section_list"),
     path("secciones/nuevo/", views.SectionCreateView.as_view(), name="section_create"),
     path("secciones/<int:pk>/estudiantes/", views.SectionStudentsView.as_view(), name="section_students"),
+    path("secciones/<int:pk>/estudiantes/orden/", views.SectionStudentOrderView.as_view(), name="section_student_order"),
     path("secciones/<int:pk>/inscripcion/", views.SectionEnrollmentView.as_view(), name="section_enrollment"),
     path("secciones/<int:pk>/asistencia/", views.SectionAttendanceView.as_view(), name="section_attendance"),
     path("secciones/<int:pk>/docencia/", views.SectionTeachingAssignmentsView.as_view(), name="section_assignments"),

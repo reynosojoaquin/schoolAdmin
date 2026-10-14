@@ -6,6 +6,7 @@ from django.db.models import Count, Prefetch
 from django.contrib.staticfiles import finders
 
 from .models import Attendance, Enrollment, Grade, Subject, SystemConfiguration
+from .student_ordering import enrollment_order_key
 
 
 INSTITUTION_NAME = "LICEO CORONEL RAFAEL TOMAS FERNANDEZ DOMINGUEZ"
@@ -560,8 +561,8 @@ def build_final_act_pdf(section, report_configuration=None):
         Enrollment.objects.filter(section=section, school_year=section.school_year, active=True)
         .select_related("student", "course", "section")
         .prefetch_related(Prefetch("grades", queryset=Grade.objects.select_related("subject", "subject_competency")))
-        .order_by("student__last_name", "student__first_name")
     )
+    enrollments = sorted(enrollments, key=enrollment_order_key)
     grade_styles = []
     for index, enrollment in enumerate(enrollments, start=1):
         table_row = len(data)

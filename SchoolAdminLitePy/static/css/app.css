@@ -478,6 +478,34 @@ tr:last-child td {
   border-bottom: 0;
 }
 
+.page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sortable-row {
+  cursor: grab;
+}
+
+.sortable-row:hover {
+  background: #f4f6f9;
+}
+
+.sortable-row.is-dragging {
+  opacity: 0.45;
+}
+
+.drag-handle {
+  color: var(--muted);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.sortable-row button {
+  margin: 2px;
+}
+
 .actions {
   text-align: right;
   white-space: nowrap;

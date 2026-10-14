@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}Reordenar estudiantes - SchoolAdmin Lite{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <div>
+    <p class="eyebrow">Seccion</p>
+    <h1>Reordenar lista</h1>
+    <p>{{ section }} · Arrastra a los estudiantes o usa los botones para moverlos. Los nuevos estudiantes apareceran al final de un orden manual guardado.</p>
+  </div>
+  <a class="btn-secondary" href="{% url 'core:section_students' section.pk %}">Volver</a>
+</section>
+
+<form method="post" id="student-order-form">
+  {% csrf_token %}
+  <section class="table-panel">
+    <table>
+      <thead>
+        <tr>
+          <th>N.o</th>
+          <th>Estudiante</th>
+          <th>Documento</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="student-order-list">
+        {% for enrollment in enrollments %}
+          <tr class="sortable-row" draggable="true" data-enrollment-id="{{ enrollment.pk }}">
+            <td class="drag-handle" aria-label="Arrastrar para cambiar el orden">↕ <span class="student-order-number">{{ forloop.counter }}</span></td>
+            <td><strong>{{ enrollment.student.last_name }}, {{ enrollment.student.first_name }}</strong></td>
+            <td>{{ enrollment.student.document_id|default:"-" }}</td>
+            <td>
+              <button type="button" class="move-student-up" aria-label="Subir estudiante">Subir</button>
+              <button type="button" class="move-student-down" aria-label="Bajar estudiante">Bajar</button>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="4" class="empty">No hay estudiantes inscritos en esta seccion.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  <div class="toolbar">
+    <button type="submit">Guardar orden</button>
+    <a class="btn-secondary" href="{% url 'core:section_students' section.pk %}">Cancelar</a>
+  </div>
+</form>
+
+<script>
+  (() => {
+    const list = document.getElementById("student-order-list");
+    const form = document.getElementById("student-order-form");
+    if (!list || !form) {
+      return;
+    }
+
+    let draggedRow = null;
+    const rows = () => Array.from(list.querySelectorAll(".sortable-row"));
+    const updateNumbers = () => {
+      rows().forEach((row, index) => {
+        row.querySelector(".student-order-number").textContent = index + 1;
+      });
+    };
+
+    list.addEventListener("dragstart", (event) => {
+      const row = event.target.closest(".sortable-row");
+      if (!row) {
+        return;
+      }
+      draggedRow = row;
+      row.classList.add("is-dragging");
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", row.dataset.enrollmentId);
+    });
+
+    list.addEventListener("dragover", (event) => {
+      if (!draggedRow) {
+        return;
+      }
+      event.preventDefault();
+      const targetRow = event.target.closest(".sortable-row");
+      if (!targetRow || targetRow === draggedRow) {
+        return;
+      }
+      const midpoint = targetRow.getBoundingClientRect().top + targetRow.offsetHeight / 2;
+      list.insertBefore(draggedRow, event.clientY < midpoint ? targetRow : targetRow.nextSibling);
+      updateNumbers();
+    });
+
+    list.addEventListener("dragend", () => {
+      if (draggedRow) {
+        draggedRow.classList.remove("is-dragging");
+        draggedRow = null;
+      }
+    });
+
+    list.addEventListener("click", (event) => {
+      const button = event.target.closest("button");
+      if (!button) {
+        return;
+      }
+      const row = button.closest(".sortable-row");
+      if (button.classList.contains("move-student-up") && row.previousElementSibling) {
+        list.insertBefore(row, row.previousElementSibling);
+      } else if (button.classList.contains("move-student-down") && row.nextElementSibling) {
+        list.insertBefore(row.nextElementSibling, row);
+      }
+      updateNumbers();
+    });
+
+    form.addEventListener("submit", () => {
+      form.querySelectorAll("input[name='enrollment_ids']").forEach((input) => input.remove());
+      rows().forEach((row) => {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = "enrollment_ids";
+        input.value = row.dataset.enrollmentId;
+        form.appendChild(input);
+      });
+    });
+  })();
+</script>
+{% endblock %}

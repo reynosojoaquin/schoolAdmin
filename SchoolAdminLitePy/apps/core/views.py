@@ -90,6 +90,7 @@ from .models import (
     TeachingAssignment,
 )
 from .report_pdfs import build_final_act_pdf, build_guidance_case_pdf, build_periodic_report_pdf, build_rcf_reports_pdf
+from .student_ordering import enrollment_order_key, student_order_key
 
 
 ADMIN_ROLE = "Administrador"
@@ -542,17 +543,6 @@ class PersonListView(PeopleAccessMixin, ListView):
         return context
 
 
-def student_order_key(student):
-    surname = (student.last_name or "").strip().split(" ", 1)[0]
-
-    def normalize(value):
-        return "".join(
-            char for char in unicodedata.normalize("NFKD", value.casefold())
-            if not unicodedata.combining(char)
-        )
-    return normalize(surname), normalize(student.last_name), normalize(student.first_name), student.pk
-
-
 def teacher_order_key(teacher):
     surname = (teacher.last_name or "").strip().split(" ", 1)[0]
 
@@ -573,7 +563,7 @@ def section_order_numbers(school_year):
         by_section.setdefault(enrollment.section_id, []).append(enrollment)
     numbers = {}
     for members in by_section.values():
-        for number, enrollment in enumerate(sorted(members, key=lambda item: student_order_key(item.student)), 1):
+        for number, enrollment in enumerate(sorted(members, key=enrollment_order_key), 1):
             numbers[enrollment.pk] = number
     return numbers
 
@@ -967,9 +957,11 @@ class StudentTransferView(PeopleAccessMixin, View):
             old_label = str(enrollment.section or enrollment.course) if enrollment else None
 
             if enrollment and new_course.pk == enrollment.course_id:
+                if enrollment.section_id != (new_section.pk if new_section else None):
+                    enrollment.list_order = None
                 enrollment.section = new_section
                 enrollment.active = True
-                enrollment.save(update_fields=["section", "active", "updated_at"])
+                enrollment.save(update_fields=["section", "active", "list_order", "updated_at"])
                 target_enrollment = enrollment
             else:
                 new_enrollment, created = Enrollment.objects.get_or_create(
@@ -979,9 +971,11 @@ class StudentTransferView(PeopleAccessMixin, View):
                     defaults={"section": new_section, "active": True},
                 )
                 if not created:
+                    if new_enrollment.section_id != (new_section.pk if new_section else None):
+                        new_enrollment.list_order = None
                     new_enrollment.section = new_section
                     new_enrollment.active = True
-                    new_enrollment.save(update_fields=["section", "active", "updated_at"])
+                    new_enrollment.save(update_fields=["section", "active", "list_order", "updated_at"])
 
                 if enrollment:
                     enrollment.active = False
@@ -1172,7 +1166,7 @@ class CourseStudentsView(AcademicSetupAccessMixin, ListView):
             )
         return sorted(queryset, key=lambda enrollment: (
             enrollment.section.name if enrollment.section else "\uffff",
-            student_order_key(enrollment.student),
+            enrollment_order_key(enrollment),
         ))
 
     def get_context_data(self, **kwargs):
@@ -1333,7 +1327,7 @@ class SectionStudentsView(AcademicSetupAccessMixin, ListView):
                 | Q(student__last_name__icontains=query)
                 | Q(student__document_id__icontains=query)
             )
-        return sorted(queryset, key=lambda enrollment: student_order_key(enrollment.student))
+        return sorted(queryset, key=enrollment_order_key)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1347,6 +1341,57 @@ class SectionStudentsView(AcademicSetupAccessMixin, ListView):
         context["group_value"] = self.section
         context["back_url_name"] = "core:section_list"
         return context
+
+
+class SectionStudentOrderView(AcademicSetupAccessMixin, View):
+    template_name = "core/section_student_order.html"
+
+    def get_section(self):
+        return get_object_or_404(
+            Section.objects.select_related("course"),
+            pk=self.kwargs["pk"],
+            school_year=selected_school_year(self.request),
+        )
+
+    def get_enrollments(self, section, *, lock=False):
+        enrollments = Enrollment.objects.filter(
+            section=section,
+            school_year=section.school_year,
+            active=True,
+        ).select_related("student")
+        if lock:
+            enrollments = enrollments.select_for_update()
+        return sorted(enrollments, key=enrollment_order_key)
+
+    def get(self, request, *args, **kwargs):
+        section = self.get_section()
+        return render(
+            request,
+            self.template_name,
+            {
+                "section": section,
+                "enrollments": self.get_enrollments(section),
+            },
+        )
+
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        section = self.get_section()
+        enrollments = self.get_enrollments(section, lock=True)
+        posted_ids = request.POST.getlist("enrollment_ids")
+        current_ids = {str(enrollment.pk) for enrollment in enrollments}
+        if len(posted_ids) != len(current_ids) or set(posted_ids) != current_ids:
+            messages.error(request, "La lista cambio mientras la editabas. Vuelve a cargarla antes de guardar.")
+            return redirect("core:section_student_order", pk=section.pk)
+
+        enrollments_by_id = {str(enrollment.pk): enrollment for enrollment in enrollments}
+        for list_order, enrollment_id in enumerate(posted_ids, start=1):
+            enrollment = enrollments_by_id[enrollment_id]
+            enrollment.list_order = list_order
+            enrollment.save(update_fields=["list_order", "updated_at"])
+
+        messages.success(request, f"El orden de {len(enrollments)} estudiantes se guardo correctamente.")
+        return redirect("core:section_students", pk=section.pk)
 
 
 def course_number(course):
@@ -1453,9 +1498,11 @@ class SectionEnrollmentView(AcademicSetupAccessMixin, View):
                 defaults={"active": True, "section": section},
             )
             if not created:
+                if enrollment.section_id != section.pk:
+                    enrollment.list_order = None
                 enrollment.active = True
                 enrollment.section = section
-                enrollment.save(update_fields=["active", "section"])
+                enrollment.save(update_fields=["active", "section", "list_order"])
 
             student.promoted = False
             student.new_admission = False
@@ -1491,7 +1538,7 @@ class SectionAttendanceView(AcademicAccessMixin, View):
         return date.today()
 
     def get_enrollments(self, section):
-        return (
+        enrollments = (
             Enrollment.objects.filter(
                 section=section,
                 school_year=section.school_year,
@@ -1500,6 +1547,7 @@ class SectionAttendanceView(AcademicAccessMixin, View):
             .select_related("student")
             .order_by("student__last_name", "student__first_name", "student__id")
         )
+        return sorted(enrollments, key=enrollment_order_key)
 
     def build_rows(self, section, attendance_date):
         enrollments = self.get_enrollments(section)
@@ -1937,7 +1985,8 @@ class GradeBookView(AcademicAccessMixin, View):
             section=assignment.section,
             school_year=assignment.section.school_year,
             active=True,
-        ).select_related("student").order_by("student__last_name", "student__first_name")
+        ).select_related("student")
+        enrollments = sorted(enrollments, key=enrollment_order_key)
         rows = []
         for order_number, enrollment in enumerate(enrollments, start=1):
             competency_cells = []
@@ -2531,10 +2580,8 @@ class GradeTemplateDownloadView(AcademicAccessMixin, View):
             section=assignment.section,
             school_year=assignment.section.school_year,
             active=True,
-        ).select_related("student").order_by(
-            "student__last_name",
-            "student__first_name",
-        )
+        ).select_related("student")
+        enrollments = sorted(enrollments, key=enrollment_order_key)
         first_data_row = technical_header_row + 1
         for order_number, enrollment in enumerate(enrollments, start=1):
             row_number = first_data_row + order_number - 1
@@ -2857,10 +2904,10 @@ class RegistryReportView(AcademicAccessMixin, View):
                 active=True,
             )
             .select_related("student", "course", "section")
-            .order_by("student__last_name", "student__first_name")
         )
         if scope == RegistryReportForm.SCOPE_STUDENT:
             enrollments = enrollments.filter(student=student)
+        enrollments = sorted(enrollments, key=enrollment_order_key)
 
         if report_type == RegistryReportForm.REPORT_FINAL_ACT:
             content = build_final_act_pdf(section, report_configuration=report_configuration)

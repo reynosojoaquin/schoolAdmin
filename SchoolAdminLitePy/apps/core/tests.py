@@ -617,6 +617,119 @@ class StudentSectionOrderTests(TestCase):
         self.assertEqual(response.context["object_list"][0].order_number, 2)
         self.assertEqual(response.context["object_list"][0].current_section, self.section_a)
 
+    def test_new_student_is_inserted_alphabetically_and_list_numbers_are_recalculated(self):
+        new_student = Student.objects.create(first_name="Bea", last_name="Álvarez")
+        Enrollment.objects.create(
+            student=new_student,
+            course=self.section_a.course,
+            section=self.section_a,
+            school_year="2026-2027",
+        )
+
+        response = self.client.get(reverse("core:section_students", args=[self.section_a.pk]))
+        self.assertEqual(
+            [(item.student, item.order_number) for item in response.context["object_list"]],
+            [(self.alba, 1), (new_student, 2), (self.zeta, 3)],
+        )
+
+        attendance_response = self.client.get(reverse("core:section_attendance", args=[self.section_a.pk]))
+        self.assertEqual(
+            [
+                (row["enrollment"].student, row["order_number"])
+                for row in attendance_response.context["rows"]
+            ],
+            [(self.alba, 1), (new_student, 2), (self.zeta, 3)],
+        )
+
+        teacher = Teacher.objects.create(first_name="Pablo", last_name="Martinez")
+        subject = Subject.objects.create(section=self.section_a, name="Matematicas")
+        assignment = TeachingAssignment.objects.create(
+            section=self.section_a,
+            subject=subject,
+            teacher=teacher,
+        )
+        gradebook_response = self.client.get(reverse("core:gradebook", args=[assignment.pk]))
+        self.assertEqual(
+            [
+                (row["enrollment"].student, row["order_number"])
+                for row in gradebook_response.context["rows"]
+            ],
+            [(self.alba, 1), (new_student, 2), (self.zeta, 3)],
+        )
+
+    def test_manual_reordering_is_saved_and_used_across_student_lists(self):
+        alba_enrollment = Enrollment.objects.get(student=self.alba)
+        zeta_enrollment = Enrollment.objects.get(student=self.zeta)
+        order_url = reverse("core:section_student_order", args=[self.section_a.pk])
+
+        response = self.client.post(
+            order_url,
+            {"enrollment_ids": [zeta_enrollment.pk, alba_enrollment.pk]},
+        )
+
+        self.assertRedirects(response, reverse("core:section_students", args=[self.section_a.pk]))
+        zeta_enrollment.refresh_from_db()
+        alba_enrollment.refresh_from_db()
+        self.assertEqual(zeta_enrollment.list_order, 1)
+        self.assertEqual(alba_enrollment.list_order, 2)
+
+        section_response = self.client.get(reverse("core:section_students", args=[self.section_a.pk]))
+        self.assertEqual(
+            [
+                (enrollment.student, enrollment.order_number)
+                for enrollment in section_response.context["object_list"]
+            ],
+            [(self.zeta, 1), (self.alba, 2)],
+        )
+
+        course_response = self.client.get(reverse("core:course_students", args=[self.section_a.course_id]))
+        self.assertEqual(
+            [
+                (enrollment.section, enrollment.student, enrollment.order_number)
+                for enrollment in course_response.context["object_list"]
+            ],
+            [(self.section_a, self.zeta, 1), (self.section_a, self.alba, 2), (self.section_b, self.brito, 1)],
+        )
+
+        attendance_response = self.client.get(reverse("core:section_attendance", args=[self.section_a.pk]))
+        self.assertEqual(
+            [
+                (row["enrollment"].student, row["order_number"])
+                for row in attendance_response.context["rows"]
+            ],
+            [(self.zeta, 1), (self.alba, 2)],
+        )
+
+        teacher = Teacher.objects.create(first_name="Pablo", last_name="Martinez")
+        subject = Subject.objects.create(section=self.section_a, name="Matematicas")
+        assignment = TeachingAssignment.objects.create(
+            section=self.section_a,
+            subject=subject,
+            teacher=teacher,
+        )
+        gradebook_response = self.client.get(reverse("core:gradebook", args=[assignment.pk]))
+        self.assertEqual(
+            [
+                (row["enrollment"].student, row["order_number"])
+                for row in gradebook_response.context["rows"]
+            ],
+            [(self.zeta, 1), (self.alba, 2)],
+        )
+
+    def test_manual_reordering_rejects_incomplete_student_lists(self):
+        alba_enrollment = Enrollment.objects.get(student=self.alba)
+
+        response = self.client.post(
+            reverse("core:section_student_order", args=[self.section_a.pk]),
+            {"enrollment_ids": [alba_enrollment.pk]},
+            follow=True,
+        )
+
+        self.assertRedirects(response, reverse("core:section_student_order", args=[self.section_a.pk]))
+        alba_enrollment.refresh_from_db()
+        self.assertIsNone(alba_enrollment.list_order)
+        self.assertContains(response, "La lista cambio mientras la editabas")
+
     def test_course_index_groups_section_numbers(self):
         response = self.client.get(reverse("core:course_students", args=[self.section_a.course_id]))
         self.assertEqual(

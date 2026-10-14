@@ -9,7 +9,12 @@
     <h1>{{ title }}</h1>
     <p>{{ group_value }}</p>
   </div>
-  <a class="btn-secondary" href="{% url back_url_name %}">Volver</a>
+  <div class="page-actions">
+    {% if group_label == "Seccion" %}
+      <a class="btn" href="{% url 'core:section_student_order' group_value.pk %}">Reordenar lista</a>
+    {% endif %}
+    <a class="btn-secondary" href="{% url back_url_name %}">Volver</a>
+  </div>
 </section>
 
 <form class="toolbar" method="get">

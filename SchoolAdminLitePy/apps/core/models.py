@@ -1052,6 +1052,7 @@ class Enrollment(TimeStampedModel):
     )
     school_year = models.CharField("ano escolar", max_length=20)
     active = models.BooleanField("activa", default=True)
+    list_order = models.PositiveIntegerField("orden manual de lista", null=True, blank=True)
 
     class Meta:
         ordering = ["-school_year", "course__name", "section__name", "student__last_name"]
