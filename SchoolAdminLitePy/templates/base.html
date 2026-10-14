@@ -5,6 +5,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}SchoolAdmin Lite{% endblock %}</title>
+  <link rel="icon" type="image/png" href="{% static 'img/schooladmin-favicon.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'img/schooladmin-favicon.png' %}">
   <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20260903-2">
 </head>
 <body class="{% if request.user.is_authenticated %}admin-layout sidebar-mini{% else %}login-page{% endif %}">
