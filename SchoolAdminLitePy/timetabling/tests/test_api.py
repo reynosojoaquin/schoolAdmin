@@ -121,3 +121,22 @@ class GenerarHorarioViewTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertIn("Asignaciones docentes", response.json()["error"])
+
+    def test_teaching_load_report_uses_administration_data(self):
+        user = User.objects.create_user(username="load-report")
+        self.client.force_login(user)
+        configuration = SystemConfiguration.get_solo()
+        configuration.current_school_year = "2026-2027"
+        configuration.save(update_fields=["current_school_year"])
+        course = Course.objects.create(name="Carga 2")
+        section = Section.objects.create(course=course, name="A", school_year="2026-2027")
+        subject = Subject.objects.create(section=section, name="Matemáticas", weekly_hours=5)
+        teacher = Teacher.objects.create(first_name="Ana", last_name="Docente")
+        TeachingAssignment.objects.create(section=section, subject=subject, teacher=teacher)
+
+        response = self.client.get(reverse("timetabling:reporte_carga_lectiva"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/pdf")
+        self.assertIn("carga_lectiva_2026-2027.pdf", response["Content-Disposition"])
+        self.assertGreater(len(response.content), 1000)

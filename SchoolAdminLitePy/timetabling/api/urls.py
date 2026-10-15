@@ -5,6 +5,7 @@ from timetabling.api import views
 app_name = "timetabling"
 
 urlpatterns = [
+    path("carga-lectiva.pdf", views.reporte_carga_lectiva, name="reporte_carga_lectiva"),
     path("horarios/generar/", views.generar_horario, name="generar_horario"),
     path(
         "horarios/generar-desde-administracion/",

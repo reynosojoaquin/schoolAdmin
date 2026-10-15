@@ -65,6 +65,8 @@
   {% endif %}
 
   <p>
+    <a class="btn-secondary" href="{% url 'timetabling:reporte_carga_lectiva' %}">Descargar carga lectiva PDF</a>
+    ·
     <a href="{% url 'core:teaching_assignment_list' %}">Administrar asignaciones docentes</a>
     ·
     <a href="{% url 'admin:timetabling_bloquehorario_changelist' %}">Administrar bloques</a>

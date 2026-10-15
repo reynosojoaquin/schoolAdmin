@@ -2,13 +2,13 @@ import uuid
 import logging
 from typing import Any
 
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework import status
 
@@ -30,8 +30,19 @@ from timetabling.services.administration_data import (
     get_administration_summary,
     sync_administration_catalogs,
 )
+from timetabling.report_pdfs import build_teaching_load_pdf
 
 logger = logging.getLogger(__name__)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def reporte_carga_lectiva(request):
+    school_year = get_administration_summary()["school_year"]
+    content = build_teaching_load_pdf(school_year)
+    response = HttpResponse(content, content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="carga_lectiva_{school_year}.pdf"'
+    return response
 
 
 @api_view(["GET", "POST"])
