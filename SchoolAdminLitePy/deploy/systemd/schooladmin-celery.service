@@ -1,0 +1,35 @@
+[Unit]
+Description=SchoolAdmin Celery worker
+After=network.target postgresql.service redis-server.service
+Requires=postgresql.service redis-server.service
+
+[Service]
+Type=simple
+User=centroapp
+Group=centroapp
+WorkingDirectory=/srv/centro/schooladmin/current
+EnvironmentFile=/etc/schooladmin.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYTHONUNBUFFERED=1
+Environment=CELERY_BROKER_URL=redis://127.0.0.1:6379/0
+Environment=CELERY_RESULT_BACKEND=redis://127.0.0.1:6379/1
+ExecStart=/srv/centro/schooladmin/venv/bin/celery -A schooladminlite worker --loglevel=INFO --concurrency=2
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=60
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+ReadWritePaths=/var/lib/schooladmin/media
+
+[Install]
+WantedBy=multi-user.target
