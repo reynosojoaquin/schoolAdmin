@@ -140,3 +140,49 @@ class GenerarHorarioViewTests(TestCase):
         self.assertEqual(response["Content-Type"], "application/pdf")
         self.assertIn("carga_lectiva_2026-2027.pdf", response["Content-Disposition"])
         self.assertGreater(len(response.content), 1000)
+
+    def test_teacher_filter_shows_only_assigned_sections(self):
+        configuration = SystemConfiguration.get_solo()
+        configuration.current_school_year = "2026-2027"
+        configuration.save(update_fields=["current_school_year"])
+        course = Course.objects.create(name="Filtro")
+        section_a = Section.objects.create(course=course, name="A", school_year="2026-2027")
+        section_b = Section.objects.create(course=course, name="B", school_year="2026-2027")
+        subject_a = Subject.objects.create(section=section_a, name="Matemáticas", weekly_hours=5)
+        subject_b = Subject.objects.create(section=section_b, name="Lengua", weekly_hours=4)
+        teacher_a = Teacher.objects.create(first_name="Ana", last_name="Álvarez")
+        teacher_b = Teacher.objects.create(first_name="Bruno", last_name="Báez")
+        TeachingAssignment.objects.create(section=section_a, subject=subject_a, teacher=teacher_a)
+        TeachingAssignment.objects.create(section=section_b, subject=subject_b, teacher=teacher_b)
+
+        response = self.client.get(
+            reverse("timetabling:generar_horario"),
+            {"teacher": teacher_a.pk},
+        )
+
+        self.assertContains(response, "Docente seleccionado:")
+        self.assertContains(response, "Filtro A")
+        self.assertNotContains(response, "Filtro B")
+        self.assertContains(response, f"?teacher={teacher_a.pk}")
+
+    @patch("timetabling.api.views.build_teaching_load_pdf", return_value=b"%PDF-filtered")
+    def test_teaching_load_report_filters_by_teacher(self, build_pdf):
+        user = User.objects.create_user(username="filtered-load-report")
+        self.client.force_login(user)
+        configuration = SystemConfiguration.get_solo()
+        configuration.current_school_year = "2026-2027"
+        configuration.save(update_fields=["current_school_year"])
+        teacher = Teacher.objects.create(first_name="Ana", last_name="Docente")
+        course = Course.objects.create(name="Carga filtrada")
+        section = Section.objects.create(course=course, name="A", school_year="2026-2027")
+        subject = Subject.objects.create(section=section, name="Matemáticas", weekly_hours=5)
+        TeachingAssignment.objects.create(section=section, subject=subject, teacher=teacher)
+
+        response = self.client.get(
+            reverse("timetabling:reporte_carga_lectiva"),
+            {"teacher": teacher.pk},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        build_pdf.assert_called_once_with("2026-2027", teacher.pk)
+        self.assertIn(f"_docente_{teacher.pk}.pdf", response["Content-Disposition"])

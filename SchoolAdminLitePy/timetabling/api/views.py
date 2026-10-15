@@ -12,6 +12,7 @@ from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnl
 from rest_framework.response import Response
 from rest_framework import status
 
+from apps.core.models import Teacher
 from timetabling.api.serializers import (
     ExplicarConflictoSerializer,
     GenerarHorarioSerializer,
@@ -35,13 +36,58 @@ from timetabling.report_pdfs import build_teaching_load_pdf
 logger = logging.getLogger(__name__)
 
 
+def _teacher_filter_context(request, context):
+    teachers = list(
+        Teacher.objects.filter(
+            active=True,
+            teaching_assignments__active=True,
+            teaching_assignments__section__school_year=context["school_year"],
+        )
+        .distinct()
+        .order_by("last_name", "first_name")
+    )
+    selected_teacher = None
+    try:
+        selected_id = int(request.GET.get("teacher", ""))
+    except (TypeError, ValueError):
+        selected_id = None
+    if selected_id:
+        selected_teacher = next((teacher for teacher in teachers if teacher.pk == selected_id), None)
+
+    context["teachers"] = teachers
+    context["selected_teacher"] = selected_teacher
+    if selected_teacher:
+        filtered_sections = []
+        for section in context["sections"]:
+            subjects = [
+                subject
+                for subject in section["subjects"]
+                if subject["teacher_id"] == selected_teacher.pk
+            ]
+            if subjects:
+                filtered_sections.append({**section, "subjects": subjects})
+        context["sections"] = filtered_sections
+        context["section_count"] = len(filtered_sections)
+        context["subject_count"] = sum(len(section["subjects"]) for section in filtered_sections)
+        context["total_hours"] = sum(
+            subject["weekly_hours"]
+            for section in filtered_sections
+            for subject in section["subjects"]
+        )
+        context["teacher_count"] = 1
+    return context
+
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def reporte_carga_lectiva(request):
     school_year = get_administration_summary()["school_year"]
-    content = build_teaching_load_pdf(school_year)
+    context = _teacher_filter_context(request._request, {"school_year": school_year, "sections": []})
+    selected_teacher = context["selected_teacher"]
+    content = build_teaching_load_pdf(school_year, selected_teacher.pk if selected_teacher else None)
     response = HttpResponse(content, content_type="application/pdf")
-    response["Content-Disposition"] = f'attachment; filename="carga_lectiva_{school_year}.pdf"'
+    suffix = f"_docente_{selected_teacher.pk}" if selected_teacher else ""
+    response["Content-Disposition"] = f'attachment; filename="carga_lectiva_{school_year}{suffix}.pdf"'
     return response
 
 
@@ -49,10 +95,11 @@ def reporte_carga_lectiva(request):
 @permission_classes([IsAuthenticatedOrReadOnly])
 def generar_horario(request):
     if request.method == "GET":
+        context = _teacher_filter_context(request._request, get_administration_summary())
         return render(
             request._request,
             "timetabling/generar.html",
-            get_administration_summary(),
+            context,
         )
 
     serializer = GenerarHorarioSerializer(data=request.data)

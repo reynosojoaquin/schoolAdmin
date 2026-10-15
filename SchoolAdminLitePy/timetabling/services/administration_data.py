@@ -73,6 +73,7 @@ def get_administration_summary() -> dict:
                 "name": subject.name,
                 "weekly_hours": subject.weekly_hours,
                 "teacher": teacher_name,
+                "teacher_id": assignment.teacher_id if assignment else None,
             })
         section_summaries.append({
             "course": section.course.name,

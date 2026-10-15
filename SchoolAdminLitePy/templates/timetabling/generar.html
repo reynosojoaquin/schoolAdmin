@@ -16,6 +16,17 @@
 
 <section class="result-panel">
   <h2>Datos cargados desde Administración</h2>
+  <form method="get" class="inline-filter">
+    <label for="teacher-filter"><strong>Filtrar secciones por docente:</strong></label>
+    <select id="teacher-filter" name="teacher" class="form-control" onchange="this.form.submit()">
+      <option value="">Todos los docentes</option>
+      {% for teacher in teachers %}
+      <option value="{{ teacher.pk }}" {% if selected_teacher.pk == teacher.pk %}selected{% endif %}>{{ teacher }}</option>
+      {% endfor %}
+    </select>
+    <noscript><button type="submit">Aplicar filtro</button></noscript>
+  </form>
+  {% if selected_teacher %}<p><strong>Docente seleccionado:</strong> {{ selected_teacher }}</p>{% endif %}
   <p><strong>Año escolar:</strong> {{ school_year|default:"No configurado" }}</p>
   <p>
     <strong>{{ section_count }}</strong> secciones ·
@@ -65,7 +76,7 @@
   {% endif %}
 
   <p>
-    <a class="btn-secondary" href="{% url 'timetabling:reporte_carga_lectiva' %}">Descargar carga lectiva PDF</a>
+    <a class="btn-secondary" href="{% url 'timetabling:reporte_carga_lectiva' %}{% if selected_teacher %}?teacher={{ selected_teacher.pk }}{% endif %}">Descargar carga lectiva PDF{% if selected_teacher %} de {{ selected_teacher }}{% endif %}</a>
     ·
     <a href="{% url 'core:teaching_assignment_list' %}">Administrar asignaciones docentes</a>
     ·
@@ -81,7 +92,7 @@
   {% csrf_token %}
   <div class="form-actions">
     <button id="generate-schedule" type="submit" {% if not ready %}disabled{% endif %}>
-      Generar horarios de estas secciones
+      Generar horarios del año escolar
     </button>
   </div>
 </form>

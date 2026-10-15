@@ -55,34 +55,48 @@ def _row_color(subject_names, colors):
     return colors.HexColor("#d9e2f3")
 
 
-def build_teaching_load_pdf(school_year):
+def build_teaching_load_pdf(school_year, teacher_id=None):
     rl = _reportlab()
     colors = rl["colors"]
     sections = sorted(
         Section.objects.filter(active=True, course__active=True, school_year=school_year).select_related("course"),
         key=_section_sort_key,
     )
+    if teacher_id:
+        assigned_section_ids = set(
+            TeachingAssignment.objects.filter(
+                active=True,
+                teacher_id=teacher_id,
+                section__school_year=school_year,
+            ).values_list("section_id", flat=True)
+        )
+        sections = [section for section in sections if section.pk in assigned_section_ids]
     section_ids = [section.pk for section in sections]
     subjects = list(
         Subject.objects.filter(section_id__in=section_ids, weekly_hours__gt=0)
         .select_related("section", "section__course")
         .order_by("name")
     )
+    assignment_queryset = TeachingAssignment.objects.filter(
+        active=True,
+        teacher__active=True,
+        section_id__in=section_ids,
+    )
+    if teacher_id:
+        assignment_queryset = assignment_queryset.filter(teacher_id=teacher_id)
     assignments = {
         assignment.subject_id: assignment
-        for assignment in TeachingAssignment.objects.filter(
-            active=True,
-            teacher__active=True,
-            section_id__in=section_ids,
-        ).select_related("teacher", "subject", "section")
+        for assignment in assignment_queryset.select_related("teacher", "subject", "section")
     }
 
     rows = defaultdict(lambda: {"teacher": None, "subjects": set(), "hours": defaultdict(int)})
     missing_count = 0
     for subject in subjects:
         assignment = assignments.get(subject.pk)
-        teacher_id = assignment.teacher_id if assignment else None
-        row_key = teacher_id if teacher_id is not None else "missing"
+        if teacher_id and assignment is None:
+            continue
+        assigned_teacher_id = assignment.teacher_id if assignment else None
+        row_key = assigned_teacher_id if assigned_teacher_id is not None else "missing"
         row = rows[row_key]
         row["teacher"] = assignment.teacher if assignment else None
         row["subjects"].add(subject.name)
