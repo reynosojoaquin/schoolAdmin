@@ -357,11 +357,14 @@ def _signature_block(rl, report_configuration=None):
     teacher_signature = signature_image(report_configuration.teacher_signature if report_configuration else None)
     director_signature = signature_image(report_configuration.director_signature if report_configuration else None)
     data = [
-        [teacher_signature, "", director_signature],
-        ["____________________________", "", "____________________________"],
-        ["Profesor(a) responsable", "", "Director(a)"],
+        [teacher_signature, "", "", "", director_signature],
+        ["____________________________", "", "", "", "____________________________"],
+        ["Profesor(a) responsable", "", "", "", "Director(a)"],
     ]
-    table = rl["Table"](data, colWidths=[2.4 * rl["inch"], 1.5 * rl["inch"], 2.4 * rl["inch"]])
+    table = rl["Table"](
+        data,
+        colWidths=[2.4 * rl["inch"], 0.75 * rl["inch"], 0.75 * rl["inch"], 0.75 * rl["inch"], 2.4 * rl["inch"]],
+    )
     table.setStyle(
         rl["TableStyle"](
             [
@@ -374,7 +377,7 @@ def _signature_block(rl, report_configuration=None):
             ]
         )
     )
-    return table
+    return rl["KeepTogether"]([rl["Spacer"](1, 18), table])
 
 
 def build_periodic_report_pdf(section, enrollments, report_configuration=None):
