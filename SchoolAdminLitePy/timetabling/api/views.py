@@ -2,8 +2,11 @@ import uuid
 import logging
 from typing import Any
 
+from django.conf import settings
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.http import HttpResponse, JsonResponse
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
@@ -19,7 +22,14 @@ from timetabling.api.serializers import (
     ResultadoSerializer,
 )
 from timetabling.services.data_structures import EstadoJob
-from timetabling.models import AsignacionHorario, RestriccionPersonalizada
+from timetabling.models import (
+    AsignacionHorario,
+    AssistantConversation,
+    AssistantMemory,
+    AssistantMemoryRevision,
+    AssistantMessage,
+    RestriccionPersonalizada,
+)
 from timetabling.job_store import guardar_job, obtener_job
 from timetabling.services.data_structures import (
     EntradaSolver,
@@ -32,8 +42,83 @@ from timetabling.services.administration_data import (
     sync_administration_catalogs,
 )
 from timetabling.report_pdfs import build_teaching_load_pdf
+from timetabling.services.local_assistant import active_memories, request_local_assistant
 
 logger = logging.getLogger(__name__)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def asistente_horarios(request):
+    school_year = get_administration_summary()["school_year"]
+    conversation = None
+    conversation_id = request.POST.get("conversation") or request.GET.get("conversation")
+    if conversation_id:
+        conversation = AssistantConversation.objects.filter(
+            pk=conversation_id,
+            user=request.user,
+        ).first()
+
+    if request.method == "POST":
+        prompt = request.POST.get("prompt", "").strip()
+        if not prompt:
+            messages.error(request, "Escribe una instrucción para el asistente.")
+        else:
+            if conversation is None:
+                conversation = AssistantConversation.objects.create(
+                    user=request.user,
+                    school_year=school_year,
+                    title=prompt[:157] + ("..." if len(prompt) > 157 else ""),
+                )
+            AssistantMessage.objects.create(
+                conversation=conversation,
+                role=AssistantMessage.USER,
+                content=prompt,
+            )
+            if request.POST.get("remember") == "on":
+                title = request.POST.get("memory_title", "").strip() or prompt[:160]
+                memory = AssistantMemory.objects.create(
+                    scope_type=AssistantMemory.SCHOOL_YEAR,
+                    school_year=school_year,
+                    title=title,
+                    content=prompt,
+                    status=AssistantMemory.CONFIRMED,
+                    source="user",
+                    created_by=request.user,
+                )
+                AssistantMemoryRevision.objects.create(
+                    memory=memory,
+                    new_data={"title": memory.title, "content": memory.content, "status": memory.status},
+                    reason="Memoria confirmada explícitamente desde el asistente.",
+                    changed_by=request.user,
+                )
+            result = request_local_assistant(prompt, school_year)
+            AssistantMessage.objects.create(
+                conversation=conversation,
+                role=AssistantMessage.ASSISTANT,
+                content=result["content"],
+                structured_result={
+                    "local_model_available": result["available"],
+                    "model": result.get("model", ""),
+                },
+            )
+            return redirect(f"{request.path}?conversation={conversation.pk}")
+
+    conversations = AssistantConversation.objects.filter(user=request.user)[:20]
+    if conversation is None:
+        conversation = conversations.first()
+    return render(
+        request,
+        "timetabling/assistant.html",
+        {
+            "school_year": school_year,
+            "conversation": conversation,
+            "conversations": conversations,
+            "assistant_messages": conversation.messages.all() if conversation else [],
+            "memories": active_memories(school_year)[:30],
+            "local_ai_configured": bool(settings.LOCAL_AI_URL and settings.LOCAL_AI_MODEL),
+        },
+    )
 
 
 def _teacher_filter_context(request, context):

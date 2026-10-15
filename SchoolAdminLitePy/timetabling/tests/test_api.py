@@ -12,10 +12,61 @@ from apps.core.models import (
     Teacher,
     TeachingAssignment,
 )
-from timetabling.models import Aula, BloqueHorario, Grupo, Materia, Profesor
+from timetabling.models import (
+    AssistantConversation,
+    AssistantMemory,
+    AssistantMessage,
+    Aula,
+    BloqueHorario,
+    Grupo,
+    Materia,
+    Profesor,
+)
 
 
 class GenerarHorarioViewTests(TestCase):
+    def test_schedule_assistant_requires_login(self):
+        response = self.client.get(reverse("timetabling:asistente_horarios"))
+
+        self.assertEqual(response.status_code, 302)
+
+    @patch(
+        "timetabling.api.views.request_local_assistant",
+        return_value={"available": True, "content": "Regla interpretada.", "model": "local-test"},
+    )
+    def test_schedule_assistant_persists_conversation_and_confirmed_memory(self, local_assistant):
+        user = User.objects.create_user(username="assistant-user")
+        self.client.force_login(user)
+        configuration = SystemConfiguration.get_solo()
+        configuration.current_school_year = "2026-2027"
+        configuration.save(update_fields=["current_school_year"])
+
+        response = self.client.post(
+            reverse("timetabling:asistente_horarios"),
+            {
+                "prompt": "Ramón no debe impartir clases los viernes.",
+                "remember": "on",
+                "memory_title": "Disponibilidad de Ramón",
+            },
+        )
+
+        conversation = AssistantConversation.objects.get(user=user)
+        self.assertRedirects(
+            response,
+            f"{reverse('timetabling:asistente_horarios')}?conversation={conversation.pk}",
+        )
+        self.assertEqual(conversation.messages.count(), 2)
+        self.assertTrue(conversation.messages.filter(role=AssistantMessage.USER).exists())
+        self.assertTrue(conversation.messages.filter(role=AssistantMessage.ASSISTANT).exists())
+        memory = AssistantMemory.objects.get(created_by=user)
+        self.assertEqual(memory.school_year, "2026-2027")
+        self.assertEqual(memory.status, AssistantMemory.CONFIRMED)
+        self.assertEqual(memory.revisions.count(), 1)
+        local_assistant.assert_called_once_with(
+            "Ramón no debe impartir clases los viernes.",
+            "2026-2027",
+        )
+
     def test_get_displays_the_schedule_generator_page(self):
         response = self.client.get(reverse("timetabling:generar_horario"))
 

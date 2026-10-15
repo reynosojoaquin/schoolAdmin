@@ -76,6 +76,8 @@
   {% endif %}
 
   <p>
+    <a class="btn" href="{% url 'timetabling:asistente_horarios' %}">Abrir asistente local de IA</a>
+    ·
     <a class="btn-secondary" href="{% url 'timetabling:reporte_carga_lectiva' %}{% if selected_teacher %}?teacher={{ selected_teacher.pk }}{% endif %}">Descargar carga lectiva PDF{% if selected_teacher %} de {{ selected_teacher }}{% endif %}</a>
     ·
     <a href="{% url 'core:teaching_assignment_list' %}">Administrar asignaciones docentes</a>

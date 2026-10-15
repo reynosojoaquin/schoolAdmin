@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Asistente local de horarios - SchoolAdmin Lite{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <div>
+    <p class="eyebrow">Planificación académica</p>
+    <h1>Asistente local de horarios</h1>
+    <p>Las conversaciones y reglas confirmadas permanecen guardadas por año escolar.</p>
+  </div>
+  <div class="header-actions">
+    <a class="btn-secondary" href="{% url 'timetabling:generar_horario' %}">Volver a Horarios</a>
+  </div>
+</section>
+
+<section class="result-panel">
+  <p><strong>Año escolar:</strong> {{ school_year|default:"No configurado" }}</p>
+  {% if local_ai_configured %}
+    <p><span class="status active">Modelo local configurado</span></p>
+  {% else %}
+    <p role="alert"><span class="status inactive">Modelo local pendiente de configurar</span></p>
+    <p>Puedes comenzar a registrar conversaciones y memorias. No se intentará generar reglas automáticamente hasta conectar el modelo local.</p>
+  {% endif %}
+</section>
+
+<div class="dashboard-grid">
+  <section class="form-panel">
+    <h2>Conversación</h2>
+    {% if assistant_messages %}
+      <div class="assistant-history">
+        {% for item in assistant_messages %}
+          <article class="result-panel">
+            <strong>{% if item.role == 'user' %}Tú{% elif item.role == 'assistant' %}Asistente{% else %}Sistema{% endif %}</strong>
+            <p>{{ item.content|linebreaksbr }}</p>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p>Inicia una conversación con una regla o solicitud de horario.</p>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      {% if conversation %}<input type="hidden" name="conversation" value="{{ conversation.pk }}">{% endif %}
+      <div class="form-group">
+        <label for="assistant-prompt">Instrucción</label>
+        <textarea id="assistant-prompt" name="prompt" rows="5" required placeholder="Ejemplo: Ramón no debe impartir clases los viernes y Ciencias Naturales debe ir en bloques dobles."></textarea>
+      </div>
+      <div class="form-group">
+        <label>
+          <input type="checkbox" name="remember">
+          Guardar esta instrucción como memoria confirmada para {{ school_year }}
+        </label>
+      </div>
+      <div class="form-group">
+        <label for="memory-title">Nombre de la memoria (opcional)</label>
+        <input id="memory-title" name="memory_title" maxlength="160" placeholder="Ejemplo: Disponibilidad de Ramón">
+      </div>
+      <div class="form-actions"><button type="submit">Enviar al asistente</button></div>
+    </form>
+  </section>
+
+  <aside>
+    <section class="result-panel">
+      <h2>Memoria persistente</h2>
+      {% if memories %}
+        <ul>
+          {% for memory in memories %}
+            <li><strong>{{ memory.title }}</strong><br><small>{{ memory.get_scope_type_display }} · {{ memory.school_year|default:"Institucional" }}</small></li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p>No hay memorias confirmadas.</p>
+      {% endif %}
+    </section>
+
+    <section class="result-panel">
+      <h2>Conversaciones recientes</h2>
+      {% if conversations %}
+        <ul>
+          {% for item in conversations %}
+            <li><a href="?conversation={{ item.pk }}">{{ item.title }}</a></li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p>No hay conversaciones guardadas.</p>
+      {% endif %}
+    </section>
+  </aside>
+</div>
+{% endblock %}

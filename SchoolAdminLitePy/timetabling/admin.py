@@ -1,6 +1,13 @@
 from django.contrib import admin
 
-from timetabling.models import Aula, BloqueHorario, Profesor
+from timetabling.models import (
+    AssistantConversation,
+    AssistantMemory,
+    AssistantMessage,
+    Aula,
+    BloqueHorario,
+    Profesor,
+)
 
 
 @admin.register(BloqueHorario)
@@ -47,3 +54,27 @@ class ProfesorHorarioAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+@admin.register(AssistantMemory)
+class AssistantMemoryAdmin(admin.ModelAdmin):
+    list_display = ("title", "scope_type", "school_year", "status", "active", "priority")
+    list_filter = ("scope_type", "school_year", "status", "active")
+    search_fields = ("title", "content")
+    readonly_fields = ("created_at", "updated_at", "last_used_at", "use_count")
+
+
+class AssistantMessageInline(admin.TabularInline):
+    model = AssistantMessage
+    extra = 0
+    readonly_fields = ("role", "content", "structured_result", "created_at")
+    can_delete = False
+
+
+@admin.register(AssistantConversation)
+class AssistantConversationAdmin(admin.ModelAdmin):
+    list_display = ("title", "user", "school_year", "active", "updated_at")
+    list_filter = ("school_year", "active")
+    search_fields = ("title", "user__username")
+    readonly_fields = ("created_at", "updated_at")
+    inlines = (AssistantMessageInline,)

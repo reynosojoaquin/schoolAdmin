@@ -126,3 +126,6 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_TASK_ALWAYS_EAGER = os.getenv("CELERY_TASK_ALWAYS_EAGER", "False").lower() == "true"
 CELERY_TASK_EAGER_PROPAGATES = True
+
+LOCAL_AI_URL = os.getenv("LOCAL_AI_URL", "").strip()
+LOCAL_AI_MODEL = os.getenv("LOCAL_AI_MODEL", "").strip()

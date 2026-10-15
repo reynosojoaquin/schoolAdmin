@@ -1,4 +1,5 @@
 from django.core.exceptions import ValidationError
+from django.conf import settings
 from django.db import models
 
 from timetabling.constants import DIAS_SEMANA, TIPOS_AULA
@@ -248,3 +249,124 @@ class HorarioJob(models.Model):
 
     def __str__(self) -> str:
         return f"Job {self.job_id} - {self.estado}"
+
+
+class AssistantConversation(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="schedule_assistant_conversations",
+    )
+    school_year = models.CharField("año escolar", max_length=20)
+    title = models.CharField("título", max_length=160)
+    active = models.BooleanField("activa", default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+        verbose_name = "conversación del asistente"
+        verbose_name_plural = "conversaciones del asistente"
+
+    def __str__(self):
+        return f"{self.school_year} - {self.title}"
+
+
+class AssistantMessage(models.Model):
+    USER = "user"
+    ASSISTANT = "assistant"
+    SYSTEM = "system"
+    ROLE_CHOICES = [
+        (USER, "Usuario"),
+        (ASSISTANT, "Asistente"),
+        (SYSTEM, "Sistema"),
+    ]
+
+    conversation = models.ForeignKey(
+        AssistantConversation,
+        on_delete=models.CASCADE,
+        related_name="messages",
+    )
+    role = models.CharField(max_length=12, choices=ROLE_CHOICES)
+    content = models.TextField()
+    structured_result = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at", "pk"]
+        verbose_name = "mensaje del asistente"
+        verbose_name_plural = "mensajes del asistente"
+
+
+class AssistantMemory(models.Model):
+    INSTITUTION = "institution"
+    SCHOOL_YEAR = "school_year"
+    TEACHER = "teacher"
+    SECTION = "section"
+    SUBJECT = "subject"
+    SCOPE_CHOICES = [
+        (INSTITUTION, "Institución"),
+        (SCHOOL_YEAR, "Año escolar"),
+        (TEACHER, "Docente"),
+        (SECTION, "Sección"),
+        (SUBJECT, "Asignatura"),
+    ]
+    PROPOSED = "proposed"
+    CONFIRMED = "confirmed"
+    REJECTED = "rejected"
+    ARCHIVED = "archived"
+    STATUS_CHOICES = [
+        (PROPOSED, "Propuesta"),
+        (CONFIRMED, "Confirmada"),
+        (REJECTED, "Rechazada"),
+        (ARCHIVED, "Archivada"),
+    ]
+
+    scope_type = models.CharField(max_length=20, choices=SCOPE_CHOICES, default=SCHOOL_YEAR)
+    scope_id = models.PositiveIntegerField(null=True, blank=True)
+    school_year = models.CharField("año escolar", max_length=20, blank=True)
+    category = models.CharField("categoría", max_length=50, default="scheduling_rule")
+    title = models.CharField("título", max_length=160)
+    content = models.TextField("contenido")
+    structured_data = models.JSONField(default=dict, blank=True)
+    source = models.CharField(max_length=30, default="user")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=PROPOSED)
+    priority = models.PositiveSmallIntegerField(default=50)
+    active = models.BooleanField(default=True)
+    use_count = models.PositiveIntegerField(default=0)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="schedule_assistant_memories",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-priority", "title"]
+        verbose_name = "memoria del asistente"
+        verbose_name_plural = "memorias del asistente"
+        indexes = [models.Index(fields=["school_year", "status", "active"])]
+
+    def __str__(self):
+        return self.title
+
+
+class AssistantMemoryRevision(models.Model):
+    memory = models.ForeignKey(
+        AssistantMemory,
+        on_delete=models.CASCADE,
+        related_name="revisions",
+    )
+    previous_data = models.JSONField(default=dict, blank=True)
+    new_data = models.JSONField(default=dict, blank=True)
+    reason = models.TextField(blank=True)
+    changed_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
+    changed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-changed_at"]
+        verbose_name = "revisión de memoria"
+        verbose_name_plural = "revisiones de memoria"
