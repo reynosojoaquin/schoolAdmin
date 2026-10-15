@@ -1,50 +1,86 @@
 {% extends "base.html" %}
 
-{% block title %}Generar horario - SchoolAdmin Lite{% endblock %}
+{% block title %}Horarios de secciones - SchoolAdmin Lite{% endblock %}
 
 {% block content %}
 <section class="page-header">
   <div>
     <p class="eyebrow">Planificacion academica</p>
-    <h1>Generar horario</h1>
-    <p>Introduce los catalogos requeridos y ejecuta el generador. El resultado se actualiza automaticamente.</p>
+    <h1>Horarios de secciones</h1>
+    <p>
+      Esta pantalla utiliza las secciones y asignaturas del año escolar actual,
+      junto con los docentes asignados en Administración. No se crean datos de ejemplo.
+    </p>
   </div>
+</section>
+
+<section class="result-panel">
+  <h2>Datos cargados desde Administración</h2>
+  <p><strong>Año escolar:</strong> {{ school_year|default:"No configurado" }}</p>
+  <p>
+    <strong>{{ section_count }}</strong> secciones ·
+    <strong>{{ subject_count }}</strong> asignaturas ·
+    <strong>{{ teacher_count }}</strong> docentes asignados ·
+    <strong>{{ total_hours }}</strong> horas semanales requeridas
+  </p>
+  <p>
+    <strong>Configuración de horario:</strong>
+    {{ block_count }} bloques · {{ classroom_count }} aulas
+  </p>
+
+  {% if issues %}
+  <div role="alert">
+    <h3>Antes de generar</h3>
+    <ul>
+      {% for issue in issues %}<li>{{ issue }}</li>{% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {% if sections %}
+  <details>
+    <summary>Revisar las secciones y docentes que se incluirán</summary>
+    <div class="schedule-section-list">
+      {% for section in sections %}
+      <article>
+        <h3>{{ section.course }} {{ section.name }}</h3>
+        {% if section.subjects %}
+        <ul>
+          {% for subject in section.subjects %}
+          <li>
+            {{ subject.name }} — {{ subject.weekly_hours }} h/semana
+            {% if subject.teacher %} · {{ subject.teacher }}{% else %} · <strong>Docente sin asignar</strong>{% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p>Esta sección no tiene asignaturas con horas semanales configuradas.</p>
+        {% endif %}
+      </article>
+      {% endfor %}
+    </div>
+  </details>
+  {% else %}
+  <p>No se encontraron secciones activas para el año escolar actual.</p>
+  {% endif %}
+
+  <p>
+    <a href="{% url 'core:teaching_assignment_list' %}">Administrar asignaciones docentes</a>
+    ·
+    <a href="{% url 'admin:timetabling_bloquehorario_changelist' %}">Administrar bloques</a>
+    ·
+    <a href="{% url 'admin:timetabling_aula_changelist' %}">Administrar aulas</a>
+    ·
+    <a href="{% url 'admin:timetabling_profesor_changelist' %}">Configurar disponibilidad docente</a>
+  </p>
 </section>
 
 <form id="schedule-form" class="form-panel schedule-form" method="post">
   {% csrf_token %}
-  <div class="schedule-grid">
-    <div class="field">
-      <label for="schedule-blocks">Bloques</label>
-      <textarea id="schedule-blocks" class="form-control" rows="8" spellcheck="false">[]</textarea>
-      <small>Lista JSON con día, hora de inicio, hora de fin y orden.</small>
-    </div>
-    <div class="field">
-      <label for="schedule-teachers">Profesores</label>
-      <textarea id="schedule-teachers" class="form-control" rows="8" spellcheck="false">[]</textarea>
-      <small>Incluye materias habilitadas, disponibilidad y límites de horas.</small>
-    </div>
-    <div class="field">
-      <label for="schedule-subjects">Materias</label>
-      <textarea id="schedule-subjects" class="form-control" rows="8" spellcheck="false">[]</textarea>
-    </div>
-    <div class="field">
-      <label for="schedule-groups">Grupos</label>
-      <textarea id="schedule-groups" class="form-control" rows="8" spellcheck="false">[]</textarea>
-      <small>Cada grupo debe indicar sus materias y horas asignadas.</small>
-    </div>
-    <div class="field">
-      <label for="schedule-classrooms">Aulas</label>
-      <textarea id="schedule-classrooms" class="form-control" rows="8" spellcheck="false">[]</textarea>
-    </div>
-    <div class="field">
-      <label for="schedule-constraints">Restricciones personalizadas</label>
-      <textarea id="schedule-constraints" class="form-control" rows="8" spellcheck="false">[]</textarea>
-    </div>
-  </div>
-
   <div class="form-actions">
-    <button id="generate-schedule" type="submit">Generar horario</button>
+    <button id="generate-schedule" type="submit" {% if not ready %}disabled{% endif %}>
+      Generar horarios de estas secciones
+    </button>
   </div>
 </form>
 
@@ -62,14 +98,7 @@
     const message = document.getElementById("schedule-message");
     const result = document.getElementById("schedule-result");
     const csrfToken = form.querySelector("input[name='csrfmiddlewaretoken']").value;
-
-    const parseField = (id, label) => {
-      try {
-        return JSON.parse(document.getElementById(id).value);
-      } catch (error) {
-        throw new Error(`${label} no contiene JSON válido.`);
-      }
-    };
+    const generationUrl = "{% url 'timetabling:generar_horario_desde_administracion' %}";
 
     const show = (text, data = null) => {
       statusPanel.hidden = false;
@@ -82,7 +111,7 @@
         const response = await fetch(`../estado/${jobId}/`, {credentials: "same-origin"});
         const data = await response.json();
         show(data.mensaje || data.estado, data);
-        if (["completado", "infactible"].includes(data.estado)) {
+        if (["completado", "infactible", "error"].includes(data.estado)) {
           const finalResponse = await fetch(`../resultado/${jobId}/`, {credentials: "same-origin"});
           const finalData = await finalResponse.json();
           show(`Generación ${finalData.estado}.`, finalData);
@@ -97,24 +126,16 @@
       event.preventDefault();
       button.disabled = true;
       try {
-        const payload = {
-          bloques: parseField("schedule-blocks", "Bloques"),
-          profesores: parseField("schedule-teachers", "Profesores"),
-          materias: parseField("schedule-subjects", "Materias"),
-          grupos: parseField("schedule-groups", "Grupos"),
-          aulas: parseField("schedule-classrooms", "Aulas"),
-          restricciones_personalizadas: parseField("schedule-constraints", "Restricciones personalizadas"),
-        };
-        show("Enviando datos al generador...");
-        const response = await fetch(window.location.pathname, {
+        show("Leyendo las secciones, asignaturas y docentes de Administración...");
+        const response = await fetch(generationUrl, {
           method: "POST",
           credentials: "same-origin",
           headers: {"Content-Type": "application/json", "X-CSRFToken": csrfToken},
-          body: JSON.stringify(payload),
+          body: JSON.stringify({}),
         });
         const data = await response.json();
         if (!response.ok) {
-          show("Revisa los datos enviados.", data);
+          show(data.error || "No se pudo preparar el horario.", data);
           return;
         }
         show("Horario en cola.", data);

@@ -65,6 +65,20 @@ class SchedulerService:
         grupos_list = entrada.grupos
         aulas_list = entrada.aulas
         restricciones = entrada.restricciones_personalizadas
+        if not aulas_list:
+            return SolucionSolver(
+                asignaciones=[],
+                estado=EstadoJob.INFACTIBLE,
+                estadisticas={"razon": "No hay aulas activas"},
+                restricciones_relajadas=self._restricciones_relajadas,
+            )
+        if not bloques:
+            return SolucionSolver(
+                asignaciones=[],
+                estado=EstadoJob.INFACTIBLE,
+                estadisticas={"razon": "No hay bloques de horario activos"},
+                restricciones_relajadas=self._restricciones_relajadas,
+            )
 
         # Construir maps de indices
         dia_indices = {b.dia: i for i, b in enumerate(bloques)}
@@ -75,28 +89,31 @@ class SchedulerService:
         aula_idx_map: dict[int, int] = {a["id"]: i for i, a in enumerate(aulas_list)}
 
         # Lista de tuplas (profesor_id, materia_id, grupo_id) que necesitan asignacion
-        asignaciones_necesarias: list[tuple[int, int, int, int]] = []
+        asignaciones_necesarias: set[tuple[int, int, int]] = set()
         for grupo in grupos_list:
             grupo_id = grupo["id"]
             for asig in grupo.get("materias_asignadas", []):
                 materia_id = asig["materia_id"]
-                horas = asig["horas_asignadas"]
-                # cada materia necesita N bloques = horas / duracion_bloque
-                # Asumimos 1 bloque = 1 hora para simplificar
-                for _ in range(horas):
-                    profesores_habilitados = [
-                        p["id"] for p in profesores
-                        if materia_id in p.get("materias_ids", [])
-                    ]
-                    if profesores_habilitados:
-                        for prof_id in profesores_habilitados:
-                            asignaciones_necesarias.append(
-                                (prof_id, materia_id, grupo_id, 0)
-                            )
-                    else:
-                        logger.warning(
-                            f"No hay profesor habilitado para materia {materia_id}"
-                        )
+                profesor_asignado = asig.get("profesor_id")
+                profesores_habilitados = [
+                    p["id"] for p in profesores
+                    if materia_id in p.get("materias_ids", [])
+                    and (
+                        profesor_asignado is None
+                        or p["id"] == profesor_asignado
+                    )
+                ]
+                if profesores_habilitados:
+                    asignaciones_necesarias.update(
+                        (prof_id, materia_id, grupo_id)
+                        for prof_id in profesores_habilitados
+                    )
+                else:
+                    logger.warning(
+                        "No hay profesor habilitado para materia %s del grupo %s",
+                        materia_id,
+                        grupo_id,
+                    )
 
         # Si no hay asignaciones necesarias, infactible por datos insuficientes
         if not asignaciones_necesarias:
@@ -107,13 +124,28 @@ class SchedulerService:
                 restricciones_relajadas=["No existen materias-asignadas para grupos"],
             )
 
+        if any(
+            asig.get("horas_asignadas", 0) > 0
+            and not any(
+                materia_id == asig["materia_id"] and grupo_id == grupo["id"]
+                for _, materia_id, grupo_id in asignaciones_necesarias
+            )
+            for grupo in grupos_list
+            for asig in grupo.get("materias_asignadas", [])
+        ):
+            return SolucionSolver(
+                asignaciones=[],
+                estado=EstadoJob.INFACTIBLE,
+                estadisticas={"razon": "Hay asignaturas sin docente habilitado"},
+                restricciones_relajadas=self._restricciones_relajadas,
+            )
+
         # Crear variable binaria: x[idx, prof_id, materia_id, grupo_id, bloque_id] = 1 si asignado
         # Para reducir dimension, creamos variables solo para combinaciones validas
         vars_list: list = []
         var_key_map: dict = {}
 
-        for prof_id, materia_id, grupo_id, _ in asignaciones_necesarias:
-            prof_key = f"prof_{prof_id}"
+        for prof_id, materia_id, grupo_id in asignaciones_necesarias:
             for bloque in bloques:
                 var_name = (
                     f"x_{prof_id}_{materia_id}_{grupo_id}_{bloque.id}"
@@ -130,9 +162,11 @@ class SchedulerService:
             for asig in grupo.get("materias_asignadas", []):
                 materia_id = asig["materia_id"]
                 horas = asig["horas_asignadas"]
+                profesor_asignado = asig.get("profesor_id")
                 matching_vars = [
                     var_key_map[(p_id, materia_id, grupo_id, b.id)]
                     for p_id in [p["id"] for p in profesores if materia_id in p.get("materias_ids", [])]
+                    if profesor_asignado is None or p_id == profesor_asignado
                     for b in bloques
                     if (p_id, materia_id, grupo_id, b.id) in var_key_map
                 ]
@@ -154,6 +188,32 @@ class SchedulerService:
         # Constraint: materia-grupo no duplicado en bloque
         for (materia_id, grupo_id, bloque_id), vars_list_mg in materia_grupo_bloque_vars.items():
             self._modelo.Add(sum(vars_list_mg) <= 1)
+
+        group_sizes = {
+            grupo["id"]: grupo.get("cantidad_estudiantes", 0)
+            for grupo in grupos_list
+        }
+        room_assignment_vars: dict[tuple[int, int, int, int], dict[int, Any]] = {}
+        room_block_vars: dict[tuple[int, int], list] = defaultdict(list)
+        for key, assignment_var in var_key_map.items():
+            _, _, grupo_id, bloque_id = key
+            suitable_rooms = [
+                aula for aula in aulas_list
+                if aula.get("capacidad", 0) >= group_sizes.get(grupo_id, 0)
+            ]
+            room_vars = {
+                aula["id"]: self._modelo.NewBoolVar(
+                    f"room_{key[0]}_{key[1]}_{key[2]}_{key[3]}_{aula['id']}"
+                )
+                for aula in suitable_rooms
+            }
+            room_assignment_vars[key] = room_vars
+            self._modelo.Add(sum(room_vars.values()) == assignment_var)
+            for aula_id, room_var in room_vars.items():
+                room_block_vars[(aula_id, bloque_id)].append(room_var)
+
+        for room_vars in room_block_vars.values():
+            self._modelo.Add(sum(room_vars) <= 1)
 
         # Constraint: disponibilidad del profesor
         for prof in profesores:
@@ -252,7 +312,7 @@ class SchedulerService:
         if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
             return self._construir_solucion(
                 var_key_map, profesor_idx_map, materia_idx_map,
-                grupo_idx_map, aula_idx_map, bloques, profesores,
+                grupo_idx_map, room_assignment_vars, bloques, profesores,
             )
         else:
             if fuerza_relajacion:
@@ -315,28 +375,19 @@ class SchedulerService:
         profesor_idx_map: dict,
         materia_idx_map: dict,
         grupo_idx_map: dict,
-        aula_idx_map: dict,
+        room_assignment_vars: dict,
         bloques: list[BloqueHorario],
         profesores: list[dict],
     ) -> SolucionSolver:
         asignaciones = []
-        solver_vars = {
-            k: self._solver.Value(v) for k, v in var_key_map.items()
-        }
-        # Rastrear aulas asignadas por bloque para evitar conflictos
-        aula_bloque_usado: dict[tuple[int, int], int] = {}
-        aula_ids = list(aula_idx_map.keys())
-        count = 0
         for (prof_id, materia_id, grupo_id, bloque_id), var in var_key_map.items():
-            if solver_vars.get((prof_id, materia_id, grupo_id, bloque_id), 0) == 1:
-                # Asignar aula disponible
-                aula_id = self._asignar_aula_disponible(
-                    materia_id, grupo_id, bloque_id, aula_ids,
-                    aula_bloque_usado
+            key = (prof_id, materia_id, grupo_id, bloque_id)
+            if self._solver.Value(var) == 1:
+                aula_id = next(
+                    aula_id
+                    for aula_id, room_var in room_assignment_vars[key].items()
+                    if self._solver.Value(room_var) == 1
                 )
-                if aula_id is None:
-                    continue
-                count += 1
                 asignaciones.append(
                     HorarioAsignacion(
                         profesor_id=prof_id,
@@ -351,30 +402,10 @@ class SchedulerService:
             estado=EstadoJob.COMPLETADO,
             estadisticas={
                 "total_asignaciones": len(asignaciones),
-                "conflictos_resueltos": count,
+                "conflictos_resueltos": len(asignaciones),
             },
             restricciones_relajadas=self._restricciones_relajadas,
         )
-
-    def _asignar_aula_disponible(
-        self,
-        materia_id: int,
-        grupo_id: int,
-        bloque_id: int,
-        aulas_list: list[int] | None,
-        aula_bloque_usado: dict[tuple[int, int], int],
-    ) -> int | None:
-        """Asigna un aula simple para la combinacion. Retorna id de aula o None."""
-        key = (grupo_id, bloque_id)
-        used_aula = aula_bloque_usado.get(key)
-        if used_aula is not None:
-            return None  # ya hay una aula para este grupo en este bloque
-        if aulas_list:
-            aula_id = aulas_list[0]
-        else:
-            aula_id = 1
-        aula_bloque_usado[key] = aula_id
-        return aula_id
 
     def _generar_relajacion(
         self,

@@ -4,6 +4,7 @@ import logging
 from dataclasses import asdict
 
 from celery import shared_task
+from django.db import transaction
 
 from timetabling.services.data_structures import EstadoJob
 from timetabling.services.data_structures import (
@@ -75,7 +76,12 @@ def ejecutar_generacion(self, job_id: str, datos: dict) -> dict:
             try:
                 _guardar_asignaciones_db(solucion.asignaciones)
             except Exception as db_exc:
-                logger.warning(f"Error guardando asignaciones en DB: {db_exc}")
+                logger.exception("Error guardando asignaciones en DB para job %s", job_id)
+                guardar_job(job_id, {
+                    "estado": EstadoJob.ERROR,
+                    "progreso": 1.0,
+                    "mensaje": f"Se encontró una solución, pero no se pudo guardar: {db_exc}",
+                })
 
         return obtener_job(job_id) or {}
 
@@ -89,12 +95,19 @@ def ejecutar_generacion(self, job_id: str, datos: dict) -> dict:
         self.retry(exc=exc)
 
 
+@transaction.atomic
 def _guardar_asignaciones_db(asignaciones: list) -> None:
-    for asig in asignaciones:
-        AsignacionHorario.objects.create(
-            profesor_id=getattr(asig, "profesor_id", 0),
-            materia_id=getattr(asig, "materia_id", 0),
-            grupo_id=getattr(asig, "grupo_id", 0),
-            aula_id=getattr(asig, "aula_id", 0),
-            bloque_id=getattr(asig, "bloque_id", 0),
+    registros = [
+        AsignacionHorario(
+            profesor_id=asig.profesor_id,
+            materia_id=asig.materia_id,
+            grupo_id=asig.grupo_id,
+            aula_id=asig.aula_id,
+            bloque_id=asig.bloque_id,
         )
+        for asig in asignaciones
+    ]
+    grupo_ids = {asignacion.grupo_id for asignacion in registros}
+    if grupo_ids:
+        AsignacionHorario.objects.filter(grupo_id__in=grupo_ids).delete()
+    AsignacionHorario.objects.bulk_create(registros)

@@ -110,6 +110,7 @@ class EstadoJobSerializer(serializers.Serializer):
             ("resolviendo", "Resolviendo"),
             ("completado", "Completado"),
             ("infactible", "Infactible"),
+            ("error", "Error"),
         ]
     )
     progreso = serializers.FloatField(default=0.0)
@@ -124,6 +125,7 @@ class ResultadoSerializer(serializers.Serializer):
             ("resolviendo", "Resolviendo"),
             ("completado", "Completado"),
             ("infactible", "Infactible"),
+            ("error", "Error"),
         ]
     )
     asignaciones = serializers.JSONField(default=[])

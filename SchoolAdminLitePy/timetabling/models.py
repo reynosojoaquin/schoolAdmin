@@ -5,6 +5,14 @@ from timetabling.constants import DIAS_SEMANA, TIPOS_AULA
 
 
 class Profesor(models.Model):
+    docente_administracion = models.OneToOneField(
+        "core.Teacher",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="perfil_horario",
+        verbose_name="docente de administracion",
+    )
     nombre = models.CharField("nombre", max_length=200)
     materias_habilitadas = models.ManyToManyField(
         "Materia",
@@ -41,6 +49,14 @@ class Profesor(models.Model):
 
 
 class Materia(models.Model):
+    asignatura_administracion = models.OneToOneField(
+        "core.Subject",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="materia_horario",
+        verbose_name="asignatura de administracion",
+    )
     nombre = models.CharField("nombre", max_length=200)
     horas_semanales_requeridas = models.PositiveSmallIntegerField(
         "horas semanales requeridas",
@@ -65,6 +81,14 @@ class Materia(models.Model):
 
 
 class Grupo(models.Model):
+    seccion_administracion = models.OneToOneField(
+        "core.Section",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="grupo_horario",
+        verbose_name="seccion de administracion",
+    )
     nombre = models.CharField("nombre", max_length=50)
     grado = models.CharField("grado", max_length=20)
     materias = models.ManyToManyField(

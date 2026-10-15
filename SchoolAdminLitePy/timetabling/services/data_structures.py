@@ -24,6 +24,7 @@ class EstadoJob(str, Enum):
     RESOLVIENDO = "resolviendo"
     COMPLETADO = "completado"
     INFACTIBLE = "infactible"
+    ERROR = "error"
 
 
 @dataclass

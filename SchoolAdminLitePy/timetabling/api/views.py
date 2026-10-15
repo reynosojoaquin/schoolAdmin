@@ -3,6 +3,7 @@ import logging
 from typing import Any
 
 from django.http import JsonResponse
+from django.shortcuts import render
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
@@ -24,13 +25,25 @@ from timetabling.services.data_structures import (
     RestriccionPersonalizada as DataclassRestriccion,
 )
 from timetabling.services.scheduler import SchedulerService
+from timetabling.services.administration_data import (
+    ScheduleSetupError,
+    get_administration_summary,
+    sync_administration_catalogs,
+)
 
 logger = logging.getLogger(__name__)
 
 
-@api_view(["POST"])
+@api_view(["GET", "POST"])
 @permission_classes([IsAuthenticatedOrReadOnly])
 def generar_horario(request):
+    if request.method == "GET":
+        return render(
+            request._request,
+            "timetabling/generar.html",
+            get_administration_summary(),
+        )
+
     serializer = GenerarHorarioSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -49,6 +62,31 @@ def generar_horario(request):
     ejecutar_generacion.delay(job_id, datos)
 
     return Response({"job_id": job_id, "estado": EstadoJob.PENDIENTE}, status=status.HTTP_202_ACCEPTED)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticatedOrReadOnly])
+def generar_horario_desde_administracion(request):
+    try:
+        datos = sync_administration_catalogs()
+    except ScheduleSetupError as exc:
+        return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+    job_id = str(uuid.uuid4())
+    guardar_job(job_id, {
+        "estado": EstadoJob.PENDIENTE,
+        "progreso": 0.0,
+        "mensaje": "Horario de secciones en cola",
+        "datos": datos,
+    })
+
+    from timetabling.tasks import ejecutar_generacion
+    ejecutar_generacion.delay(job_id, datos)
+
+    return Response(
+        {"job_id": job_id, "estado": EstadoJob.PENDIENTE},
+        status=status.HTTP_202_ACCEPTED,
+    )
 
 
 @api_view(["GET"])

@@ -131,6 +131,127 @@ class TestSchedulerFactible:
             "disponibilidad": [],
         }
 
+    def test_group_assignment_uses_only_the_administratively_assigned_teacher(self):
+        entrada = EntradaSolver(
+            bloques=[
+                BloqueHorario(
+                    id=1,
+                    dia=DiaSemana.LUN,
+                    hora_inicio="08:00",
+                    hora_fin="09:00",
+                    orden=1,
+                ),
+            ],
+            profesores=[
+                {
+                    "id": 1,
+                    "materias_ids": [10],
+                    "disponibilidad": {"LUN": [1]},
+                    "horas_max_dia": 6,
+                    "horas_max_semana": 24,
+                },
+                {
+                    "id": 2,
+                    "materias_ids": [10],
+                    "disponibilidad": {"LUN": [1]},
+                    "horas_max_dia": 6,
+                    "horas_max_semana": 24,
+                },
+            ],
+            materias=[{"id": 10, "nombre": "Matemáticas"}],
+            grupos=[{
+                "id": 100,
+                "materias_asignadas": [{
+                    "materia_id": 10,
+                    "horas_asignadas": 1,
+                    "profesor_id": 2,
+                }],
+            }],
+            aulas=[{"id": 1000, "nombre": "Aula 1"}],
+        )
+
+        resultado = SchedulerService().generar(entrada)
+
+        assert resultado.estado == EstadoJob.COMPLETADO
+        assert [asignacion.profesor_id for asignacion in resultado.asignaciones] == [2]
+
+    def test_room_is_not_assigned_to_two_sections_in_the_same_block(self):
+        entrada = EntradaSolver(
+            bloques=[
+                BloqueHorario(1, DiaSemana.LUN, "08:00", "09:00", 1),
+                BloqueHorario(2, DiaSemana.LUN, "09:00", "10:00", 2),
+            ],
+            profesores=[{
+                "id": 1,
+                "materias_ids": [10, 11],
+                "disponibilidad": {"LUN": [1, 2]},
+                "horas_max_dia": 6,
+                "horas_max_semana": 24,
+            }],
+            materias=[
+                {"id": 10, "nombre": "Matemáticas"},
+                {"id": 11, "nombre": "Lengua"},
+            ],
+            grupos=[
+                {
+                    "id": 100,
+                    "materias_asignadas": [{
+                        "materia_id": 10,
+                        "horas_asignadas": 1,
+                        "profesor_id": 1,
+                    }],
+                },
+                {
+                    "id": 101,
+                    "materias_asignadas": [{
+                        "materia_id": 11,
+                        "horas_asignadas": 1,
+                        "profesor_id": 1,
+                    }],
+                },
+            ],
+            aulas=[{"id": 1000, "nombre": "Aula única", "capacidad": 40}],
+        )
+
+        resultado = SchedulerService().generar(entrada)
+
+        assert resultado.estado == EstadoJob.COMPLETADO
+        assert len(resultado.asignaciones) == 2
+        assert len({
+            (asignacion.aula_id, asignacion.bloque_id)
+            for asignacion in resultado.asignaciones
+        }) == 2
+
+    def test_room_capacity_must_fit_the_section(self):
+        entrada = EntradaSolver(
+            bloques=[
+                BloqueHorario(1, DiaSemana.LUN, "08:00", "09:00", 1),
+            ],
+            profesores=[{
+                "id": 1,
+                "materias_ids": [10],
+                "disponibilidad": {"LUN": [1]},
+                "horas_max_dia": 6,
+                "horas_max_semana": 24,
+            }],
+            materias=[{"id": 10, "nombre": "Matemáticas"}],
+            grupos=[{
+                "id": 100,
+                "cantidad_estudiantes": 31,
+                "materias_asignadas": [{
+                    "materia_id": 10,
+                    "horas_asignadas": 1,
+                    "profesor_id": 1,
+                }],
+            }],
+            aulas=[{"id": 1000, "nombre": "Aula pequeña", "capacidad": 30}],
+        )
+
+        resultado = SchedulerService().generar(entrada)
+
+        assert resultado.estado == EstadoJob.INFACTIBLE
+        assert resultado.asignaciones == []
+
 
 class TestSchedulerInfactiblePorSobreasignacion:
     """Caso: infactible porque no hay suficientes profesores para cubrir materias."""
