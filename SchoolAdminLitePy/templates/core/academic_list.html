@@ -28,9 +28,18 @@
       {% endfor %}
     </select>
   {% endif %}
+  {% if teacher_filter_options %}
+    <label class="toolbar-label" for="teacher-filter">Docente</label>
+    <select id="teacher-filter" name="teacher" class="form-control">
+      <option value="">Todos los docentes</option>
+      {% for teacher in teacher_filter_options %}
+        <option value="{{ teacher.pk }}" {% if teacher.pk == selected_teacher_id %}selected{% endif %}>{{ teacher }}</option>
+      {% endfor %}
+    </select>
+  {% endif %}
   <input type="search" name="q" value="{{ query }}" placeholder="{{ search_placeholder }}">
-  <button type="submit">Buscar</button>
-  {% if query %}
+  <button type="submit">Filtrar</button>
+  {% if query or selected_teacher_id %}
     <a class="btn-secondary" href=".">Limpiar</a>
   {% endif %}
 </form>

@@ -1206,10 +1206,37 @@ class SectionListView(AcademicListView):
 
     def get_queryset(self):
         queryset = Section.objects.filter(school_year=selected_school_year(self.request)).select_related("course", "responsible")
+        try:
+            teacher_id = int(self.request.GET.get("teacher", ""))
+        except (TypeError, ValueError):
+            teacher_id = None
+        if teacher_id:
+            queryset = queryset.filter(
+                Q(responsible_id=teacher_id)
+                | Q(teaching_assignments__teacher_id=teacher_id, teaching_assignments__active=True)
+            ).distinct()
         query = self.request.GET.get("q", "").strip()
         if query:
             queryset = self.apply_search(queryset, query)
         return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        school_year = selected_school_year(self.request)
+        context["teacher_filter_options"] = (
+            Teacher.objects.filter(active=True)
+            .filter(
+                Q(sections__school_year=school_year)
+                | Q(teaching_assignments__section__school_year=school_year, teaching_assignments__active=True)
+            )
+            .distinct()
+            .order_by("last_name", "first_name")
+        )
+        try:
+            context["selected_teacher_id"] = int(self.request.GET.get("teacher", ""))
+        except (TypeError, ValueError):
+            context["selected_teacher_id"] = None
+        return context
 
     def apply_search(self, queryset, query):
         return queryset.filter(

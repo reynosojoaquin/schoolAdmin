@@ -588,6 +588,27 @@ class SectionEnrollmentTests(TestCase):
         self.assertTrue(Section.objects.filter(pk=self.section.pk).exists())
         self.assertContains(response, "asignatura")
 
+    def test_section_list_can_filter_by_assigned_teacher(self):
+        other_section = Section.objects.create(
+            course=self.course,
+            name="B",
+            school_year="2026-2027",
+        )
+        teacher = Teacher.objects.create(first_name="Ana", last_name="Docente")
+        other_teacher = Teacher.objects.create(first_name="Bruno", last_name="Docente")
+        subject = Subject.objects.create(section=self.section, name="Matemáticas", weekly_hours=5)
+        other_subject = Subject.objects.create(section=other_section, name="Lengua", weekly_hours=4)
+        TeachingAssignment.objects.create(section=self.section, subject=subject, teacher=teacher)
+        TeachingAssignment.objects.create(section=other_section, subject=other_subject, teacher=other_teacher)
+
+        response = self.client.get(reverse("core:section_list"), {"teacher": teacher.pk})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="teacher-filter"')
+        self.assertContains(response, "Ana Docente")
+        self.assertContains(response, f'<option value="{teacher.pk}" selected>')
+        self.assertEqual([item.pk for item in response.context["object_list"]], [self.section.pk])
+
 
 class StudentSectionOrderTests(TestCase):
     def setUp(self):
