@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - SchoolAdmin Lite{% endblock %}
+
+{% block content %}
+<div class="timetable-workspace resource-form-workspace">
+{% include "timetabling/_navigation.html" with active_tab="resources" %}
+<section class="page-header timetable-page-header"><div><p class="eyebrow">RECURSOS Y DISPONIBILIDAD</p><h1>{{ title }}</h1></div></section>
+<section class="form-panel delete-panel timetable-delete-panel">
+  <span class="delete-warning-icon" aria-hidden="true">!</span>
+  <h2>Confirma la eliminación</h2>
+  <p>¿Confirmas que deseas eliminar <strong>{{ object }}</strong>?</p>
+  {% if related_count %}
+    <p class="delete-blocked" role="alert">Este recurso tiene {{ related_count }} asignaciones de horario y no puede eliminarse. Desactívalo para impedir que se use en nuevas generaciones.</p>
+    <a class="btn-secondary" href="{% url cancel_url_name %}">Volver</a>
+  {% else %}
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-actions">
+        <button class="danger-button" type="submit">Sí, eliminar recurso</button>
+        <a class="btn-secondary" href="{% url cancel_url_name %}">Cancelar</a>
+      </div>
+    </form>
+  {% endif %}
+</section>
+</div>
+{% endblock %}

@@ -401,3 +401,436 @@ class TestSchedulerCasosBordes:
             type("Asig", (), {"profesor_id": 2, "grupo_id": 100, "aula_id": 1001, "bloque_id": 1})(),
         ])
         assert len(conflictos["grupo"]) == 1
+
+
+class TestSchedulerReglasConfirmadas:
+    def test_section_cannot_receive_two_subjects_in_the_same_block(self):
+        entrada = EntradaSolver(
+            bloques=[
+                BloqueHorario(1, DiaSemana.LUN, "08:00", "09:00", 1),
+                BloqueHorario(2, DiaSemana.LUN, "09:00", "10:00", 2),
+            ],
+            profesores=[
+                {
+                    "id": 1,
+                    "materias_ids": [10],
+                    "disponibilidad": {"LUN": [1, 2]},
+                    "horas_max_dia": 6,
+                    "horas_max_semana": 24,
+                },
+                {
+                    "id": 2,
+                    "materias_ids": [11],
+                    "disponibilidad": {"LUN": [1, 2]},
+                    "horas_max_dia": 6,
+                    "horas_max_semana": 24,
+                },
+            ],
+            materias=[{"id": 10}, {"id": 11}],
+            grupos=[{
+                "id": 100,
+                "materias_asignadas": [
+                    {"materia_id": 10, "horas_asignadas": 1, "profesor_id": 1},
+                    {"materia_id": 11, "horas_asignadas": 1, "profesor_id": 2},
+                ],
+            }],
+            aulas=[{"id": 1000, "capacidad": 40}],
+        )
+
+        resultado = SchedulerService().generar(entrada)
+
+        assert resultado.estado == EstadoJob.COMPLETADO
+        assert len(resultado.asignaciones) == 2
+        assert len({asignacion.bloque_id for asignacion in resultado.asignaciones}) == 2
+
+    def test_confirmed_teacher_unavailability_rule_is_enforced(self):
+        entrada = EntradaSolver(
+            bloques=[
+                BloqueHorario(1, DiaSemana.LUN, "08:00", "09:00", 1),
+                BloqueHorario(2, DiaSemana.MAR, "08:00", "09:00", 1),
+            ],
+            profesores=[{
+                "id": 1,
+                "materias_ids": [10],
+                "disponibilidad": {"LUN": [1], "MAR": [1]},
+                "horas_max_dia": 6,
+                "horas_max_semana": 24,
+            }],
+            materias=[{"id": 10}],
+            grupos=[{
+                "id": 100,
+                "materias_asignadas": [{
+                    "materia_id": 10,
+                    "horas_asignadas": 1,
+                    "profesor_id": 1,
+                }],
+            }],
+            aulas=[{"id": 1000, "capacidad": 40}],
+            reglas_confirmadas=[{
+                "id": 1,
+                "name": "Docente no disponible el lunes",
+                "rule_type": "teacher_unavailable",
+                "severity": "hard",
+                "weight": 100,
+                "parameters": {"teacher_id": 1, "days": ["LUN"]},
+            }],
+        )
+
+        resultado = SchedulerService().generar(entrada)
+
+        assert resultado.estado == EstadoJob.COMPLETADO
+        assert [asignacion.bloque_id for asignacion in resultado.asignaciones] == [2]
+
+    def test_confirmed_daily_teacher_limit_is_enforced(self):
+        entrada = EntradaSolver(
+            bloques=[
+                BloqueHorario(1, DiaSemana.LUN, "08:00", "09:00", 1),
+                BloqueHorario(2, DiaSemana.LUN, "09:00", "10:00", 2),
+                BloqueHorario(3, DiaSemana.MAR, "08:00", "09:00", 1),
+            ],
+            profesores=[{
+                "id": 1,
+                "materias_ids": [10],
+                "disponibilidad": {"LUN": [1, 2], "MAR": [1]},
+                "horas_max_dia": 6,
+                "horas_max_semana": 24,
+            }],
+            materias=[{"id": 10}],
+            grupos=[{
+                "id": 100,
+                "materias_asignadas": [{
+                    "materia_id": 10,
+                    "horas_asignadas": 2,
+                    "profesor_id": 1,
+                }],
+            }],
+            aulas=[{"id": 1000, "capacidad": 40}],
+            reglas_confirmadas=[{
+                "id": 1,
+                "name": "Máximo diario",
+                "rule_type": "teacher_max_daily",
+                "severity": "hard",
+                "weight": 100,
+                "parameters": {"teacher_id": 1, "maximum": 1},
+            }],
+        )
+
+        resultado = SchedulerService().generar(entrada)
+
+        assert resultado.estado == EstadoJob.COMPLETADO
+        day_counts = {}
+        block_day = {1: "LUN", 2: "LUN", 3: "MAR"}
+        for assignment in resultado.asignaciones:
+            day = block_day[assignment.bloque_id]
+            day_counts[day] = day_counts.get(day, 0) + 1
+        assert max(day_counts.values()) <= 1
+
+    def test_double_pattern_keeps_weekly_remainder_as_a_single_block(self):
+        blocks = [
+            BloqueHorario(index, DiaSemana.LUN, f"{7 + index:02d}:00", f"{8 + index:02d}:00", index)
+            for index in range(1, 6)
+        ]
+        entrada = EntradaSolver(
+            bloques=blocks,
+            profesores=[{
+                "id": 1,
+                "materias_ids": [10],
+                "disponibilidad": {"LUN": [1, 2, 3, 4, 5]},
+                "horas_max_dia": 6,
+                "horas_max_semana": 24,
+            }],
+            materias=[{"id": 10}],
+            grupos=[{
+                "id": 100,
+                "materias_asignadas": [{
+                    "materia_id": 10,
+                    "horas_asignadas": 5,
+                    "profesor_id": 1,
+                }],
+            }],
+            aulas=[{"id": 1000, "capacidad": 40}],
+            reglas_confirmadas=[{
+                "id": 1,
+                "name": "Asignatura en bloques dobles",
+                "rule_type": "lesson_pattern",
+                "severity": "hard",
+                "weight": 100,
+                "parameters": {
+                    "subject_ids": [10],
+                    "session_length": 2,
+                    "allow_cross_break": False,
+                },
+            }],
+        )
+
+        resultado = SchedulerService().generar(entrada)
+
+        assert resultado.estado == EstadoJob.COMPLETADO
+        orders = sorted(asignacion.bloque_id for asignacion in resultado.asignaciones)
+        assert len(orders) == 5
+        assert orders == [1, 2, 3, 4, 5]
+
+    def test_hard_double_pattern_requires_a_consecutive_session(self):
+        entrada = EntradaSolver(
+            bloques=[
+                BloqueHorario(1, DiaSemana.LUN, "08:00", "09:00", 1),
+                BloqueHorario(2, DiaSemana.LUN, "10:00", "11:00", 2),
+            ],
+            profesores=[{
+                "id": 1,
+                "materias_ids": [10],
+                "disponibilidad": {"LUN": [1, 2]},
+                "horas_max_dia": 6,
+                "horas_max_semana": 24,
+            }],
+            materias=[{"id": 10}],
+            grupos=[{
+                "id": 100,
+                "materias_asignadas": [{
+                    "materia_id": 10,
+                    "horas_asignadas": 2,
+                    "profesor_id": 1,
+                }],
+            }],
+            aulas=[{"id": 1000, "capacidad": 40}],
+            reglas_confirmadas=[{
+                "id": 1,
+                "name": "Asignatura en bloques dobles",
+                "rule_type": "lesson_pattern",
+                "severity": "hard",
+                "weight": 100,
+                "parameters": {
+                    "subject_ids": [10],
+                    "session_length": 2,
+                    "allow_cross_break": False,
+                },
+            }],
+        )
+
+        resultado = SchedulerService().generar(entrada)
+
+        assert resultado.estado == EstadoJob.INFACTIBLE
+
+    def test_triple_pattern_creates_a_session_each_day(self):
+        blocks = [
+            BloqueHorario(
+                index,
+                DiaSemana.LUN if index <= 3 else DiaSemana.MAR,
+                f"{7 + (index - 1) % 3:02d}:00",
+                f"{8 + (index - 1) % 3:02d}:00",
+                (index - 1) % 3 + 1,
+            )
+            for index in range(1, 7)
+        ]
+        entrada = EntradaSolver(
+            bloques=blocks,
+            profesores=[{
+                "id": 1,
+                "materias_ids": [10],
+                "disponibilidad": {"LUN": [1, 2, 3], "MAR": [1, 2, 3]},
+                "horas_max_dia": 3,
+                "horas_max_semana": 24,
+            }],
+            materias=[{"id": 10}],
+            grupos=[{
+                "id": 100,
+                "materias_asignadas": [{
+                    "materia_id": 10,
+                    "horas_asignadas": 6,
+                    "profesor_id": 1,
+                }],
+            }],
+            aulas=[{"id": 1000, "capacidad": 40}],
+            reglas_confirmadas=[{
+                "id": 1,
+                "name": "Asignatura en bloques triples",
+                "rule_type": "lesson_pattern",
+                "severity": "hard",
+                "weight": 100,
+                "parameters": {
+                    "subject_ids": [10],
+                    "session_length": 3,
+                    "allow_cross_break": False,
+                },
+            }],
+        )
+
+        resultado = SchedulerService().generar(entrada)
+
+        assert resultado.estado == EstadoJob.COMPLETADO
+        assert len(resultado.asignaciones) == 6
+        assignments_by_day = {}
+        for assignment in resultado.asignaciones:
+            day = next(block.dia.value for block in blocks if block.id == assignment.bloque_id)
+            assignments_by_day[day] = assignments_by_day.get(day, 0) + 1
+        assert assignments_by_day == {"LUN": 3, "MAR": 3}
+
+    def test_section_and_room_availability_are_enforced(self):
+        entrada = EntradaSolver(
+            bloques=[
+                BloqueHorario(1, DiaSemana.LUN, "08:00", "09:00", 1),
+                BloqueHorario(2, DiaSemana.MAR, "08:00", "09:00", 1),
+            ],
+            profesores=[{
+                "id": 1,
+                "materias_ids": [10],
+                "disponibilidad": {"LUN": [1], "MAR": [1]},
+                "horas_max_dia": 6,
+                "horas_max_semana": 24,
+            }],
+            materias=[{"id": 10}],
+            grupos=[{
+                "id": 100,
+                "disponibilidad": {"MAR": [1]},
+                "materias_asignadas": [{
+                    "materia_id": 10,
+                    "horas_asignadas": 1,
+                    "profesor_id": 1,
+                }],
+            }],
+            aulas=[
+                {
+                    "id": 1000,
+                    "capacidad": 40,
+                    "disponibilidad": {"LUN": [1]},
+                },
+                {
+                    "id": 1001,
+                    "capacidad": 40,
+                    "disponibilidad": {"MAR": [1]},
+                },
+            ],
+        )
+
+        resultado = SchedulerService().generar(entrada)
+
+        assert resultado.estado == EstadoJob.COMPLETADO
+        assert len(resultado.asignaciones) == 1
+        assert resultado.asignaciones[0].bloque_id == 2
+        assert resultado.asignaciones[0].aula_id == 1001
+
+    def test_teacher_overload_is_reported_before_solving(self):
+        entrada = EntradaSolver(
+            bloques=[
+                BloqueHorario(1, DiaSemana.LUN, "08:00", "09:00", 1),
+                BloqueHorario(2, DiaSemana.LUN, "09:00", "10:00", 2),
+            ],
+            profesores=[{
+                "id": 1,
+                "nombre": "Docente sobrecargado",
+                "materias_ids": [10],
+                "disponibilidad": {"LUN": [1, 2]},
+                "horas_max_dia": 1,
+                "horas_max_semana": 24,
+            }],
+            materias=[{"id": 10}],
+            grupos=[{
+                "id": 100,
+                "materias_asignadas": [{
+                    "materia_id": 10,
+                    "horas_asignadas": 2,
+                    "profesor_id": 1,
+                }],
+            }],
+            aulas=[{"id": 1000, "capacidad": 40}],
+        )
+
+        resultado = SchedulerService().generar(entrada)
+
+        assert resultado.estado == EstadoJob.INFACTIBLE
+        assert resultado.estadisticas["sobrecargas_docentes"] == [{
+            "teacher_id": 1,
+            "teacher": "Docente sobrecargado",
+            "required_hours": 2,
+            "maximum_weekly_hours": 24,
+            "available_capacity": 1,
+        }]
+
+    def test_minimizes_teacher_gaps(self):
+        entrada = EntradaSolver(
+            bloques=[
+                BloqueHorario(1, DiaSemana.LUN, "08:00", "09:00", 1),
+                BloqueHorario(2, DiaSemana.LUN, "09:00", "10:00", 2),
+                BloqueHorario(3, DiaSemana.LUN, "10:00", "11:00", 3),
+            ],
+            profesores=[{
+                "id": 1,
+                "materias_ids": [10, 11],
+                "disponibilidad": {"LUN": [1, 2, 3]},
+                "horas_max_dia": 6,
+                "horas_max_semana": 24,
+            }],
+            materias=[{"id": 10}, {"id": 11}],
+            grupos=[
+                {
+                    "id": 100,
+                    "materias_asignadas": [{
+                        "materia_id": 10,
+                        "horas_asignadas": 1,
+                        "profesor_id": 1,
+                    }],
+                },
+                {
+                    "id": 101,
+                    "materias_asignadas": [{
+                        "materia_id": 11,
+                        "horas_asignadas": 1,
+                        "profesor_id": 1,
+                    }],
+                },
+            ],
+            aulas=[
+                {"id": 1000, "capacidad": 40},
+                {"id": 1001, "capacidad": 40},
+            ],
+        )
+
+        resultado = SchedulerService().generar(entrada)
+
+        assert resultado.estado == EstadoJob.COMPLETADO
+        assert len(resultado.asignaciones) == 2
+        orders = sorted(asignacion.bloque_id for asignacion in resultado.asignaciones)
+        assert orders[1] == orders[0] + 1
+
+    def test_distributes_weekly_lessons_across_days(self):
+        blocks = [
+            BloqueHorario(1, DiaSemana.LUN, "08:00", "09:00", 1),
+            BloqueHorario(2, DiaSemana.LUN, "09:00", "10:00", 2),
+            BloqueHorario(3, DiaSemana.MAR, "08:00", "09:00", 1),
+            BloqueHorario(4, DiaSemana.MAR, "09:00", "10:00", 2),
+            BloqueHorario(5, DiaSemana.MIÉ, "08:00", "09:00", 1),
+            BloqueHorario(6, DiaSemana.MIÉ, "09:00", "10:00", 2),
+        ]
+        entrada = EntradaSolver(
+            bloques=blocks,
+            profesores=[{
+                "id": 1,
+                "materias_ids": [10],
+                "disponibilidad": {
+                    "LUN": [1, 2],
+                    "MAR": [1, 2],
+                    "MIÉ": [1, 2],
+                },
+                "horas_max_dia": 6,
+                "horas_max_semana": 24,
+            }],
+            materias=[{"id": 10}],
+            grupos=[{
+                "id": 100,
+                "materias_asignadas": [{
+                    "materia_id": 10,
+                    "horas_asignadas": 2,
+                    "profesor_id": 1,
+                }],
+            }],
+            aulas=[{"id": 1000, "capacidad": 40}],
+        )
+
+        resultado = SchedulerService().generar(entrada)
+
+        assert resultado.estado == EstadoJob.COMPLETADO
+        scheduled_days = {
+            next(block.dia for block in blocks if block.id == assignment.bloque_id)
+            for assignment in resultado.asignaciones
+        }
+        assert len(scheduled_days) == 2

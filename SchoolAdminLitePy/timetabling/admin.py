@@ -6,6 +6,7 @@ from timetabling.models import (
     AssistantMessage,
     Aula,
     BloqueHorario,
+    Grupo,
     Profesor,
     SchedulingRule,
 )
@@ -23,6 +24,26 @@ class AulaAdmin(admin.ModelAdmin):
     list_display = ("nombre", "tipo", "capacidad", "activa")
     list_filter = ("tipo", "activa")
     search_fields = ("nombre",)
+    fields = ("nombre", "tipo", "capacidad", "disponibilidad", "activa")
+
+
+@admin.register(Grupo)
+class GrupoHorarioAdmin(admin.ModelAdmin):
+    list_display = ("nombre", "grado", "seccion_administracion", "activo")
+    search_fields = ("nombre", "grado", "seccion_administracion__name")
+    fields = ("seccion_administracion", "nombre", "grado", "disponibilidad", "activo")
+    readonly_fields = ("seccion_administracion", "nombre", "grado", "activo")
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).filter(
+            seccion_administracion__isnull=False
+        )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(Profesor)

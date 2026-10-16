@@ -23,6 +23,9 @@ from timetabling.models import (
     Profesor,
     SchedulingRule,
 )
+from timetabling.services.data_structures import HorarioAsignacion
+from timetabling.services.rule_interpreter import interpret_predefined_rules
+from timetabling.tasks import _build_assignment_reviews
 
 
 class GenerarHorarioViewTests(TestCase):
@@ -30,6 +33,18 @@ class GenerarHorarioViewTests(TestCase):
         response = self.client.get(reverse("timetabling:asistente_horarios"))
 
         self.assertEqual(response.status_code, 302)
+
+    def test_schedule_assistant_displays_timetable_navigation(self):
+        user = User.objects.create_user(username="assistant-navigation-user")
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("timetabling:asistente_horarios"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Asistente y reglas")
+        self.assertContains(response, 'id="menu-toggle"')
+        self.assertContains(response, reverse("timetabling:generar_horario"))
+        self.assertNotContains(response, reverse("timetabling:recursos_horario"))
 
     @patch(
         "timetabling.api.views.request_local_assistant",
@@ -112,12 +127,148 @@ class GenerarHorarioViewTests(TestCase):
         self.assertEqual(memory.structured_data["rule_type"], "teacher_unavailable")
         self.assertEqual(memory.status, AssistantMemory.CONFIRMED)
 
+    def test_rule_interpreter_recognizes_triple_lesson_patterns(self):
+        configuration = SystemConfiguration.get_solo()
+        configuration.current_school_year = "2026-2027"
+        configuration.save(update_fields=["current_school_year"])
+        course = Course.objects.create(name="Patrones")
+        section = Section.objects.create(
+            course=course,
+            name="A",
+            school_year="2026-2027",
+        )
+        Subject.objects.create(
+            section=section,
+            name="Ciencias Naturales",
+            weekly_hours=6,
+        )
+
+        rules = interpret_predefined_rules(
+            "Ciencias Naturales debe ir en bloques triples.",
+            "2026-2027",
+        )
+
+        pattern = next(rule for rule in rules if rule["rule_type"] == "lesson_pattern")
+        self.assertEqual(pattern["parameters"]["session_length"], 3)
+        self.assertEqual(len(pattern["parameters"]["subject_ids"]), 1)
+
+    def test_rule_interpreter_matches_each_pattern_to_its_subject(self):
+        configuration = SystemConfiguration.get_solo()
+        configuration.current_school_year = "2026-2027"
+        configuration.save(update_fields=["current_school_year"])
+        course = Course.objects.create(name="Patrones")
+        section = Section.objects.create(
+            course=course,
+            name="A",
+            school_year="2026-2027",
+        )
+        double_subject = Subject.objects.create(
+            section=section,
+            name="Ciencias Naturales",
+            weekly_hours=4,
+        )
+        triple_subject = Subject.objects.create(
+            section=section,
+            name="Lengua",
+            weekly_hours=6,
+        )
+
+        rules = interpret_predefined_rules(
+            "Ciencias Naturales en bloques dobles y Lengua en bloques triples.",
+            "2026-2027",
+        )
+
+        patterns = {rule["parameters"]["session_length"]: rule for rule in rules}
+        self.assertEqual(patterns[2]["parameters"]["subject_ids"], [double_subject.pk])
+        self.assertEqual(patterns[3]["parameters"]["subject_ids"], [triple_subject.pk])
+
+    def test_assignment_review_contains_human_readable_names(self):
+        review = _build_assignment_reviews(
+            [HorarioAsignacion(1, 10, 100, 1000, 5)],
+            {
+                "profesores": [{"id": 1, "nombre": "Ana Docente"}],
+                "materias": [{"id": 10, "nombre": "Matemáticas"}],
+                "grupos": [{"id": 100, "nombre": "Primero A"}],
+                "aulas": [{"id": 1000, "nombre": "Aula 1"}],
+                "bloques": [{
+                    "id": 5,
+                    "dia": "LUN",
+                    "hora_inicio": "08:00",
+                    "hora_fin": "09:00",
+                }],
+            },
+        )
+
+        self.assertEqual(review, [{
+            "seccion": "Primero A",
+            "asignatura": "Matemáticas",
+            "docente": "Ana Docente",
+            "aula": "Aula 1",
+            "dia": "LUN",
+            "hora_inicio": "08:00",
+            "hora_fin": "09:00",
+        }])
+
+    def test_generator_preflight_sums_teacher_load_across_sections(self):
+        configuration = SystemConfiguration.get_solo()
+        configuration.current_school_year = "2026-2027"
+        configuration.save(update_fields=["current_school_year"])
+        course = Course.objects.create(name="Carga")
+        teacher = Teacher.objects.create(first_name="Ana", last_name="Docente")
+        for section_name in ("A", "B"):
+            section = Section.objects.create(
+                course=course,
+                name=section_name,
+                school_year="2026-2027",
+            )
+            subject = Subject.objects.create(
+                section=section,
+                name=f"Asignatura {section_name}",
+                weekly_hours=3,
+            )
+            TeachingAssignment.objects.create(
+                section=section,
+                subject=subject,
+                teacher=teacher,
+            )
+        Profesor.objects.create(
+            docente_administracion=teacher,
+            nombre="Ana Docente",
+            horas_max_semana=5,
+        )
+        for day in ("LUN", "MAR", "MIÉ"):
+            for order, start in ((1, "08:00"), (2, "09:00")):
+                end = "09:00" if order == 1 else "10:00"
+                BloqueHorario.objects.create(
+                    dia=day,
+                    hora_inicio=start,
+                    hora_fin=end,
+                    orden=order,
+                )
+        Aula.objects.create(nombre="Aula real", capacidad=30)
+
+        response = self.client.get(reverse("timetabling:generar_horario"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context["ready"])
+        self.assertEqual(
+            response.context["teacher_overloads"][0]["required_hours"],
+            6,
+        )
+        self.assertEqual(
+            response.context["teacher_overloads"][0]["maximum_weekly_hours"],
+            5,
+        )
+
     def test_get_displays_the_schedule_generator_page(self):
         response = self.client.get(reverse("timetabling:generar_horario"))
 
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "timetabling/generar.html")
-        self.assertContains(response, "Horarios de secciones")
+        self.assertContains(response, "Navegación de horarios")
+        self.assertNotContains(response, reverse("timetabling:recursos_horario"))
+        self.assertContains(response, "Solicita a un administrador académico")
+        self.assertContains(response, "Generación de horarios")
         self.assertContains(response, "No se crean datos de ejemplo")
         self.assertNotContains(response, "Cargar ejemplo")
 
@@ -168,7 +319,35 @@ class GenerarHorarioViewTests(TestCase):
             hora_fin="09:00",
             orden=1,
         )
+        BloqueHorario.objects.create(
+            dia="MAR",
+            hora_inicio="09:00",
+            hora_fin="10:00",
+            orden=2,
+        )
+        confirmed_rule = SchedulingRule.objects.create(
+            school_year="2026-2027",
+            name="Ana no disponible el lunes",
+            rule_type="teacher_unavailable",
+            severity=SchedulingRule.HARD,
+            status=SchedulingRule.CONFIRMED,
+            parameters={"teacher_id": teacher.pk, "days": ["LUN"]},
+        )
         Aula.objects.create(nombre="Aula real", capacidad=30)
+
+        response = self.client.post(
+            reverse("timetabling:preparar_recursos_horario"),
+            data="{}",
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        linked_group = Grupo.objects.get(seccion_administracion=section)
+        linked_group.disponibilidad = {"MAR": [1, 2]}
+        linked_group.save(update_fields=["disponibilidad"])
+        classroom = Aula.objects.get(nombre="Aula real")
+        classroom.disponibilidad = {"MAR": [1, 2]}
+        classroom.save(update_fields=["disponibilidad"])
 
         with patch("timetabling.tasks.ejecutar_generacion.delay") as enqueue:
             response = self.client.post(
@@ -184,6 +363,7 @@ class GenerarHorarioViewTests(TestCase):
         linked_teacher = Profesor.objects.get(docente_administracion=teacher)
         self.assertEqual(datos["grupos"][0]["id"], linked_group.pk)
         self.assertEqual(datos["grupos"][0]["nombre"], "Primero A")
+        self.assertEqual(datos["grupos"][0]["disponibilidad"], {"MAR": [1, 2]})
         self.assertEqual(
             datos["grupos"][0]["materias_asignadas"],
             [{
@@ -194,6 +374,73 @@ class GenerarHorarioViewTests(TestCase):
         )
         self.assertEqual(datos["profesores"][0]["nombre"], "Ana Docente")
         self.assertEqual(datos["aulas"][0]["nombre"], "Aula real")
+        self.assertEqual(datos["aulas"][0]["disponibilidad"], {"MAR": [1, 2]})
+        self.assertEqual(len(datos["reglas_confirmadas"]), 1)
+        self.assertEqual(datos["reglas_confirmadas"][0]["id"], confirmed_rule.pk)
+        self.assertEqual(
+            datos["reglas_confirmadas"][0]["parameters"]["teacher_id"],
+            linked_teacher.pk,
+        )
+
+    def test_generation_rejects_daily_capacity_overload(self):
+        user = User.objects.create_user(username="overloaded-schedule")
+        self.client.force_login(user)
+        configuration = SystemConfiguration.get_solo()
+        configuration.current_school_year = "2026-2027"
+        configuration.save(update_fields=["current_school_year"])
+        course = Course.objects.create(name="Sobrecarga")
+        section = Section.objects.create(
+            course=course,
+            name="A",
+            school_year="2026-2027",
+        )
+        subject = Subject.objects.create(
+            section=section,
+            name="Matemáticas",
+            weekly_hours=3,
+        )
+        teacher = Teacher.objects.create(first_name="Ana", last_name="Docente")
+        TeachingAssignment.objects.create(
+            section=section,
+            subject=subject,
+            teacher=teacher,
+        )
+        Profesor.objects.create(
+            docente_administracion=teacher,
+            nombre="Ana Docente",
+            disponibilidad={"LUN": [1], "MAR": [1]},
+            horas_max_dia=1,
+            horas_max_semana=24,
+        )
+        BloqueHorario.objects.create(
+            dia="LUN",
+            hora_inicio="08:00",
+            hora_fin="09:00",
+            orden=1,
+        )
+        BloqueHorario.objects.create(
+            dia="MAR",
+            hora_inicio="08:00",
+            hora_fin="09:00",
+            orden=1,
+        )
+        Aula.objects.create(nombre="Aula real", capacidad=30)
+
+        response = self.client.post(
+            reverse("timetabling:generar_horario_desde_administracion"),
+            data="{}",
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.json()["sobrecargas_docentes"][0]["required_hours"],
+            3,
+        )
+        self.assertEqual(
+            response.json()["sobrecargas_docentes"][0]["available_capacity"],
+            2,
+        )
 
     def test_generation_requires_sections_to_have_assigned_teachers(self):
         user = User.objects.create_user(username="schedule-validation")

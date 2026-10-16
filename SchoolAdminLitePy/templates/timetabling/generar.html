@@ -1,56 +1,56 @@
 {% extends "base.html" %}
 
-{% block title %}Horarios de secciones - SchoolAdmin Lite{% endblock %}
+{% block title %}Generación de horarios - SchoolAdmin Lite{% endblock %}
 
 {% block content %}
-<section class="page-header">
+<div class="timetable-workspace">
+{% include "timetabling/_navigation.html" with active_tab="generation" %}
+
+<section class="page-header timetable-page-header">
   <div>
-    <p class="eyebrow">Planificacion academica</p>
-    <h1>Horarios de secciones</h1>
-    <p>
-      Esta pantalla utiliza las secciones y asignaturas del año escolar actual,
-      junto con los docentes asignados en Administración. No se crean datos de ejemplo.
-    </p>
+    <p class="eyebrow">CENTRO DE PLANIFICACIÓN · {{ school_year|default:"AÑO ESCOLAR NO CONFIGURADO" }}</p>
+    <h1>Generación de horarios</h1>
+    <p>Prepara, valida y revisa la programación semanal de las secciones con los recursos del centro. No se crean datos de ejemplo.</p>
   </div>
+  <a class="btn-secondary report-action" href="{% url 'timetabling:reporte_carga_lectiva' %}{% if selected_teacher %}?teacher={{ selected_teacher.pk }}{% endif %}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 17v4h14v-4"/></svg>Descargar carga lectiva</a>
 </section>
 
-<section class="result-panel">
-  <h2>Datos cargados desde Administración</h2>
+<nav class="timetable-steps" aria-label="Pasos para crear el horario">
+  <ol>
+    <li><a href="#step-configuration">Configuración</a></li>
+    <li><a href="#step-resources">Recursos</a></li>
+    <li><a href="#step-rules">Reglas</a></li>
+    <li><a href="#step-validation">Validación</a></li>
+    <li><a href="#step-generation">Generación</a></li>
+  </ol>
+</nav>
+
+<section class="timetable-panel generation-overview">
+  <div class="timetable-panel-heading"><div><span class="panel-kicker">PASO 1 · CONFIGURACIÓN</span><h2 id="step-configuration">Resumen del año escolar</h2></div><span class="school-year-badge">{{ school_year|default:"Pendiente" }}</span></div>
   <form method="get" class="inline-filter">
-    <label for="teacher-filter"><strong>Filtrar secciones por docente:</strong></label>
-    <select id="teacher-filter" name="teacher" class="form-control" onchange="this.form.submit()">
+    <label for="teacher-filter"><strong>Filtrar por docente</strong></label>
+    <select id="teacher-filter" name="teacher" class="form-control">
       <option value="">Todos los docentes</option>
       {% for teacher in teachers %}
       <option value="{{ teacher.pk }}" {% if selected_teacher.pk == teacher.pk %}selected{% endif %}>{{ teacher }}</option>
       {% endfor %}
     </select>
-    <noscript><button type="submit">Aplicar filtro</button></noscript>
+    <button type="submit" class="btn-secondary">Aplicar filtro</button>
+    {% if selected_teacher %}<a class="filter-reset" href="{% url 'timetabling:generar_horario' %}">Quitar filtro</a>{% endif %}
   </form>
   {% if selected_teacher %}<p><strong>Docente seleccionado:</strong> {{ selected_teacher }}</p>{% endif %}
-  <p><strong>Año escolar:</strong> {{ school_year|default:"No configurado" }}</p>
-  <p>
-    <strong>{{ section_count }}</strong> secciones ·
-    <strong>{{ subject_count }}</strong> asignaturas ·
-    <strong>{{ teacher_count }}</strong> docentes asignados ·
-    <strong>{{ total_hours }}</strong> horas semanales requeridas
-  </p>
-  <p>
-    <strong>Configuración de horario:</strong>
-    {{ block_count }} bloques · {{ classroom_count }} aulas
-  </p>
-
-  {% if issues %}
-  <div role="alert">
-    <h3>Antes de generar</h3>
-    <ul>
-      {% for issue in issues %}<li>{{ issue }}</li>{% endfor %}
-    </ul>
+  <div class="timetable-metrics generation-metrics">
+    <article><span class="metric-icon">▦</span><div><strong>{{ section_count }}</strong><span>Secciones</span></div></article>
+    <article><span class="metric-icon">▤</span><div><strong>{{ subject_count }}</strong><span>Asignaturas</span></div></article>
+    <article><span class="metric-icon">♙</span><div><strong>{{ teacher_count }}</strong><span>Docentes asignados</span></div></article>
+    {% if not selected_teacher %}<article class="{% if missing_assignments %}metric-warning{% endif %}"><span class="metric-icon">!</span><div><strong>{{ missing_assignments|length }}</strong><span>Asignaturas sin docente</span></div></article>{% endif %}
+    <article><span class="metric-icon">◷</span><div><strong>{{ total_hours }}</strong><span>Horas semanales</span></div></article>
+    <article><span class="metric-icon">⌂</span><div><strong>{{ block_count }} / {{ classroom_count }}</strong><span>Bloques y aulas activas</span></div></article>
   </div>
-  {% endif %}
 
   {% if sections %}
   <details>
-    <summary>Revisar las secciones y docentes que se incluirán</summary>
+    <summary>Consultar las secciones y asignaturas incluidas</summary>
     <div class="schedule-section-list">
       {% for section in sections %}
       <article>
@@ -75,34 +75,79 @@
   <p>No se encontraron secciones activas para el año escolar actual.</p>
   {% endif %}
 
-  <p>
-    <a class="btn" href="{% url 'timetabling:asistente_horarios' %}">Abrir asistente local de IA</a>
-    ·
-    <a class="btn-secondary" href="{% url 'timetabling:reporte_carga_lectiva' %}{% if selected_teacher %}?teacher={{ selected_teacher.pk }}{% endif %}">Descargar carga lectiva PDF{% if selected_teacher %} de {{ selected_teacher }}{% endif %}</a>
-    ·
-    <a href="{% url 'core:teaching_assignment_list' %}">Administrar asignaciones docentes</a>
-    ·
-    <a href="{% url 'admin:timetabling_bloquehorario_changelist' %}">Administrar bloques</a>
-    ·
-    <a href="{% url 'admin:timetabling_aula_changelist' %}">Administrar aulas</a>
-    ·
-    <a href="{% url 'admin:timetabling_profesor_changelist' %}">Configurar disponibilidad docente</a>
-  </p>
 </section>
 
-<form id="schedule-form" class="form-panel schedule-form" method="post">
+<section class="timetable-panel generation-resources" id="step-resources">
+  <div class="timetable-panel-heading"><div><span class="panel-kicker">PASO 2 · RECURSOS</span><h2>Prepara recursos y disponibilidad</h2></div></div>
+  <p>Completa docentes, bloques, aulas y disponibilidad antes de generar la propuesta.</p>
+  {% if can_manage_academic %}
+    <div class="generation-shortcuts">
+      <a href="{% url 'timetabling:recursos_horario' %}"><span class="shortcut-number">01</span><span><strong>Recursos y disponibilidad</strong><small>Bloques, aulas, docentes y secciones</small></span><b aria-hidden="true">→</b></a>
+      <a href="{% url 'core:teaching_assignment_list' %}"><span class="shortcut-number">02</span><span><strong>Asignaciones docentes</strong><small>Asignar docentes a cada materia</small></span><b aria-hidden="true">→</b></a>
+    </div>
+    <form id="resource-form" class="form-actions" method="post">
+      {% csrf_token %}
+      <button id="prepare-resources" class="btn-secondary" type="submit">Sincronizar recursos académicos</button>
+      <span id="resource-status" role="status" aria-live="polite"></span>
+    </form>
+  {% else %}
+    <p class="permission-note">La configuración de recursos y asignaciones está limitada a usuarios con permisos académicos. Solicita acceso al administrador del centro.</p>
+  {% endif %}
+</section>
+
+<section class="timetable-panel" id="step-rules">
+  <div class="timetable-panel-heading"><div><span class="panel-kicker">PASO 3 · CRITERIOS</span><h2>Reglas del horario</h2></div><a class="text-action" href="{% url 'timetabling:asistente_horarios' %}">Administrar reglas <span aria-hidden="true">→</span></a></div>
+  <p>Las reglas confirmadas del año escolar se aplican al generar. Las propuestas requieren confirmación explícita.</p>
+</section>
+
+<section class="timetable-panel validation-panel" id="step-validation">
+  <div class="timetable-panel-heading"><div><span class="panel-kicker">PASO 4 · VERIFICACIÓN</span><h2>Validación previa</h2></div>{% if ready %}<span class="setup-badge is-ready"><span></span>Listo para generar</span>{% else %}<span class="setup-badge is-pending"><span></span>Acción necesaria</span>{% endif %}</div>
+  {% if issues %}
+  <div class="validation-alert" role="alert">
+    <h3>Completa estos requisitos</h3>
+    <ul class="timetable-issue-list">
+      {% for issue in issues %}<li>{{ issue }}</li>{% endfor %}
+    </ul>
+    {% if can_manage_academic %}
+      <div class="validation-actions">
+        <a class="btn-secondary" href="{% url 'timetabling:recursos_horario' %}">Revisar recursos <span aria-hidden="true">→</span></a>
+        {% if missing_assignments %}<a class="text-action" href="{% url 'core:teaching_assignment_list' %}">Completar asignaciones docentes</a>{% endif %}
+      </div>
+    {% else %}
+      <p class="permission-note">Solicita a un administrador académico que complete la configuración requerida.</p>
+    {% endif %}
+  </div>
+  {% else %}
+  <p>La configuración está lista para generar el horario.</p>
+  {% endif %}
+  {% if teacher_overloads %}
+  <div class="validation-alert" role="alert">
+    <h3>Sobrecarga docente detectada</h3>
+    <ul>
+      {% for overload in teacher_overloads %}
+      <li>{{ overload.teacher }}: {{ overload.required_hours }} h requeridas; capacidad disponible {{ overload.available_capacity }} h y máximo semanal {{ overload.maximum_weekly_hours }} h.</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+</section>
+
+<form id="schedule-form" class="timetable-panel schedule-form" method="post">
+  <div class="timetable-panel-heading"><div><span class="panel-kicker">PASO 5 · GENERACIÓN</span><h2 id="step-generation">Crear propuesta de horario</h2></div></div>
+  <p>El sistema organizará asignaturas, secciones, docentes y aulas respetando las reglas confirmadas.</p>
   {% csrf_token %}
   <div class="form-actions">
-    <button id="generate-schedule" type="submit" {% if not ready %}disabled{% endif %}>
-      Generar horarios del año escolar
+    <button id="generate-schedule" class="btn timetable-action" type="submit" {% if not ready %}disabled{% endif %}>
+      Generar horarios
     </button>
   </div>
 </form>
 
-<section id="schedule-status" class="result-panel schedule-status" aria-live="polite" hidden>
-  <h2>Estado de generación</h2>
-  <p id="schedule-message"></p>
-  <pre id="schedule-result"></pre>
+<section id="schedule-status" class="timetable-panel schedule-status" hidden>
+  <div class="timetable-panel-heading"><div><span class="panel-kicker">RESULTADO · REVISIÓN</span><h2 id="step-review">Revisar propuesta de horario</h2></div></div>
+  <p id="schedule-message" role="status" aria-live="polite"></p>
+  <div id="schedule-review" class="schedule-review"></div>
+  <details class="technical-result"><summary>Detalles técnicos</summary><pre id="schedule-result"></pre></details>
 </section>
 
 <script>
@@ -112,8 +157,47 @@
     const statusPanel = document.getElementById("schedule-status");
     const message = document.getElementById("schedule-message");
     const result = document.getElementById("schedule-result");
+    const review = document.getElementById("schedule-review");
+    const resourceForm = document.getElementById("resource-form");
+    const resourceButton = document.getElementById("prepare-resources");
+    const resourceStatus = document.getElementById("resource-status");
     const csrfToken = form.querySelector("input[name='csrfmiddlewaretoken']").value;
     const generationUrl = "{% url 'timetabling:generar_horario_desde_administracion' %}";
+    const resourceUrl = "{% url 'timetabling:preparar_recursos_horario' %}";
+
+    const renderReview = (assignments) => {
+      review.replaceChildren();
+      if (!assignments.length) {
+        review.textContent = "No hay asignaciones para revisar.";
+        return;
+      }
+
+      const columns = [
+        ["seccion", "Sección"],
+        ["asignatura", "Asignatura"],
+        ["docente", "Docente"],
+        ["aula", "Aula"],
+        ["dia", "Día"],
+        ["hora_inicio", "Desde"],
+        ["hora_fin", "Hasta"],
+      ];
+      const table = document.createElement("table");
+      const head = table.createTHead().insertRow();
+      columns.forEach(([, label]) => {
+        const cell = document.createElement("th");
+        cell.scope = "col";
+        cell.textContent = label;
+        head.append(cell);
+      });
+      const body = table.createTBody();
+      assignments.forEach((assignment) => {
+        const row = body.insertRow();
+        columns.forEach(([key]) => {
+          row.insertCell().textContent = assignment[key] || "";
+        });
+      });
+      review.append(table);
+    };
 
     const show = (text, data = null) => {
       statusPanel.hidden = false;
@@ -130,12 +214,45 @@
           const finalResponse = await fetch(`../resultado/${jobId}/`, {credentials: "same-origin"});
           const finalData = await finalResponse.json();
           show(`Generación ${finalData.estado}.`, finalData);
+          renderReview(finalData.asignaciones_detalle || []);
           return;
         }
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
-      show("La generación continúa. Puedes volver a consultar el estado más tarde.");
+      show("La generación sigue en curso. Puedes volver a consultar el estado más tarde.");
     };
+
+    if (resourceForm) resourceForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      resourceButton.disabled = true;
+      resourceStatus.textContent = "Preparando perfiles...";
+      try {
+        const response = await fetch(resourceUrl, {
+          method: "POST",
+          credentials: "same-origin",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": resourceForm.querySelector("input[name='csrfmiddlewaretoken']").value,
+          },
+          body: JSON.stringify({}),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          resourceStatus.textContent = data.error || "No se pudieron preparar los recursos.";
+          return;
+        }
+        const overloadedTeachers = (data.sobrecargas_docentes || [])
+          .map((overload) => overload.teacher)
+          .join(", ");
+        resourceStatus.textContent = `${data.mensaje} (${data.secciones} secciones, ${data.docentes} docentes).${
+          overloadedTeachers ? ` Sobrecarga detectada: ${overloadedTeachers}.` : ""
+        }`;
+      } catch (error) {
+        resourceStatus.textContent = error.message;
+      } finally {
+        resourceButton.disabled = false;
+      }
+    });
 
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -163,4 +280,5 @@
     });
   })();
 </script>
+</div>
 {% endblock %}

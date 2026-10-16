@@ -20,6 +20,26 @@ from timetabling.job_store import guardar_job, obtener_job
 logger = logging.getLogger(__name__)
 
 
+def _build_assignment_reviews(asignaciones: list[HorarioAsignacion], datos: dict) -> list[dict]:
+    teachers = {item["id"]: item for item in datos["profesores"]}
+    subjects = {item["id"]: item for item in datos["materias"]}
+    groups = {item["id"]: item for item in datos["grupos"]}
+    rooms = {item["id"]: item for item in datos["aulas"]}
+    blocks = {item["id"]: item for item in datos["bloques"]}
+    return [
+        {
+            "seccion": groups[assignment.grupo_id]["nombre"],
+            "asignatura": subjects[assignment.materia_id]["nombre"],
+            "docente": teachers[assignment.profesor_id]["nombre"],
+            "aula": rooms[assignment.aula_id]["nombre"],
+            "dia": blocks[assignment.bloque_id]["dia"],
+            "hora_inicio": blocks[assignment.bloque_id]["hora_inicio"],
+            "hora_fin": blocks[assignment.bloque_id]["hora_fin"],
+        }
+        for assignment in asignaciones
+    ]
+
+
 @shared_task(bind=True, max_retries=2, default_retry_delay=60)
 def ejecutar_generacion(self, job_id: str, datos: dict) -> dict:
     try:
@@ -52,6 +72,7 @@ def ejecutar_generacion(self, job_id: str, datos: dict) -> dict:
                 )
                 for r in datos.get("restricciones_personalizadas", [])
             ],
+            reglas_confirmadas=datos.get("reglas_confirmadas", []),
         )
 
         servicio = SchedulerService()
@@ -68,6 +89,10 @@ def ejecutar_generacion(self, job_id: str, datos: dict) -> dict:
             "asignaciones": [
                 asdict(asig) for asig in solucion.asignaciones
             ],
+            "asignaciones_detalle": _build_assignment_reviews(
+                solucion.asignaciones,
+                datos,
+            ),
             "estadisticas": solucion.estadisticas,
             "restricciones_relajadas": solucion.restricciones_relajadas,
         })

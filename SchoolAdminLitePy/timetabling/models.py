@@ -98,6 +98,12 @@ class Grupo(models.Model):
         verbose_name="materias",
     )
     activo = models.BooleanField("activo", default=True)
+    disponibilidad = models.JSONField(
+        "disponibilidad",
+        default=dict,
+        blank=True,
+        help_text='{"LUN": [1, 2]} — bloques disponibles por dia; vacio permite todos',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -134,6 +140,12 @@ class Aula(models.Model):
     )
     capacidad = models.PositiveIntegerField("capacidad")
     activa = models.BooleanField("activa", default=True)
+    disponibilidad = models.JSONField(
+        "disponibilidad",
+        default=dict,
+        blank=True,
+        help_text='{"LUN": [1, 2]} — bloques disponibles por dia; vacio permite todos',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

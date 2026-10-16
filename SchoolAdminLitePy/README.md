@@ -124,6 +124,9 @@ python manage.py runserver
 - Inscripciones.
 - Calificaciones.
 - Curriculum de docentes y empleados.
+- Recursos del módulo Horarios: bloques lectivos, aulas y disponibilidad docente/de sección.
+
+El módulo Horarios toma cursos, secciones, asignaturas y docentes de Administración académica. Antes de generar un horario, asigna un docente activo a cada asignatura con horas semanales, configura bloques y aulas en **Horarios > Recursos de horarios** y usa allí la sincronización para crear los perfiles de horario vinculados. Los perfiles de secciones y docentes son derivados; su disponibilidad y carga se editan desde Recursos de horarios.
 
 La estructura toma como referencia las clases del proyecto `.NET`, pero con estas mejoras:
 

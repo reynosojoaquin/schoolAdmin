@@ -1,78 +1,79 @@
 {% extends "base.html" %}
 
-{% block title %}Asistente local de horarios - SchoolAdmin Lite{% endblock %}
+{% block title %}Asistente y reglas - SchoolAdmin Lite{% endblock %}
 
 {% block content %}
-<section class="page-header">
+<div class="timetable-workspace">
+{% include "timetabling/_navigation.html" with active_tab="assistant" %}
+
+<section class="page-header timetable-page-header">
   <div>
-    <p class="eyebrow">Planificación académica</p>
-    <h1>Asistente local de horarios</h1>
-    <p>Las conversaciones y reglas confirmadas permanecen guardadas por año escolar.</p>
-  </div>
-  <div class="header-actions">
-    <a class="btn-secondary" href="{% url 'timetabling:generar_horario' %}">Volver a Horarios</a>
+    <p class="eyebrow">CENTRO DE PLANIFICACIÓN · {{ school_year|default:"AÑO ESCOLAR NO CONFIGURADO" }}</p>
+    <h1>Asistente y reglas</h1>
+    <p>Define preferencias para la generación. Las reglas propuestas solo se aplican después de confirmarlas.</p>
   </div>
 </section>
 
-<section class="result-panel">
-  <p><strong>Año escolar:</strong> {{ school_year|default:"No configurado" }}</p>
+<section class="timetable-panel assistant-status">
+  <div class="timetable-panel-heading"><div><span class="panel-kicker">ASISTENTE LOCAL</span><h2>Estado del servicio</h2></div>
   {% if local_ai_configured %}
-    <p><span class="status active">Modelo local configurado</span></p>
+    <span class="setup-badge is-ready"><span></span>Modelo local configurado</span>
   {% else %}
-    <p role="alert"><span class="status inactive">Modelo local pendiente de configurar</span></p>
-    <p>Puedes comenzar a registrar conversaciones y memorias. No se intentará generar reglas automáticamente hasta conectar el modelo local.</p>
+    <span class="setup-badge is-pending"><span></span>Modelo local pendiente</span>
   {% endif %}
+  </div>
+  {% if not local_ai_configured %}<p role="alert">Puedes registrar conversaciones y memorias, pero no se generarán reglas automáticamente hasta conectar el modelo local. Las reglas confirmadas existentes siguen disponibles.</p>{% endif %}
 </section>
 
-<div class="dashboard-grid">
-  <section class="form-panel">
-    <h2>Conversación</h2>
+<div class="assistant-workspace">
+  <section class="timetable-panel assistant-conversation">
+    <div class="timetable-panel-heading"><div><span class="panel-kicker">PLANIFICACIÓN ASISTIDA</span><h2>Conversación</h2></div></div>
     {% if assistant_messages %}
       <div class="assistant-history">
         {% for item in assistant_messages %}
-          <article class="result-panel">
+          <article class="assistant-message {% if item.role == 'user' %}from-user{% else %}from-assistant{% endif %}">
             <strong>{% if item.role == 'user' %}Tú{% elif item.role == 'assistant' %}Asistente{% else %}Sistema{% endif %}</strong>
             <p>{{ item.content|linebreaksbr }}</p>
           </article>
         {% endfor %}
       </div>
     {% else %}
-      <p>Inicia una conversación con una regla o solicitud de horario.</p>
+      <div class="empty-state-block"><span class="metric-icon">✦</span><strong>Inicia una conversación</strong><span>Describe una regla o preferencia para el horario.</span></div>
     {% endif %}
 
     <form method="post">
       {% csrf_token %}
       {% if conversation %}<input type="hidden" name="conversation" value="{{ conversation.pk }}">{% endif %}
-      <div class="form-group">
+      <div class="field">
         <label for="assistant-prompt">Instrucción</label>
-        <textarea id="assistant-prompt" name="prompt" rows="5" required placeholder="Ejemplo: Ramón no debe impartir clases los viernes y Ciencias Naturales debe ir en bloques dobles."></textarea>
+        <textarea id="assistant-prompt" name="prompt" rows="5" required placeholder="Ejemplo: Ramón no debe impartir clases los viernes; Ciencias Naturales en bloques dobles y Lengua en bloques triples."></textarea>
       </div>
-      <div class="form-group">
+      <div class="assistant-memory-toggle">
         <label>
           <input type="checkbox" name="remember">
           Guardar esta instrucción como memoria confirmada para {{ school_year }}
         </label>
       </div>
-      <div class="form-group">
+      <div class="field">
         <label for="memory-title">Nombre de la memoria (opcional)</label>
         <input id="memory-title" name="memory_title" maxlength="160" placeholder="Ejemplo: Disponibilidad de Ramón">
       </div>
-      <div class="form-actions"><button type="submit">Enviar al asistente</button></div>
+      <div class="form-actions"><button class="btn timetable-action" type="submit">Enviar instrucción</button></div>
     </form>
   </section>
 
-  <aside>
-    <section class="result-panel">
-      <h2>Reglas propuestas</h2>
+  <aside class="assistant-sidebar">
+    <section class="timetable-panel assistant-side-panel">
+      <div class="timetable-panel-heading"><div><span class="panel-kicker">REVISIÓN REQUERIDA</span><h2>Reglas propuestas</h2></div><span class="count-badge">{{ proposed_rules|length }}</span></div>
       {% if proposed_rules %}
         {% for rule in proposed_rules %}
           <article>
             <strong>{{ rule.name }}</strong>
             <p>{{ rule.explanation }}</p>
             <small>{{ rule.get_severity_display }} · Peso {{ rule.weight }}</small>
-            <form method="post" action="{% url 'timetabling:confirmar_regla_asistente' rule.pk %}" class="form-actions">
+            <form method="post" action="{% url 'timetabling:confirmar_regla_asistente' rule.pk %}" class="assistant-rule-actions">
               {% csrf_token %}
-              <button type="submit" name="action" value="confirm">Confirmar</button>
+              <button class="btn" type="submit" name="action" value="confirm">Confirmar</button>
               <button type="submit" name="action" value="reject" class="btn-secondary">Rechazar</button>
             </form>
           </article>
@@ -82,8 +83,8 @@
       {% endif %}
     </section>
 
-    <section class="result-panel">
-      <h2>Reglas confirmadas</h2>
+    <section class="timetable-panel assistant-side-panel">
+      <div class="timetable-panel-heading"><div><span class="panel-kicker">ACTIVAS ESTE AÑO</span><h2>Reglas confirmadas</h2></div><span class="count-badge">{{ confirmed_rules|length }}</span></div>
       {% if confirmed_rules %}
         <ul>
           {% for rule in confirmed_rules %}
@@ -95,8 +96,8 @@
       {% endif %}
     </section>
 
-    <section class="result-panel">
-      <h2>Memoria persistente</h2>
+    <section class="timetable-panel assistant-side-panel">
+      <div class="timetable-panel-heading"><div><span class="panel-kicker">CONTEXTO GUARDADO</span><h2>Memoria persistente</h2></div></div>
       {% if memories %}
         <ul>
           {% for memory in memories %}
@@ -108,8 +109,8 @@
       {% endif %}
     </section>
 
-    <section class="result-panel">
-      <h2>Conversaciones recientes</h2>
+    <section class="timetable-panel assistant-side-panel">
+      <div class="timetable-panel-heading"><div><span class="panel-kicker">HISTORIAL</span><h2>Conversaciones recientes</h2></div></div>
       {% if conversations %}
         <ul>
           {% for item in conversations %}
@@ -121,5 +122,6 @@
       {% endif %}
     </section>
   </aside>
+</div>
 </div>
 {% endblock %}

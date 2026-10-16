@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}Recursos y disponibilidad - SchoolAdmin Lite{% endblock %}
+
+{% block content %}
+<div class="timetable-workspace">
+{% include "timetabling/_navigation.html" with active_tab="resources" %}
+
+<section class="page-header timetable-page-header">
+  <div>
+    <p class="eyebrow">CENTRO DE PLANIFICACIÓN · {{ summary.school_year|default:"AÑO ESCOLAR NO CONFIGURADO" }}</p>
+    <h1>Recursos de horarios</h1>
+    <p>Configura los espacios y la disponibilidad necesarios para preparar horarios. Los datos académicos se mantienen en sus catálogos de origen.</p>
+  </div>
+  <div class="header-actions">
+    <a class="btn timetable-action" href="{% url 'timetabling:bloque_horario_create' %}">＋ Nuevo bloque</a>
+    <a class="btn timetable-action" href="{% url 'timetabling:aula_create' %}">＋ Nueva aula</a>
+  </div>
+</section>
+
+<section class="timetable-metrics" aria-label="Estado de configuración">
+  <article><span class="metric-icon">▦</span><div><strong>{{ summary.section_count }}</strong><span>Secciones activas</span></div></article>
+  <article><span class="metric-icon">▤</span><div><strong>{{ summary.subject_count }}</strong><span>Asignaturas con horas</span></div></article>
+  <article><span class="metric-icon">♙</span><div><strong>{{ summary.teacher_count }}</strong><span>Docentes asignados</span></div></article>
+  <article><span class="metric-icon">◷</span><div><strong>{{ summary.block_count }}</strong><span>Bloques activos</span></div></article>
+  <article><span class="metric-icon">⌂</span><div><strong>{{ summary.classroom_count }}</strong><span>Aulas activas</span></div></article>
+</section>
+
+<section class="timetable-panel setup-panel">
+  <div class="timetable-panel-heading">
+    <div><span class="panel-kicker">ESTADO DEL SISTEMA</span><h2>Preparación para generar</h2></div>
+    {% if summary.ready %}<span class="setup-badge is-ready"><span></span>Configuración lista</span>{% else %}<span class="setup-badge is-pending"><span></span>Requiere atención</span>{% endif %}
+  </div>
+  {% if summary.issues %}
+    <ul class="timetable-issue-list">
+      {% for issue in summary.issues %}<li>{{ issue }}</li>{% endfor %}
+    </ul>
+  {% else %}
+    <p>La configuración básica está lista. Puedes sincronizar los perfiles vinculados a los datos académicos.</p>
+  {% endif %}
+  {% if summary.missing_assignments %}
+    <div class="setup-warning">
+      <strong>{{ summary.missing_assignments|length }} asignaturas necesitan un docente</strong>
+      <p>Consulta la lista priorizada que aparece abajo y completa cada asignación en el catálogo académico.</p>
+      <a class="text-action" href="#pending-assignments">Ver asignaturas pendientes <span aria-hidden="true">↓</span></a>
+    </div>
+  {% endif %}
+  {% if assignments_on_zero_hour_subjects %}
+    <div class="setup-warning"><strong>{{ assignments_on_zero_hour_subjects }} asignaciones están ligadas a asignaturas con 0 horas</strong><p>No se incluirán en la generación hasta actualizar las horas semanales de esas asignaturas.</p></div>
+  {% endif %}
+  <div class="catalog-shortcuts">
+    <a href="{% url 'core:section_list' %}">Secciones <span>↗</span></a>
+    <a href="{% url 'core:subject_list' %}">Asignaturas <span>↗</span></a>
+    <a href="{% url 'core:teacher_list' %}">Docentes <span>↗</span></a>
+    <a href="{% url 'core:teaching_assignment_list' %}">Docencia <span>↗</span></a>
+  </div>
+  <form class="sync-form" method="post" action="{% url 'timetabling:preparar_recursos_horario_ui' %}">
+    {% csrf_token %}
+    <div><strong>Sincronizar perfiles vinculados</strong><span>Actualiza la base de secciones, asignaturas y docentes para el generador.</span></div>
+    <button class="btn" type="submit">Sincronizar ahora</button>
+  </form>
+</section>
+
+{% if unlinked_group_count or unlinked_teacher_count or unlinked_subject_count %}
+<section class="timetable-notice">
+  <span class="notice-symbol" aria-hidden="true">i</span>
+  <div><strong>Hay perfiles históricos sin vínculo académico</strong><p>{{ unlinked_group_count }} secciones, {{ unlinked_teacher_count }} docentes y {{ unlinked_subject_count }} asignaturas. El generador usa los registros vinculados; sincronizar no elimina estos perfiles.</p></div>
+</section>
+{% endif %}
+
+<section class="timetable-panel resource-section" id="bloques">
+  <div class="timetable-panel-heading"><div><span class="panel-kicker">ESTRUCTURA DEL DÍA</span><h2>Bloques horarios</h2></div><a class="text-action" href="{% url 'timetabling:bloque_horario_create' %}">＋ Agregar bloque</a></div>
+  <p class="panel-description">Define el orden de las clases y el intervalo de tiempo de cada bloque por día.</p>
+  <div class="resource-table-wrap"><table aria-label="Bloques horarios configurados">
+    <thead><tr><th scope="col">Día</th><th scope="col">Orden</th><th scope="col">Horario</th><th scope="col">Estado</th><th scope="col">Asignaciones actuales</th><th scope="col"><span class="sr-only">Acciones</span></th></tr></thead>
+    <tbody>
+      {% for block in blocks %}
+      <tr>
+        <td>{{ block.get_dia_display }}</td>
+        <td>{{ block.orden }}</td>
+        <td>{{ block.hora_inicio|time:"H:i" }}–{{ block.hora_fin|time:"H:i" }}</td>
+        <td>{% if block.activo %}Activo{% else %}Inactivo{% endif %}</td>
+        <td>{{ block.assignment_count }}</td>
+        <td class="actions">
+          <a href="{% url 'timetabling:bloque_horario_update' block.pk %}">Editar</a>
+          <a class="danger-link" href="{% url 'timetabling:bloque_horario_delete' block.pk %}">Eliminar</a>
+        </td>
+      </tr>
+      {% empty %}<tr><td class="empty-state" colspan="6"><strong>No hay bloques configurados</strong><span>Agrega los períodos lectivos para poder generar horarios.</span></td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+</section>
+
+{% if missing_subject_assignment_count %}
+<section class="timetable-panel resource-section" id="pending-assignments">
+  <div class="timetable-panel-heading"><div><span class="panel-kicker">TAREA ACADÉMICA PENDIENTE</span><h2>Asignaturas que necesitan docente</h2></div><span class="count-badge">{{ missing_subject_assignment_count }} pendientes</span></div>
+  <p class="panel-description">Se muestran hasta 20 asignaturas. Cada acción abre el formulario de docencia con el curso, la sección y la asignatura preseleccionados.</p>
+  <div class="resource-table-wrap"><table aria-label="Asignaturas pendientes de asignación docente">
+    <thead><tr><th scope="col">Curso</th><th scope="col">Sección</th><th scope="col">Asignatura</th><th scope="col">Horas/semana</th><th scope="col"><span class="sr-only">Acciones</span></th></tr></thead>
+    <tbody>
+      {% for subject in subjects_without_assignments %}
+      <tr>
+        <td>{{ subject.section.course.name }}</td>
+        <td>{{ subject.section.name }}</td>
+        <td>{{ subject.name }}</td>
+        <td>{{ subject.weekly_hours }}</td>
+        <td class="actions">
+          {% if subject.existing_teaching_assignment %}
+            <a href="{% url 'core:teaching_assignment_update' subject.existing_teaching_assignment.pk %}">Corregir asignación</a>
+          {% else %}
+            <a href="{% url 'core:teaching_assignment_create' %}?section={{ subject.section_id }}&amp;subject={{ subject.pk }}">Asignar docente</a>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endif %}
+
+<section class="timetable-panel resource-section" id="aulas">
+  <div class="timetable-panel-heading"><div><span class="panel-kicker">ESPACIOS DISPONIBLES</span><h2>Aulas</h2></div><a class="text-action" href="{% url 'timetabling:aula_create' %}">＋ Agregar aula</a></div>
+  <p class="panel-description">Registra espacios y capacidad. La disponibilidad se configura en la edición de cada aula.</p>
+  <div class="resource-table-wrap"><table aria-label="Aulas disponibles">
+    <thead><tr><th scope="col">Aula</th><th scope="col">Tipo</th><th scope="col">Capacidad</th><th scope="col">Estado</th><th scope="col">Asignaciones actuales</th><th scope="col"><span class="sr-only">Acciones</span></th></tr></thead>
+    <tbody>
+      {% for classroom in classrooms %}
+      <tr>
+        <td>{{ classroom.nombre }}</td>
+        <td>{{ classroom.get_tipo_display }}</td>
+        <td>{{ classroom.capacidad }}</td>
+        <td>{% if classroom.activa %}Activa{% else %}Inactiva{% endif %}</td>
+        <td>{{ classroom.assignment_count }}</td>
+        <td class="actions">
+          <a href="{% url 'timetabling:aula_update' classroom.pk %}">Editar</a>
+          <a class="danger-link" href="{% url 'timetabling:aula_delete' classroom.pk %}">Eliminar</a>
+        </td>
+      </tr>
+      {% empty %}<tr><td class="empty-state" colspan="6"><strong>No hay aulas configuradas</strong><span>Agrega al menos un espacio disponible para la generación.</span></td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+</section>
+
+<section class="timetable-panel resource-section" id="disponibilidad-docente">
+  <div class="timetable-panel-heading"><div><span class="panel-kicker">EQUIPO DOCENTE</span><h2>Disponibilidad y carga de docentes</h2></div></div>
+  <p class="panel-description">Ajusta los bloques disponibles y los límites de carga. Los perfiles se crean al sincronizar los datos académicos.</p>
+  <div class="resource-table-wrap"><table aria-label="Disponibilidad y límites de carga docente">
+    <thead><tr><th scope="col">Docente</th><th scope="col">Máx. horas/día</th><th scope="col">Máx. horas/semana</th><th scope="col"><span class="sr-only">Acciones</span></th></tr></thead>
+    <tbody>
+      {% for profile in teacher_profiles %}
+      <tr>
+        <td>{{ profile.docente_administracion }}</td>
+        <td>{{ profile.horas_max_dia }}</td>
+        <td>{{ profile.horas_max_semana }}</td>
+        <td class="actions"><a href="{% url 'timetabling:profesor_horario_update' profile.pk %}">Editar disponibilidad</a></td>
+      </tr>
+      {% empty %}<tr><td colspan="4">Los perfiles docentes se crean al sincronizar las asignaciones académicas válidas.</td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+</section>
+
+<section class="timetable-panel resource-section" id="disponibilidad-secciones">
+  <div class="timetable-panel-heading"><div><span class="panel-kicker">GRUPOS ACADÉMICOS</span><h2>Disponibilidad de secciones</h2></div></div>
+  <p class="panel-description">Restringe los días y períodos en los que cada sección puede recibir clases.</p>
+  <div class="resource-table-wrap"><table aria-label="Disponibilidad de secciones">
+    <thead><tr><th scope="col">Curso</th><th scope="col">Sección</th><th scope="col"><span class="sr-only">Acciones</span></th></tr></thead>
+    <tbody>
+      {% for profile in section_profiles %}
+      <tr>
+        <td>{{ profile.seccion_administracion.course.name }}</td>
+        <td>{{ profile.seccion_administracion.name }}</td>
+        <td class="actions"><a href="{% url 'timetabling:grupo_horario_update' profile.pk %}">Editar disponibilidad</a></td>
+      </tr>
+      {% empty %}<tr><td colspan="3">Los perfiles de sección se crean al sincronizar los recursos académicos.</td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+</section>
+</div>
+{% endblock %}

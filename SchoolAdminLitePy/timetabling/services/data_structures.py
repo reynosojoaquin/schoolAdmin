@@ -87,6 +87,7 @@ class EntradaSolver:
     grupos: list[dict[str, Any]]
     aulas: list[dict[str, Any]]
     restricciones_personalizadas: list[RestriccionPersonalizada] = field(default_factory=list)
+    reglas_confirmadas: list[dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass

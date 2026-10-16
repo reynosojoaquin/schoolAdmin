@@ -75,20 +75,54 @@ def interpret_predefined_rules(prompt, school_year):
             "explanation": "Limita la carga docente según la instrucción confirmada.",
         })
 
-    if "bloque doble" in normalized or "bloques dobles" in normalized:
-        for subject in _find_subjects(normalized, school_year):
-            detected.append({
-                "name": f"{subject.name} en bloques dobles",
-                "rule_type": "lesson_pattern",
-                "severity": SchedulingRule.HARD,
-                "weight": 100,
-                "parameters": {
-                    "subject_name": subject.name,
-                    "session_length": 2,
-                    "allow_cross_break": False,
-                },
-                "explanation": "Agrupa las horas de la asignatura en sesiones de dos bloques consecutivos.",
-            })
+    subjects = _find_subjects(normalized, school_year)
+    for match in re.finditer(r"\bbloques?\s+(dobles?|triples?)\b", normalized):
+        if not subjects:
+            continue
+        preceding_subjects = [
+            (
+                normalized.rfind(_normalize(candidate.name), 0, match.start()),
+                candidate,
+            )
+            for candidate in subjects
+            if normalized.rfind(_normalize(candidate.name), 0, match.start()) >= 0
+        ]
+        if preceding_subjects:
+            subject = max(preceding_subjects, key=lambda item: item[0])[1]
+        else:
+            following_subjects = [
+                (
+                    normalized.find(_normalize(candidate.name), match.end()),
+                    candidate,
+                )
+                for candidate in subjects
+                if normalized.find(_normalize(candidate.name), match.end()) >= 0
+            ]
+            subject = min(following_subjects, key=lambda item: item[0])[1]
+        session_length = 2 if match.group(1).startswith("doble") else 3
+        subject_ids = list(
+            Subject.objects.filter(
+                section__school_year=school_year,
+                weekly_hours__gt=0,
+                name__iexact=subject.name,
+            ).values_list("pk", flat=True)
+        )
+        detected.append({
+            "name": f"{subject.name} en bloques {'dobles' if session_length == 2 else 'triples'}",
+            "rule_type": "lesson_pattern",
+            "severity": SchedulingRule.HARD,
+            "weight": 100,
+            "parameters": {
+                "subject_name": subject.name,
+                "subject_ids": subject_ids,
+                "session_length": session_length,
+                "allow_cross_break": False,
+            },
+            "explanation": (
+                f"Agrupa las horas de la asignatura en sesiones de "
+                f"{session_length} bloques consecutivos."
+            ),
+        })
 
     if "hueco" in normalized or "ventana" in normalized:
         detected.append({

@@ -7,9 +7,10 @@
   <title>{% block title %}SchoolAdmin Lite{% endblock %}</title>
   <link rel="icon" type="image/png" href="{% static 'img/schooladmin-favicon.png' %}">
   <link rel="apple-touch-icon" href="{% static 'img/schooladmin-favicon.png' %}">
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20261015-1">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20261015-3">
 </head>
 <body class="{% if request.user.is_authenticated %}admin-layout sidebar-mini{% else %}login-page{% endif %}">
+  <a class="skip-link" href="#main-content">Saltar al contenido principal</a>
   <svg aria-hidden="true" class="icon-sprite" xmlns="http://www.w3.org/2000/svg">
     <symbol id="icon-dashboard" viewBox="0 0 24 24">
       <path d="M3 13a9 9 0 1 1 18 0" />
@@ -49,6 +50,15 @@
     <symbol id="icon-schedule" viewBox="0 0 24 24">
       <path d="M3 13a9 9 0 1 1 18 0" />
       <path d="M12 7v5l3 3" />
+    </symbol>
+    <symbol id="icon-rules" viewBox="0 0 24 24">
+      <path d="M5 4h14v16H5z" />
+      <path d="m8 9 2 2 4-4" />
+      <path d="M8 15h8" />
+    </symbol>
+    <symbol id="icon-resources" viewBox="0 0 24 24">
+      <path d="M4 5h16v14H4z" />
+      <path d="M4 10h16M9 5v14M15 5v14" />
     </symbol>
     <symbol id="icon-subjects" viewBox="0 0 24 24">
       <path d="M6 4h12a2 2 0 0 1 2 2v14H8a4 4 0 0 1-4-4V6a2 2 0 0 1 2-2Z" />
@@ -102,7 +112,10 @@
     <div class="wrapper">
       <nav class="main-header navbar">
         <div class="navbar-left">
-          <a class="nav-link menu-toggle" href="#" aria-label="Menu">Menu</a>
+          <button class="nav-link menu-toggle" id="menu-toggle" type="button" aria-controls="main-sidebar" aria-expanded="true" aria-label="Contraer menú lateral">
+            <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+            <span>Menú</span>
+          </button>
           <a class="nav-link" href="{% url 'core:dashboard' %}">Home</a>
           <a class="nav-link" href="{% url 'core:student_list' %}">Estudiantes</a>
         </div>
@@ -115,7 +128,7 @@
         </div>
       </nav>
 
-      <aside class="main-sidebar sidebar-dark-primary">
+      <aside class="main-sidebar sidebar-dark-primary" id="main-sidebar">
         <a href="{% url 'core:dashboard' %}" class="brand-link">
           <img class="brand-logo{% if not system_configuration.logo %} default-logo-transparent{% endif %}" src="{{ institution_logo_url }}" alt="Logo institucional">
           <span class="brand-text">SchoolAdmin Lite</span>
@@ -147,7 +160,6 @@
               <a class="nav-link {% if 'section' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:section_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-sections"></use></svg><span>Secciones</span></a>
               <a class="nav-link {% if 'subject' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:subject_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-subjects"></use></svg><span>Asignaturas</span></a>
               <a class="nav-link {% if 'teaching_assignment' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'core:teaching_assignment_list' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-teaching"></use></svg><span>Docencia</span></a>
-              <a class="nav-link {% if 'timetabling' in request.resolver_match.url_name or 'horarios' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'timetabling:generar_horario' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-schedule"></use></svg><span>Horarios</span></a>
             {% endif %}
             {% if can_view_academic %}
               <a class="nav-link {% if request.resolver_match.url_name == 'my_sections' %}active{% endif %}" href="{% url 'core:my_sections' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-my-sections"></use></svg><span>Mis secciones</span></a>
@@ -156,6 +168,12 @@
                 <a class="nav-link {% if request.resolver_match.url_name == 'grade_import' %}active{% endif %}" href="{% url 'core:grade_import' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-import"></use></svg><span>Importar notas</span></a>
               {% endif %}
             {% endif %}
+
+            <p class="nav-header">HORARIOS</p>
+            <a class="nav-link {% if request.resolver_match.url_name == 'generar_horario' or request.resolver_match.url_name == 'generar_horario_desde_administracion' %}active{% endif %}" href="{% url 'timetabling:generar_horario' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-schedule"></use></svg><span>Generar horario</span></a>
+            {% if can_manage_academic %}<a class="nav-link {% if 'recursos_horario' in request.resolver_match.url_name or 'preparar_recursos_horario_ui' in request.resolver_match.url_name or 'bloque_horario' in request.resolver_match.url_name or 'aula_' in request.resolver_match.url_name or 'profesor_horario' in request.resolver_match.url_name or 'grupo_horario' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'timetabling:recursos_horario' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-resources"></use></svg><span>Recursos y disponibilidad</span></a>{% endif %}
+            <a class="nav-link {% if request.resolver_match.url_name == 'asistente_horarios' or request.resolver_match.url_name == 'confirmar_regla_asistente' %}active{% endif %}" href="{% url 'timetabling:asistente_horarios' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-rules"></use></svg><span>Asistente y reglas</span></a>
+            <a class="nav-link {% if request.resolver_match.url_name == 'reporte_carga_lectiva' %}active{% endif %}" href="{% url 'timetabling:reporte_carga_lectiva' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-teaching"></use></svg><span>Carga lectiva</span></a>
 
             {% if can_view_academic or can_manage_registry_reports %}
               <p class="nav-header">REGISTRO</p>
@@ -209,15 +227,15 @@
             <strong>Dashboard</strong>
           </div>
         </section>
-        <section class="content">
+        <section class="content" id="main-content" tabindex="-1">
   {% else %}
-    <main class="login-wrapper">
+    <main class="login-wrapper" id="main-content" tabindex="-1">
   {% endif %}
 
   {% if messages %}
     <div class="messages">
       {% for message in messages %}
-        <div class="message {{ message.tags }}">{{ message }}</div>
+        <div class="message {{ message.tags }}" role="{% if message.tags == 'error' %}alert{% else %}status{% endif %}">{{ message }}</div>
       {% endfor %}
     </div>
   {% endif %}
@@ -235,6 +253,21 @@
     </div>
   {% else %}
     </main>
+  {% endif %}
+  {% if request.user.is_authenticated %}
+  <script>
+    (() => {
+      const toggle = document.getElementById("menu-toggle");
+      const sidebar = document.getElementById("main-sidebar");
+      if (!toggle || !sidebar) return;
+      toggle.addEventListener("click", () => {
+        const expanded = toggle.getAttribute("aria-expanded") === "true";
+        document.body.classList.toggle("sidebar-collapsed", expanded);
+        toggle.setAttribute("aria-expanded", String(!expanded));
+        toggle.setAttribute("aria-label", expanded ? "Mostrar menú lateral" : "Contraer menú lateral");
+      });
+    })();
+  </script>
   {% endif %}
 </body>
 </html>

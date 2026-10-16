@@ -283,6 +283,14 @@ def generar_horario_desde_administracion(request):
         datos = sync_administration_catalogs()
     except ScheduleSetupError as exc:
         return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+    if datos["sobrecargas_docentes"]:
+        return Response(
+            {
+                "error": "Corrige la carga semanal de estos docentes antes de generar.",
+                "sobrecargas_docentes": datos["sobrecargas_docentes"],
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     job_id = str(uuid.uuid4())
     guardar_job(job_id, {
@@ -299,6 +307,22 @@ def generar_horario_desde_administracion(request):
         {"job_id": job_id, "estado": EstadoJob.PENDIENTE},
         status=status.HTTP_202_ACCEPTED,
     )
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def preparar_recursos_horario(request):
+    try:
+        datos = sync_administration_catalogs()
+    except ScheduleSetupError as exc:
+        return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+    return Response({
+        "mensaje": "Perfiles de horario sincronizados. Ya puedes configurar disponibilidades y reglas.",
+        "secciones": len(datos["grupos"]),
+        "docentes": len(datos["profesores"]),
+        "reglas_confirmadas": len(datos["reglas_confirmadas"]),
+        "sobrecargas_docentes": datos["sobrecargas_docentes"],
+    })
 
 
 @api_view(["GET"])
@@ -332,6 +356,7 @@ def resultado_horario(request, job_id: str):
         "job_id": job["job_id"],
         "estado": job["estado"],
         "asignaciones": job.get("asignaciones", []),
+        "asignaciones_detalle": job.get("asignaciones_detalle", []),
         "estadisticas": job.get("estadisticas", {}),
         "restricciones_relajadas": job.get("restricciones_relajadas", []),
     })
