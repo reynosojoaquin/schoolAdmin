@@ -2778,9 +2778,6 @@ class GradeTemplateDownloadView(AcademicAccessMixin, View):
         for column_number, comment_text in completion_comments.items():
             sheet.cell(row=header_row, column=column_number).comment = Comment(comment_text, "SchoolAdmin")
 
-        sheet.protection.sheet = True
-        sheet.protection.enable()
-
         reference = workbook.create_sheet("_referencia")
         reference.sheet_state = "hidden"
         reference.append(["format_version", GRADE_TEMPLATE_VERSION])

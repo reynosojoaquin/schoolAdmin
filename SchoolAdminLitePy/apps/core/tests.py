@@ -859,6 +859,7 @@ class GradeRecoveryTests(TestCase):
         sheet = workbook["Calificaciones"]
         headers = {cell.value: cell.column for cell in sheet[11] if cell.value}
 
+        self.assertFalse(sheet.protection.sheet)
         self.assertIn("c1_rp1", headers)
         self.assertIn("c1_rp4", headers)
         self.assertIn("<70", sheet.cell(row=12, column=37).value)
