@@ -64,7 +64,7 @@ def request_local_assistant(prompt, school_year):
         method="POST",
     )
     try:
-        with urlopen(request, timeout=45) as response:
+        with urlopen(request, timeout=getattr(settings, "LOCAL_AI_TIMEOUT", 120)) as response:
             result = json.loads(response.read().decode("utf-8"))
         content = result.get("message", {}).get("content", "").strip()
         if not content:

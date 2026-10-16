@@ -129,3 +129,4 @@ CELERY_TASK_EAGER_PROPAGATES = True
 
 LOCAL_AI_URL = os.getenv("LOCAL_AI_URL", "").strip()
 LOCAL_AI_MODEL = os.getenv("LOCAL_AI_MODEL", "").strip()
+LOCAL_AI_TIMEOUT = int(os.getenv("LOCAL_AI_TIMEOUT", "120"))
