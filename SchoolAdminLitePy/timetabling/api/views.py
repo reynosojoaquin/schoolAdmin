@@ -7,6 +7,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
+from django.urls import reverse
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
@@ -29,6 +31,7 @@ from timetabling.models import (
     AssistantMemoryRevision,
     AssistantMessage,
     RestriccionPersonalizada,
+    SchedulingRule,
 )
 from timetabling.job_store import guardar_job, obtener_job
 from timetabling.services.data_structures import (
@@ -43,6 +46,7 @@ from timetabling.services.administration_data import (
 )
 from timetabling.report_pdfs import build_teaching_load_pdf
 from timetabling.services.local_assistant import active_memories, request_local_assistant
+from timetabling.services.rule_interpreter import create_proposed_rules
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +74,7 @@ def asistente_horarios(request):
                     school_year=school_year,
                     title=prompt[:157] + ("..." if len(prompt) > 157 else ""),
                 )
-            AssistantMessage.objects.create(
+            user_message = AssistantMessage.objects.create(
                 conversation=conversation,
                 role=AssistantMessage.USER,
                 content=prompt,
@@ -92,6 +96,7 @@ def asistente_horarios(request):
                     reason="Memoria confirmada explícitamente desde el asistente.",
                     changed_by=request.user,
                 )
+            proposed_rules = create_proposed_rules(prompt, school_year, user_message, request.user)
             result = request_local_assistant(prompt, school_year)
             AssistantMessage.objects.create(
                 conversation=conversation,
@@ -100,6 +105,7 @@ def asistente_horarios(request):
                 structured_result={
                     "local_model_available": result["available"],
                     "model": result.get("model", ""),
+                    "proposed_rule_ids": [rule.pk for rule in proposed_rules],
                 },
             )
             return redirect(f"{request.path}?conversation={conversation.pk}")
@@ -115,10 +121,73 @@ def asistente_horarios(request):
             "conversation": conversation,
             "conversations": conversations,
             "assistant_messages": conversation.messages.all() if conversation else [],
+            "proposed_rules": SchedulingRule.objects.filter(
+                source_message__conversation=conversation,
+                status=SchedulingRule.PROPOSED,
+            ) if conversation else [],
+            "confirmed_rules": SchedulingRule.objects.filter(
+                school_year=school_year,
+                status=SchedulingRule.CONFIRMED,
+                active=True,
+            )[:30],
             "memories": active_memories(school_year)[:30],
             "local_ai_configured": bool(settings.LOCAL_AI_URL and settings.LOCAL_AI_MODEL),
         },
     )
+
+
+@login_required
+@require_http_methods(["POST"])
+def confirmar_regla_asistente(request, rule_id):
+    rule = SchedulingRule.objects.filter(
+        pk=rule_id,
+        created_by=request.user,
+        status=SchedulingRule.PROPOSED,
+    ).select_related("source_message__conversation").first()
+    if rule is None:
+        messages.error(request, "La regla no existe o ya fue procesada.")
+        return redirect("timetabling:asistente_horarios")
+
+    action = request.POST.get("action")
+    if action == "confirm":
+        rule.status = SchedulingRule.CONFIRMED
+        rule.confirmed_by = request.user
+        rule.confirmed_at = timezone.now()
+        rule.save(update_fields=["status", "confirmed_by", "confirmed_at"])
+        memory = AssistantMemory.objects.create(
+            scope_type=AssistantMemory.SCHOOL_YEAR,
+            school_year=rule.school_year,
+            category="scheduling_rule",
+            title=rule.name,
+            content=rule.explanation or rule.name,
+            structured_data={
+                "rule_id": rule.pk,
+                "rule_type": rule.rule_type,
+                "severity": rule.severity,
+                "weight": rule.weight,
+                "parameters": rule.parameters,
+            },
+            status=AssistantMemory.CONFIRMED,
+            source="assistant",
+            created_by=request.user,
+        )
+        AssistantMemoryRevision.objects.create(
+            memory=memory,
+            new_data=memory.structured_data,
+            reason="Regla propuesta por el asistente y confirmada por el usuario.",
+            changed_by=request.user,
+        )
+        messages.success(request, "Regla confirmada y guardada en la memoria persistente.")
+    elif action == "reject":
+        rule.status = SchedulingRule.REJECTED
+        rule.active = False
+        rule.save(update_fields=["status", "active"])
+        messages.success(request, "Regla rechazada; no será aplicada al horario.")
+    else:
+        messages.error(request, "Acción no válida.")
+
+    conversation_id = rule.source_message.conversation_id if rule.source_message_id else ""
+    return redirect(f"{reverse('timetabling:asistente_horarios')}?conversation={conversation_id}")
 
 
 def _teacher_filter_context(request, context):

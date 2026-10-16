@@ -63,6 +63,39 @@
 
   <aside>
     <section class="result-panel">
+      <h2>Reglas propuestas</h2>
+      {% if proposed_rules %}
+        {% for rule in proposed_rules %}
+          <article>
+            <strong>{{ rule.name }}</strong>
+            <p>{{ rule.explanation }}</p>
+            <small>{{ rule.get_severity_display }} · Peso {{ rule.weight }}</small>
+            <form method="post" action="{% url 'timetabling:confirmar_regla_asistente' rule.pk %}" class="form-actions">
+              {% csrf_token %}
+              <button type="submit" name="action" value="confirm">Confirmar</button>
+              <button type="submit" name="action" value="reject" class="btn-secondary">Rechazar</button>
+            </form>
+          </article>
+        {% endfor %}
+      {% else %}
+        <p>No hay reglas pendientes de confirmación.</p>
+      {% endif %}
+    </section>
+
+    <section class="result-panel">
+      <h2>Reglas confirmadas</h2>
+      {% if confirmed_rules %}
+        <ul>
+          {% for rule in confirmed_rules %}
+            <li><strong>{{ rule.name }}</strong><br><small>{{ rule.get_severity_display }}</small></li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p>No hay reglas confirmadas para este año.</p>
+      {% endif %}
+    </section>
+
+    <section class="result-panel">
       <h2>Memoria persistente</h2>
       {% if memories %}
         <ul>

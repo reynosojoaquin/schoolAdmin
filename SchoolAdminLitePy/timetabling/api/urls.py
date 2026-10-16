@@ -6,6 +6,11 @@ app_name = "timetabling"
 
 urlpatterns = [
     path("asistente/", views.asistente_horarios, name="asistente_horarios"),
+    path(
+        "asistente/reglas/<int:rule_id>/confirmar/",
+        views.confirmar_regla_asistente,
+        name="confirmar_regla_asistente",
+    ),
     path("carga-lectiva.pdf", views.reporte_carga_lectiva, name="reporte_carga_lectiva"),
     path("horarios/generar/", views.generar_horario, name="generar_horario"),
     path(

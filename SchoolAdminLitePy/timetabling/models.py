@@ -370,3 +370,66 @@ class AssistantMemoryRevision(models.Model):
         ordering = ["-changed_at"]
         verbose_name = "revisión de memoria"
         verbose_name_plural = "revisiones de memoria"
+
+
+class SchedulingRule(models.Model):
+    HARD = "hard"
+    SOFT = "soft"
+    SEVERITY_CHOICES = [(HARD, "Obligatoria"), (SOFT, "Preferencia")]
+    PROPOSED = "proposed"
+    CONFIRMED = "confirmed"
+    REJECTED = "rejected"
+    STATUS_CHOICES = [
+        (PROPOSED, "Propuesta"),
+        (CONFIRMED, "Confirmada"),
+        (REJECTED, "Rechazada"),
+    ]
+    RULE_TYPES = [
+        ("teacher_unavailable", "Docente no disponible"),
+        ("teacher_max_daily", "Máximo diario del docente"),
+        ("teacher_max_weekly", "Máximo semanal del docente"),
+        ("lesson_pattern", "Patrón de lección"),
+        ("minimize_teacher_gaps", "Minimizar huecos docentes"),
+        ("custom", "Regla personalizada"),
+    ]
+
+    school_year = models.CharField("año escolar", max_length=20)
+    name = models.CharField("nombre", max_length=180)
+    rule_type = models.CharField(max_length=40, choices=RULE_TYPES)
+    severity = models.CharField(max_length=10, choices=SEVERITY_CHOICES, default=SOFT)
+    weight = models.PositiveSmallIntegerField(default=50)
+    parameters = models.JSONField(default=dict)
+    explanation = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=PROPOSED)
+    active = models.BooleanField(default=True)
+    source_message = models.ForeignKey(
+        AssistantMessage,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="proposed_rules",
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="created_schedule_rules",
+    )
+    confirmed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="confirmed_schedule_rules",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["status", "-created_at"]
+        verbose_name = "regla de horario"
+        verbose_name_plural = "reglas de horario"
+        indexes = [models.Index(fields=["school_year", "status", "active"])]
+
+    def __str__(self):
+        return self.name

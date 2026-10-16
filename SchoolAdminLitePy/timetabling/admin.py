@@ -7,6 +7,7 @@ from timetabling.models import (
     Aula,
     BloqueHorario,
     Profesor,
+    SchedulingRule,
 )
 
 
@@ -78,3 +79,11 @@ class AssistantConversationAdmin(admin.ModelAdmin):
     search_fields = ("title", "user__username")
     readonly_fields = ("created_at", "updated_at")
     inlines = (AssistantMessageInline,)
+
+
+@admin.register(SchedulingRule)
+class SchedulingRuleAdmin(admin.ModelAdmin):
+    list_display = ("name", "school_year", "rule_type", "severity", "status", "active")
+    list_filter = ("school_year", "rule_type", "severity", "status", "active")
+    search_fields = ("name", "explanation")
+    readonly_fields = ("created_at", "confirmed_at")

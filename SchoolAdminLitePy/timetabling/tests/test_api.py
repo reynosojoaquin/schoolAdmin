@@ -21,6 +21,7 @@ from timetabling.models import (
     Grupo,
     Materia,
     Profesor,
+    SchedulingRule,
 )
 
 
@@ -66,6 +67,50 @@ class GenerarHorarioViewTests(TestCase):
             "Ramón no debe impartir clases los viernes.",
             "2026-2027",
         )
+
+    @patch(
+        "timetabling.api.views.request_local_assistant",
+        return_value={"available": False, "content": "Modelo pendiente."},
+    )
+    def test_schedule_assistant_proposes_and_confirms_predefined_rules(self, local_assistant):
+        user = User.objects.create_user(username="rule-user")
+        self.client.force_login(user)
+        configuration = SystemConfiguration.get_solo()
+        configuration.current_school_year = "2026-2027"
+        configuration.save(update_fields=["current_school_year"])
+        teacher = Teacher.objects.create(first_name="Zeferino", last_name="Único")
+        course = Course.objects.create(name="Reglas")
+        section = Section.objects.create(course=course, name="A", school_year="2026-2027")
+        Subject.objects.create(section=section, name="Ciencias Naturales", weekly_hours=6)
+
+        response = self.client.post(
+            reverse("timetabling:asistente_horarios"),
+            {
+                "prompt": (
+                    "Zeferino Único no puede trabajar los viernes. Ciencias Naturales "
+                    "debe ir en bloques dobles y quiero minimizar los huecos."
+                ),
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        rules = SchedulingRule.objects.filter(created_by=user)
+        self.assertEqual(rules.count(), 3)
+        unavailable = rules.get(rule_type="teacher_unavailable")
+        self.assertEqual(unavailable.parameters["teacher_id"], teacher.pk)
+        self.assertEqual(unavailable.parameters["days"], ["VIE"])
+
+        response = self.client.post(
+            reverse("timetabling:confirmar_regla_asistente", args=[unavailable.pk]),
+            {"action": "confirm"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        unavailable.refresh_from_db()
+        self.assertEqual(unavailable.status, SchedulingRule.CONFIRMED)
+        memory = AssistantMemory.objects.get(structured_data__rule_id=unavailable.pk)
+        self.assertEqual(memory.structured_data["rule_type"], "teacher_unavailable")
+        self.assertEqual(memory.status, AssistantMemory.CONFIRMED)
 
     def test_get_displays_the_schedule_generator_page(self):
         response = self.client.get(reverse("timetabling:generar_horario"))
