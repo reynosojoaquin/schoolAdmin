@@ -465,7 +465,7 @@ class GenerarHorarioViewTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("Asignaciones docentes", response.json()["error"])
 
-    def test_teaching_load_report_uses_administration_data(self):
+    def test_teaching_load_report_preview_uses_administration_data(self):
         user = User.objects.create_user(username="load-report")
         self.client.force_login(user)
         configuration = SystemConfiguration.get_solo()
@@ -478,6 +478,27 @@ class GenerarHorarioViewTests(TestCase):
         TeachingAssignment.objects.create(section=section, subject=subject, teacher=teacher)
 
         response = self.client.get(reverse("timetabling:reporte_carga_lectiva"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "text/html; charset=utf-8")
+        self.assertContains(response, "Vista previa de carga lectiva")
+        self.assertContains(response, "Matemáticas")
+        self.assertContains(response, "Ana Docente")
+        self.assertContains(response, "Descargar PDF")
+
+    def test_teaching_load_report_download_generates_pdf(self):
+        user = User.objects.create_user(username="load-report-pdf")
+        self.client.force_login(user)
+        configuration = SystemConfiguration.get_solo()
+        configuration.current_school_year = "2026-2027"
+        configuration.save(update_fields=["current_school_year"])
+        course = Course.objects.create(name="Carga PDF")
+        section = Section.objects.create(course=course, name="A", school_year="2026-2027")
+        subject = Subject.objects.create(section=section, name="Matemáticas", weekly_hours=5)
+        teacher = Teacher.objects.create(first_name="Ana", last_name="Docente")
+        TeachingAssignment.objects.create(section=section, subject=subject, teacher=teacher)
+
+        response = self.client.get(reverse("timetabling:descargar_carga_lectiva"))
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Content-Type"], "application/pdf")
@@ -520,9 +541,36 @@ class GenerarHorarioViewTests(TestCase):
         section = Section.objects.create(course=course, name="A", school_year="2026-2027")
         subject = Subject.objects.create(section=section, name="Matemáticas", weekly_hours=5)
         TeachingAssignment.objects.create(section=section, subject=subject, teacher=teacher)
+        other_teacher = Teacher.objects.create(first_name="Bruno", last_name="Docente")
+        other_section = Section.objects.create(
+            course=course,
+            name="B",
+            school_year="2026-2027",
+        )
+        other_subject = Subject.objects.create(
+            section=other_section,
+            name="Lengua",
+            weekly_hours=4,
+        )
+        TeachingAssignment.objects.create(
+            section=other_section,
+            subject=other_subject,
+            teacher=other_teacher,
+        )
+
+        preview = self.client.get(
+            reverse("timetabling:reporte_carga_lectiva"),
+            {"teacher": teacher.pk},
+        )
+        self.assertContains(preview, "Matemáticas")
+        self.assertNotContains(preview, "Lengua")
+        self.assertContains(
+            preview,
+            reverse("timetabling:descargar_carga_lectiva") + f"?teacher={teacher.pk}",
+        )
 
         response = self.client.get(
-            reverse("timetabling:reporte_carga_lectiva"),
+            reverse("timetabling:descargar_carga_lectiva"),
             {"teacher": teacher.pk},
         )
 

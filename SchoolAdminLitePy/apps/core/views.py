@@ -1795,6 +1795,14 @@ class TeachingAssignmentCreateView(AcademicCreateView):
     success_url = reverse_lazy("core:teaching_assignment_list")
     cancel_url_name = "core:teaching_assignment_list"
 
+    def get_initial(self):
+        initial = super().get_initial()
+        for field_name in ("section", "subject"):
+            value = self.request.GET.get(field_name)
+            if value:
+                initial[field_name] = value
+        return initial
+
 
 class TeachingAssignmentUpdateView(AcademicUpdateView):
     model = TeachingAssignment
@@ -1810,7 +1818,10 @@ class UserAccessListView(ManagementAccessMixin, ListView):
     paginate_by = 30
 
     def get_queryset(self):
-        queryset = User.objects.prefetch_related("groups").order_by("username")
+        queryset = User.objects.select_related(
+            "teacher_profile",
+            "administrative_employee_profile",
+        ).prefetch_related("groups").order_by("username")
         query = self.request.GET.get("q", "").strip()
         if query:
             queryset = queryset.filter(

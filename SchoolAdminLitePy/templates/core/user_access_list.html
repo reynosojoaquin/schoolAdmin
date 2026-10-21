@@ -27,6 +27,7 @@
         <th>Usuario</th>
         <th>Nombre</th>
         <th>Correo</th>
+        <th>Personal vinculado</th>
         <th>Roles</th>
         <th>Estado</th>
         <th></th>
@@ -39,6 +40,16 @@
           <td><strong>{{ item.username }}</strong></td>
           <td>{{ item.get_full_name|default:"-" }}</td>
           <td>{{ item.email|default:"-" }}</td>
+          <td>
+            {% if item.teacher_profile %}
+              Docente: {{ item.teacher_profile }}
+            {% endif %}
+            {% if item.administrative_employee_profile %}
+              {% if item.teacher_profile %}<br>{% endif %}
+              Administrativo: {{ item.administrative_employee_profile }}
+            {% endif %}
+            {% if not item.teacher_profile and not item.administrative_employee_profile %}-{% endif %}
+          </td>
           <td>{% for group in item.groups.all %}{{ group.name }}{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}</td>
           <td>{% if item.is_active %}<span class="status active">Activo</span>{% else %}<span class="status inactive">Inactivo</span>{% endif %}</td>
           <td class="actions">
@@ -49,7 +60,7 @@
           </td>
         </tr>
       {% empty %}
-        <tr><td colspan="7" class="empty">No hay usuarios para mostrar.</td></tr>
+        <tr><td colspan="8" class="empty">No hay usuarios para mostrar.</td></tr>
       {% endfor %}
     </tbody>
   </table>

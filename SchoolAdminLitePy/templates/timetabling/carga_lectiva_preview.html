@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Vista previa de carga lectiva - SchoolAdmin Lite{% endblock %}
+
+{% block content %}
+<div class="timetable-workspace">
+{% include "timetabling/_navigation.html" with active_tab="teaching-load" %}
+
+<section class="page-header timetable-page-header">
+  <div>
+    <p class="eyebrow">REPORTE · {{ school_year|default:"AÑO ESCOLAR NO CONFIGURADO" }}</p>
+    <h1>Vista previa de carga lectiva</h1>
+    <p>{{ report.institution_name }}</p>
+    <p>Revisa las asignaturas y horas por sección antes de generar el PDF.</p>
+  </div>
+  <a class="btn timetable-action" href="{% url 'timetabling:descargar_carga_lectiva' %}{% if selected_teacher %}?teacher={{ selected_teacher.pk }}{% endif %}">Descargar PDF</a>
+</section>
+
+<section class="timetable-panel">
+  <div class="timetable-panel-heading">
+    <div><span class="panel-kicker">VALIDACIÓN PREVIA</span><h2>Carga lectiva {{ school_year }}</h2></div>
+    {% if report.missing_count %}<span class="count-badge">{{ report.missing_count }} sin docente</span>{% else %}<span class="setup-badge is-ready"><span></span>Completa</span>{% endif %}
+  </div>
+  <form method="get" class="inline-filter">
+    <label for="teaching-load-teacher"><strong>Filtrar por docente</strong></label>
+    <select id="teaching-load-teacher" name="teacher" class="form-control">
+      <option value="">Todos los docentes</option>
+      {% for teacher in teachers %}
+      <option value="{{ teacher.pk }}" {% if selected_teacher.pk == teacher.pk %}selected{% endif %}>{{ teacher }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn-secondary">Actualizar vista previa</button>
+    {% if selected_teacher %}<a class="filter-reset" href="{% url 'timetabling:reporte_carga_lectiva' %}">Quitar filtro</a>{% endif %}
+  </form>
+  {% if selected_teacher %}<p><strong>Docente seleccionado:</strong> {{ selected_teacher }}</p>{% endif %}
+
+  <div class="resource-table-wrap">
+    <table aria-label="Vista previa de carga lectiva">
+      <thead>
+        <tr>
+          <th scope="col">Docente</th>
+          <th scope="col">Asignaturas</th>
+          {% for section in report.section_labels %}<th scope="col">{{ section }}</th>{% endfor %}
+          <th scope="col">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in report.rows %}
+        <tr{% if row.unassigned %} class="is-unassigned"{% endif %}>
+          <th scope="row">{{ row.teacher }}</th>
+          <td>{{ row.subjects|join:", " }}</td>
+          {% for hours in row.hours %}<td>{{ hours|default_if_none:"" }}</td>{% endfor %}
+          <td><strong>{{ row.total }}</strong></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="{{ report.section_labels|length|add:3 }}">No hay asignaciones con horas semanales para mostrar.</td></tr>
+        {% endfor %}
+        <tr class="total-row">
+          <th scope="row" colspan="2">Total</th>
+          {% for hours in report.totals %}<td>{{ hours }}</td>{% endfor %}
+          <td>{{ report.grand_total }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+</div>
+{% endblock %}

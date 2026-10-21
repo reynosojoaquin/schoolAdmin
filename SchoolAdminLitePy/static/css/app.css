@@ -2157,6 +2157,15 @@ tr:last-child td {
   background: #f8faff;
 }
 
+.resource-table-wrap tbody tr.is-unassigned {
+  background: #fff1f1;
+}
+
+.resource-table-wrap tbody tr.total-row {
+  background: #f6f8fb;
+  font-weight: 700;
+}
+
 .resource-table-wrap .actions {
   display: flex;
   gap: 7px;

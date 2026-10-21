@@ -4,6 +4,15 @@ set -e
 SERVER="joaquin@192.168.60.3"
 REMOTE_BASE="/srv/centro/schooladmin"
 SERVICE="schooladmin"
+SSH_BIN="ssh"
+SCP_BIN="scp"
+if [ -x "/mnt/c/Windows/System32/OpenSSH/ssh.exe" ]; then
+  SSH_BIN="/mnt/c/Windows/System32/OpenSSH/ssh.exe"
+fi
+if [ -x "/mnt/c/Windows/System32/OpenSSH/scp.exe" ]; then
+  SCP_BIN="/mnt/c/Windows/System32/OpenSSH/scp.exe"
+fi
+SSH_OPTS=(-o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20)
 SERVICE_USER="centroapp"
 ENV_FILE="/etc/schooladmin.env"
 VENV="/srv/centro/schooladmin/venv"
@@ -23,11 +32,11 @@ git -C "$SCRIPT_DIR" archive --format=tar.gz -o "$TARFILE" HEAD
 echo "OK"
 
 echo "[2/7] Subiendo al servidor..."
-scp "$TARFILE" "${SERVER}:/tmp/schooladmin-release.tar.gz"
+cat "$TARFILE" | ssh "${SSH_OPTS[@]}" "$SERVER" 'cat > /tmp/schooladmin-release.tar.gz'
 echo "OK"
 
 echo "[3/7] Extrayendo release..."
-ssh "$SERVER" bash -s <<REMOTE
+ssh "${SSH_OPTS[@]}" "$SERVER" bash -s <<REMOTE
 set -e
 sudo mkdir -p ${REMOTE_BASE}/releases/${RELEASE}
 sudo tar -xzf /tmp/schooladmin-release.tar.gz -C ${REMOTE_BASE}/releases/${RELEASE}
@@ -38,19 +47,19 @@ REMOTE
 echo "OK"
 
 echo "[4/7] Creando symlink..."
-ssh "$SERVER" "sudo ln -sfn ${REMOTE_BASE}/releases/${RELEASE} ${REMOTE_BASE}/current"
+ssh "${SSH_OPTS[@]}" "$SERVER" "sudo ln -sfn ${REMOTE_BASE}/releases/${RELEASE} ${REMOTE_BASE}/current"
 echo "OK"
 
 echo "[5/7] Migraciones..."
-ssh "$SERVER" "sudo bash -c 'set -a; . ${ENV_FILE}; set +a; cd ${REMOTE_BASE}/current && runuser -u ${SERVICE_USER} --preserve-environment -- ${VENV}/bin/python manage.py migrate --noinput'"
+ssh "${SSH_OPTS[@]}" "$SERVER" "sudo bash -c 'set -a; . ${ENV_FILE}; set +a; cd ${REMOTE_BASE}/current && runuser -u ${SERVICE_USER} --preserve-environment -- ${VENV}/bin/python manage.py migrate --noinput'"
 echo "OK"
 
 echo "[6/7] Static files..."
-ssh "$SERVER" "sudo bash -o pipefail -c 'set -a; . ${ENV_FILE}; set +a; cd ${REMOTE_BASE}/current && runuser -u ${SERVICE_USER} --preserve-environment -- ${VENV}/bin/python manage.py collectstatic --noinput 2>&1 | tail -1'"
+ssh "${SSH_OPTS[@]}" "$SERVER" "sudo bash -o pipefail -c 'set -a; . ${ENV_FILE}; set +a; cd ${REMOTE_BASE}/current && runuser -u ${SERVICE_USER} --preserve-environment -- ${VENV}/bin/python manage.py collectstatic --noinput 2>&1 | tail -1'"
 echo "OK"
 
 echo "[7/7] Reiniciando servicio..."
-ssh "$SERVER" "sudo systemctl restart ${SERVICE} && sudo systemctl status ${SERVICE} --no-pager | head -8"
+ssh "${SSH_OPTS[@]}" "$SERVER" "sudo systemctl restart ${SERVICE} && sudo systemctl status ${SERVICE} --no-pager | head -8"
 echo ""
 
 rm -f "$TARFILE"

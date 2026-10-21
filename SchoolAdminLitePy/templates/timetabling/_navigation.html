@@ -4,5 +4,5 @@
   <a class="{% if active_tab == 'resources' %}active{% endif %}" {% if active_tab == 'resources' %}aria-current="page"{% endif %} href="{% url 'timetabling:recursos_horario' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-resources"></use></svg><span>Recursos</span></a>
   {% endif %}
   <a class="{% if active_tab == 'assistant' %}active{% endif %}" {% if active_tab == 'assistant' %}aria-current="page"{% endif %} href="{% url 'timetabling:asistente_horarios' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-rules"></use></svg><span>Asistente y reglas</span></a>
-  <a href="{% url 'timetabling:reporte_carga_lectiva' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-teaching"></use></svg><span>Carga lectiva</span></a>
+  <a class="{% if active_tab == 'teaching-load' %}active{% endif %}" {% if active_tab == 'teaching-load' %}aria-current="page"{% endif %} href="{% url 'timetabling:reporte_carga_lectiva' %}"><svg class="nav-icon" aria-hidden="true"><use href="#icon-teaching"></use></svg><span>Carga lectiva</span></a>
 </nav>

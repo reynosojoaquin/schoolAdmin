@@ -44,7 +44,7 @@ from timetabling.services.administration_data import (
     get_administration_summary,
     sync_administration_catalogs,
 )
-from timetabling.report_pdfs import build_teaching_load_pdf
+from timetabling.report_pdfs import build_teaching_load_pdf, get_teaching_load_data
 from timetabling.services.local_assistant import active_memories, request_local_assistant
 from timetabling.services.rule_interpreter import create_proposed_rules
 
@@ -235,6 +235,25 @@ def _teacher_filter_context(request, context):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def reporte_carga_lectiva(request):
+    school_year = get_administration_summary()["school_year"]
+    context = _teacher_filter_context(request._request, {"school_year": school_year, "sections": []})
+    selected_teacher = context["selected_teacher"]
+    report = get_teaching_load_data(school_year, selected_teacher.pk if selected_teacher else None)
+    return render(
+        request._request,
+        "timetabling/carga_lectiva_preview.html",
+        {
+            "school_year": school_year,
+            "selected_teacher": selected_teacher,
+            "teachers": context["teachers"],
+            "report": report,
+        },
+    )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def descargar_carga_lectiva(request):
     school_year = get_administration_summary()["school_year"]
     context = _teacher_filter_context(request._request, {"school_year": school_year, "sections": []})
     selected_teacher = context["selected_teacher"]

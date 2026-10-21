@@ -55,9 +55,7 @@ def _row_color(subject_names, colors):
     return colors.HexColor("#d9e2f3")
 
 
-def build_teaching_load_pdf(school_year, teacher_id=None):
-    rl = _reportlab()
-    colors = rl["colors"]
+def get_teaching_load_data(school_year, teacher_id=None):
     sections = sorted(
         Section.objects.filter(active=True, course__active=True, school_year=school_year).select_related("course"),
         key=_section_sort_key,
@@ -113,9 +111,48 @@ def build_teaching_load_pdf(school_year, teacher_id=None):
         ),
     )
     section_labels = [f"{section.course.name}{section.name}" for section in sections]
-    header = ["Profesor", "Asignaturas", *section_labels, "T"]
-    data = [header]
     section_totals = defaultdict(int)
+    report_rows = []
+    for row in ordered_rows:
+        subject_names = sorted(row["subjects"])
+        values = [row["hours"].get(section.pk, 0) for section in sections]
+        for section, hours in zip(sections, values):
+            section_totals[section.pk] += hours
+        report_rows.append(
+            {
+                "teacher": (
+                    f"SIN DOCENTE ({missing_count})"
+                    if row["teacher"] is None
+                    else str(row["teacher"])
+                ),
+                "subjects": subject_names,
+                "hours": values,
+                "total": sum(values),
+                "unassigned": row["teacher"] is None,
+            }
+        )
+    totals = [section_totals[section.pk] for section in sections]
+    configuration = SystemConfiguration.get_solo()
+    return {
+        "institution_name": (
+            configuration.institution_name
+            or "Liceo Coronel Rafael Tomas Fernandez Dominguez"
+        ),
+        "sections": sections,
+        "section_labels": section_labels,
+        "rows": report_rows,
+        "totals": totals,
+        "grand_total": sum(totals),
+        "missing_count": missing_count,
+    }
+
+
+def build_teaching_load_pdf(school_year, teacher_id=None):
+    rl = _reportlab()
+    colors = rl["colors"]
+    report = get_teaching_load_data(school_year, teacher_id)
+    sections = report["sections"]
+    data = [["Profesor", "Asignaturas", *report["section_labels"], "T"]]
     styles = rl["getSampleStyleSheet"]()
     teacher_style = rl["ParagraphStyle"](
         "load_teacher",
@@ -133,30 +170,24 @@ def build_teaching_load_pdf(school_year, teacher_id=None):
         alignment=rl["TA_LEFT"],
     )
     row_colors = []
-    for row_index, row in enumerate(ordered_rows, start=1):
-        subject_names = sorted(row["subjects"])
-        if row["teacher"] is None:
-            teacher_name = f"SIN DOCENTE ({missing_count})"
-        else:
-            teacher_name = str(row["teacher"])
-        values = []
-        for section in sections:
-            hours = row["hours"].get(section.pk, 0)
-            values.append(hours or "")
-            section_totals[section.pk] += hours
-        total = sum(value for value in values if isinstance(value, int))
+    for row_index, row in enumerate(report["rows"], start=1):
+        subject_names = row["subjects"]
         data.append(
             [
-                rl["Paragraph"](escape(teacher_name), teacher_style),
+                rl["Paragraph"](escape(row["teacher"]), teacher_style),
                 rl["Paragraph"]("<br/>".join(escape(name) for name in subject_names), subjects_style),
-                *values,
-                total,
+                *[hours or "" for hours in row["hours"]],
+                row["total"],
             ]
         )
-        row_colors.append((row_index, colors.HexColor("#f4cccc") if row["teacher"] is None else _row_color(subject_names, colors)))
+        row_colors.append(
+            (
+                row_index,
+                colors.HexColor("#f4cccc") if row["unassigned"] else _row_color(subject_names, colors),
+            )
+        )
 
-    grand_total = sum(section_totals.values())
-    data.append(["", "Total", *[section_totals[section.pk] for section in sections], grand_total])
+    data.append(["", "Total", *report["totals"], report["grand_total"]])
     total_row = len(data) - 1
 
     buffer = BytesIO()
@@ -168,8 +199,6 @@ def build_teaching_load_pdf(school_year, teacher_id=None):
         topMargin=0.22 * rl["inch"],
         bottomMargin=0.22 * rl["inch"],
     )
-    configuration = SystemConfiguration.get_solo()
-    institution_name = configuration.institution_name or "Liceo Coronel Rafael Tomas Fernandez Dominguez"
     title_style = rl["ParagraphStyle"](
         "load_title",
         parent=styles["Title"],
@@ -186,14 +215,18 @@ def build_teaching_load_pdf(school_year, teacher_id=None):
         leading=12,
         alignment=rl["TA_CENTER"],
     )
-    warning = f"{missing_count} asignaciones sin docente" if missing_count else "Carga docente completa"
+    warning = (
+        f"{report['missing_count']} asignaciones sin docente"
+        if report["missing_count"]
+        else "Carga docente completa"
+    )
     story = [
         rl["Table"](
             [[rl["Paragraph"](f"CARGA LECTIVA {escape(school_year)}", year_style)]],
             colWidths=[7.5 * rl["inch"]],
             style=rl["TableStyle"]([("BACKGROUND", (0, 0), (-1, -1), colors.yellow), ("ALIGN", (0, 0), (-1, -1), "CENTER")]),
         ),
-        rl["Paragraph"](escape(institution_name), title_style),
+        rl["Paragraph"](escape(report["institution_name"]), title_style),
         rl["Paragraph"](warning, year_style),
         rl["Spacer"](1, 8),
     ]

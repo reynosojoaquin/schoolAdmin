@@ -558,6 +558,14 @@ class AdministrativeEmployee(PersonBase):
         related_name="administrative_employees",
         verbose_name="posicion",
     )
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="administrative_employee_profile",
+        verbose_name="usuario del sistema",
+    )
 
     class Meta:
         ordering = ["last_name", "first_name"]

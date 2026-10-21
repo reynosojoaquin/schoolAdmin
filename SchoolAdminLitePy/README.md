@@ -159,3 +159,13 @@ El contenedor `web` ejecuta automaticamente:
 - Migraciones de base de datos.
 - Recoleccion de archivos estaticos.
 - Gunicorn como servidor de aplicacion.
+
+### Dominio interno del servidor de produccion
+
+El servidor de produccion acepta `schooladmin.centro.internal` y lo enruta a esta aplicacion mediante Nginx. Para abrirlo desde otros equipos, crea un registro DNS interno que apunte a `192.168.60.3` o agrega esta entrada al archivo `hosts` de cada cliente:
+
+```text
+192.168.60.3 schooladmin.centro.internal
+```
+
+El acceso sigue sujeto a las reglas de red configuradas en Nginx.

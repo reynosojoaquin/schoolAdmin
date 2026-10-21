@@ -908,10 +908,26 @@ class UserAccessForm(forms.ModelForm):
         required=False,
         help_text="Solo se requiere para usuarios con rol Docente.",
     )
+    administrative_employee = forms.ModelChoiceField(
+        label="Personal administrativo vinculado",
+        queryset=AdministrativeEmployee.objects.filter(active=True).order_by("last_name", "first_name"),
+        required=False,
+        help_text="Asocia este usuario con una secretaria, digitador u otro empleado administrativo.",
+    )
 
     class Meta:
         model = User
-        fields = ["username", "first_name", "last_name", "email", "is_active", "is_staff", "groups", "teacher"]
+        fields = [
+            "username",
+            "first_name",
+            "last_name",
+            "email",
+            "is_active",
+            "is_staff",
+            "groups",
+            "teacher",
+            "administrative_employee",
+        ]
         labels = {
             "is_active": "Usuario activo",
             "is_staff": "Acceso al administrador Django",
@@ -921,6 +937,19 @@ class UserAccessForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         teacher = Teacher.objects.filter(user=self.instance).first() if self.instance.pk else None
         self.fields["teacher"].initial = teacher
+        administrative_employee = (
+            AdministrativeEmployee.objects.filter(user=self.instance).first() if self.instance.pk else None
+        )
+        self.fields["administrative_employee"].initial = administrative_employee
+
+        available_people = Q(active=True, user__isnull=True)
+        if self.instance.pk:
+            available_people |= Q(user_id=self.instance.pk)
+        self.fields["teacher"].queryset = Teacher.objects.filter(available_people).order_by("last_name", "first_name")
+        self.fields["administrative_employee"].queryset = AdministrativeEmployee.objects.filter(
+            available_people
+        ).order_by("last_name", "first_name")
+
         for field in self.fields.values():
             if not isinstance(field.widget, forms.CheckboxSelectMultiple):
                 field.widget.attrs.setdefault("class", "form-control")
@@ -951,6 +980,13 @@ class UserAccessForm(forms.ModelForm):
             if selected_teacher:
                 selected_teacher.user = user
                 selected_teacher.save(update_fields=["user", "updated_at"])
+            selected_employee = self.cleaned_data.get("administrative_employee")
+            AdministrativeEmployee.objects.filter(user=user).exclude(
+                pk=getattr(selected_employee, "pk", None)
+            ).update(user=None)
+            if selected_employee:
+                selected_employee.user = user
+                selected_employee.save(update_fields=["user", "updated_at"])
         return user
 
 

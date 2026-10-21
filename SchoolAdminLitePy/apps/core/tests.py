@@ -931,6 +931,18 @@ class UserCrudTests(TestCase):
             [("alpha-user", 1), ("bravo-user", 2)],
         )
 
+    def test_user_list_shows_linked_administrative_employee(self):
+        user = User.objects.create_user("linked-employee")
+        AdministrativeEmployee.objects.create(
+            first_name="Ana",
+            last_name="Secretaria",
+            user=user,
+        )
+
+        response = self.client.get(reverse("core:user_access_list"))
+
+        self.assertContains(response, "Administrativo: Ana Secretaria")
+
     def test_user_can_be_created_with_password(self):
         response = self.client.post(reverse("core:user_create"), {
             "username": "created-user",
@@ -944,6 +956,50 @@ class UserCrudTests(TestCase):
         self.assertRedirects(response, reverse("core:user_access_list"))
         created_user = User.objects.get(username="created-user")
         self.assertTrue(created_user.check_password("strong-pass-123"))
+
+    def test_user_can_be_linked_to_administrative_employee(self):
+        employee = AdministrativeEmployee.objects.create(
+            first_name="Ana",
+            last_name="Secretaria",
+        )
+
+        response = self.client.post(reverse("core:user_create"), {
+            "username": "secretaria",
+            "first_name": "Ana",
+            "last_name": "Secretaria",
+            "password1": "strong-pass-123",
+            "password2": "strong-pass-123",
+            "administrative_employee": employee.pk,
+        })
+
+        self.assertRedirects(response, reverse("core:user_access_list"))
+        user = User.objects.get(username="secretaria")
+        employee.refresh_from_db()
+        self.assertEqual(employee.user, user)
+
+    def test_user_can_be_linked_to_teacher_and_administrative_employee(self):
+        teacher = Teacher.objects.create(first_name="Maria", last_name="Docente")
+        employee = AdministrativeEmployee.objects.create(
+            first_name="Maria",
+            last_name="Administrativa",
+        )
+
+        response = self.client.post(reverse("core:user_create"), {
+            "username": "dual-role",
+            "first_name": "Maria",
+            "last_name": "Personal",
+            "password1": "strong-pass-123",
+            "password2": "strong-pass-123",
+            "teacher": teacher.pk,
+            "administrative_employee": employee.pk,
+        })
+
+        self.assertRedirects(response, reverse("core:user_access_list"))
+        user = User.objects.get(username="dual-role")
+        teacher.refresh_from_db()
+        employee.refresh_from_db()
+        self.assertEqual(teacher.user, user)
+        self.assertEqual(employee.user, user)
 
     def test_user_can_be_deleted_but_not_self(self):
         user = User.objects.create_user("deletable-user", password="password123")
