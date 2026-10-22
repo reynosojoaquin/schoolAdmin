@@ -38,6 +38,7 @@ urlpatterns = [
     path("docencia/", views.TeachingAssignmentListView.as_view(), name="teaching_assignment_list"),
     path("docencia/nueva/", views.TeachingAssignmentCreateView.as_view(), name="teaching_assignment_create"),
     path("docencia/<int:pk>/editar/", views.TeachingAssignmentUpdateView.as_view(), name="teaching_assignment_update"),
+    path("docencia/<int:pk>/eliminar/", views.TeachingAssignmentDeleteView.as_view(), name="teaching_assignment_delete"),
     path("mis-secciones/", views.MySectionsView.as_view(), name="my_sections"),
     path("calificaciones/<int:assignment_id>/", views.GradeBookView.as_view(), name="gradebook"),
     path("calificaciones/importar/", views.GradeImportView.as_view(), name="grade_import"),

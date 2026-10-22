@@ -50,6 +50,7 @@
           </td>
           <td class="actions">
             <a href="{% url 'core:teaching_assignment_update' assignment.pk %}">Editar</a>
+            <a class="danger-link" href="{% url 'core:teaching_assignment_delete' assignment.pk %}">Eliminar</a>
           </td>
         </tr>
       {% empty %}

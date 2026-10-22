@@ -1763,6 +1763,7 @@ class TeachingAssignmentListView(AcademicListView):
     ]
     row_actions = [
         ("Editar", "core:teaching_assignment_update"),
+        ("Eliminar", "core:teaching_assignment_delete"),
     ]
 
     def get_queryset(self):
@@ -1808,6 +1809,13 @@ class TeachingAssignmentUpdateView(AcademicUpdateView):
     model = TeachingAssignment
     form_class = TeachingAssignmentForm
     title = "Editar asignacion docente"
+    success_url = reverse_lazy("core:teaching_assignment_list")
+    cancel_url_name = "core:teaching_assignment_list"
+
+
+class TeachingAssignmentDeleteView(AcademicDeleteView):
+    model = TeachingAssignment
+    title = "Eliminar asignacion docente"
     success_url = reverse_lazy("core:teaching_assignment_list")
     cancel_url_name = "core:teaching_assignment_list"
 

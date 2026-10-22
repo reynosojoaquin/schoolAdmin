@@ -380,6 +380,44 @@ class SchoolYearSelectionTests(TestCase):
         self.assertContains(response, "Ano escolar de trabajo: <strong>2025-2026</strong>", html=True)
 
 
+class TeachingAssignmentDeleteTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser("assignment-admin", "assignment@example.com", "password")
+        self.client.force_login(self.admin)
+        self.course = Course.objects.create(name="Curso para eliminar docencia")
+        self.section = Section.objects.create(course=self.course, name="A", school_year="2026-2027")
+        self.subject = Subject.objects.create(section=self.section, name="Matematica")
+        self.teacher = Teacher.objects.create(first_name="Docente", last_name="Prueba")
+        self.assignment = TeachingAssignment.objects.create(
+            section=self.section,
+            subject=self.subject,
+            teacher=self.teacher,
+        )
+
+    def test_assignment_lists_show_delete_action(self):
+        delete_url = reverse("core:teaching_assignment_delete", args=[self.assignment.pk])
+
+        response = self.client.get(reverse("core:teaching_assignment_list"), {"school_year": "2026-2027"})
+        self.assertContains(response, delete_url)
+
+        response = self.client.get(reverse("core:section_assignments", args=[self.section.pk]))
+        self.assertContains(response, delete_url)
+
+    def test_delete_requires_confirmation_and_removes_only_assignment(self):
+        delete_url = reverse("core:teaching_assignment_delete", args=[self.assignment.pk])
+
+        response = self.client.get(delete_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Confirmar eliminacion")
+        self.assertTrue(TeachingAssignment.objects.filter(pk=self.assignment.pk).exists())
+
+        response = self.client.post(delete_url)
+        self.assertRedirects(response, reverse("core:teaching_assignment_list"))
+        self.assertFalse(TeachingAssignment.objects.filter(pk=self.assignment.pk).exists())
+        self.assertTrue(Subject.objects.filter(pk=self.subject.pk).exists())
+        self.assertTrue(Teacher.objects.filter(pk=self.teacher.pk).exists())
+
+
 class AdministrativeEmployeeCatalogTests(TestCase):
     @classmethod
     def setUpTestData(cls):
