@@ -417,6 +417,27 @@ class TeachingAssignmentDeleteTests(TestCase):
         self.assertTrue(Subject.objects.filter(pk=self.subject.pk).exists())
         self.assertTrue(Teacher.objects.filter(pk=self.teacher.pk).exists())
 
+    def test_assignment_list_can_be_filtered_by_teacher(self):
+        other_teacher = Teacher.objects.create(first_name="Otro", last_name="Docente")
+        other_subject = Subject.objects.create(section=self.section, name="Lengua Espanola")
+        TeachingAssignment.objects.create(
+            section=self.section,
+            subject=other_subject,
+            teacher=other_teacher,
+        )
+
+        response = self.client.get(
+            reverse("core:teaching_assignment_list"),
+            {"school_year": "2026-2027", "teacher": self.teacher.pk},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["selected_teacher_id"], self.teacher.pk)
+        self.assertContains(response, 'name="teacher"')
+        self.assertContains(response, str(self.teacher))
+        self.assertEqual(list(response.context["object_list"]), [self.assignment])
+        self.assertIn(other_teacher, response.context["teacher_filter_options"])
+
 
 class AdministrativeEmployeeCatalogTests(TestCase):
     @classmethod

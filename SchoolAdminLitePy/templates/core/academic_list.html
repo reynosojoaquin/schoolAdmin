@@ -226,11 +226,11 @@
 {% if is_paginated %}
   <nav class="pagination">
     {% if page_obj.has_previous %}
-      <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}">Anterior</a>
+      <a href="?page={{ page_obj.previous_page_number }}&school_year={{ selected_school_year|urlencode }}{% if selected_teacher_id %}&teacher={{ selected_teacher_id }}{% endif %}{% if query %}&q={{ query|urlencode }}{% endif %}">Anterior</a>
     {% endif %}
     <span>Pagina {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
     {% if page_obj.has_next %}
-      <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}">Siguiente</a>
+      <a href="?page={{ page_obj.next_page_number }}&school_year={{ selected_school_year|urlencode }}{% if selected_teacher_id %}&teacher={{ selected_teacher_id }}{% endif %}{% if query %}&q={{ query|urlencode }}{% endif %}">Siguiente</a>
     {% endif %}
   </nav>
 {% endif %}
