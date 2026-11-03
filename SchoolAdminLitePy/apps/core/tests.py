@@ -956,6 +956,45 @@ class GradeRecoveryTests(TestCase):
         )
         self.assertEqual(grade.recovery_1, Decimal("75"))
 
+    def test_import_keeps_failed_grade_when_recovery_is_empty(self):
+        response = self.client.get(reverse("core:grade_template", args=[self.assignment.pk]))
+        workbook = load_workbook(BytesIO(response.content))
+        sheet = workbook["Calificaciones"]
+        headers = {cell.value: cell.column for cell in sheet[11] if cell.value}
+        sheet.cell(row=12, column=headers["c1_p1"]).value = 55
+        sheet.cell(row=12, column=headers["c1_rp1"]).value = None
+        output = BytesIO()
+        workbook.save(output)
+        upload = SimpleUploadedFile(
+            "calificaciones-menores-70.xlsx",
+            output.getvalue(),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+
+        preview_response = self.client.post(
+            reverse("core:grade_import"),
+            {
+                "teaching_assignment": self.assignment.pk,
+                "excel_file": upload,
+                "action": "preview",
+            },
+        )
+
+        self.assertEqual(preview_response.context["preview"]["valid"], 1)
+        self.assertEqual(preview_response.context["preview"]["skipped"], 0)
+        self.client.post(
+            reverse("core:grade_import"),
+            {"teaching_assignment": self.assignment.pk, "action": "confirm"},
+        )
+        grade = Grade.objects.get(
+            enrollment=self.enrollment,
+            subject=self.subject,
+            subject_competency__isnull=False,
+            period_1=55,
+        )
+        self.assertIsNone(grade.recovery_1)
+        self.assertEqual(grade.effective_periods[0], Decimal("55"))
+
 
 class TeacherListOrderTests(TestCase):
     def setUp(self):

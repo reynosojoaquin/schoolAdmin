@@ -2380,13 +2380,6 @@ class GradeImportView(AcademicAccessMixin, View):
                         column_index = header_map.get(f"c{competency_index}_{header}")
                         raw_value = row[column_index] if column_index is not None and len(row) > column_index else None
                         values[field_name] = self.clean_decimal_for_session(parse_grade_value(raw_value))
-                    for period_number in range(1, 5):
-                        period = parse_grade_value(values[f"period_{period_number}"])
-                        recovery = parse_grade_value(values[f"recovery_{period_number}"])
-                        if period is not None and period < 70 and recovery is None:
-                            raise ValueError(
-                                f"Competencia {competency_index}: P{period_number} es menor de 70 y requiere RP{period_number}."
-                            )
                     competencies.append(
                         {
                             "subject_competency_id": subject_competency.pk,
@@ -2542,7 +2535,7 @@ class GradeTemplateDownloadView(AcademicAccessMixin, View):
                 cell.alignment = Alignment(vertical="center")
 
         sheet.merge_cells(f"A7:{last_column_letter}7")
-        sheet["A7"] = "Cada periodo P1, P2, P3 y P4 tiene su recuperacion RP1, RP2, RP3 y RP4. Si una P es menor de 70, complete su RP; ese valor sustituye la P en el promedio. Use valores de 0 a 100. No elimine filas ni cambie los encabezados."
+        sheet["A7"] = "Cada periodo P1, P2, P3 y P4 tiene una recuperacion opcional RP1, RP2, RP3 y RP4. El sistema cargara todas las notas colocadas; cuando exista una recuperacion para una P menor de 70, ese valor la sustituira en el promedio. Use valores de 0 a 100. No elimine filas ni cambie los encabezados."
         sheet["A7"].fill = PatternFill("solid", fgColor="E2F0D9")
         sheet["A7"].font = Font(color="375623", bold=True)
         sheet["A7"].alignment = Alignment(wrap_text=True)
